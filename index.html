@@ -166,6 +166,8 @@
   #menu[data-screen=main] .screen button.primary { background: #e07a1a; color: #fff; }
   #menu[data-screen=main] .screen button.primary:hover { background: #f28c28; }
   #menu[data-screen=main] .status { color: #e2d9cc; }
+  #menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: #8a8073; font-size: 12px; }
+  #menu[data-screen=main] .version { display: block; }
 
   #editor { display: none; font: 13px system-ui, sans-serif; color: #eee; }
   #editor.open { display: block; }
@@ -219,6 +221,7 @@
 <div id="menu" class="open solid" data-screen="main">
   <!-- the game's name across the top of the main menu: drops in letter by letter, then wobbles -->
   <div class="logo" aria-label="Gourd Wars"></div>
+  <p class="version" data-text="version"></p>
   <div class="card">
     <h1 data-text="menu-title">Gourd Wars</h1>
     <!-- data-title: the card's heading on that screen (the main menu has the logo instead) -->
@@ -243,6 +246,7 @@
       <input data-input="join-code" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CODE">
       <button class="primary" data-act="connect">Join</button>
       <p class="status" data-text="join-status"></p>
+      <button class="primary hidden" data-act="update" data-show="update">Update Now</button>
       <button class="quiet" data-act="leave">Back</button>
     </div>
     <div class="screen" data-screen="paused" data-title="Game Menu">
@@ -682,7 +686,19 @@ const PLAYER_COLORS = ['#2b6cff', '#e8384f', '#1fa35c', '#e0a800']
 const PLAYER_COLOR_NAMES = ['Blue', 'Red', 'Green', 'Yellow']   // "Blue wins!"
 
 // Bump this when you change the game, so mismatched files warn each other.
-const GAME_VERSION = '0.17'
+// Bump this with every update you push: a friend can only join a host with the exact same version.
+const GAME_VERSION = '0.18'
+const GAME_URL = 'https://jpdear.github.io/gourd-wars/'   // where the latest version lives
+
+// <0 if version a is older than b, >0 if newer, 0 if the same ('0.9' < '0.10'; missing counts as oldest)
+function compareVersions(a, b) {
+  const pa = String(a ?? '').split('.').map(Number), pb = String(b ?? '').split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0)
+    if (d) return d
+  }
+  return 0
+}
 
 const NET = {
   idPrefix: 'pumpkin-fight-',  // keeps our codes separate from other apps on the PeerJS server
@@ -690,6 +706,7 @@ const NET = {
   interpDelay: 0.07,           // guest draws this many seconds behind the newest snapshot
   connectTimeout: 10000,       // ms
   silenceTimeout: 5,           // seconds without any message = connection lost
+  helloTimeout: 4000,          // ms the host waits for a guest's hello before giving up on them
 }
 
 // =====================================================================
@@ -3795,6 +3812,8 @@ function createTuningPanel(game) {
 //
 // Messages:
 //   both:  {t:'hello', version}   {t:'ping', time}   {t:'pong', time}
+//          (hello is sent first; the host only lets a guest in once their hello shows the same
+//          GAME_VERSION, and either side drops the connection on a mismatch)
 //   guest: {t:'input', seq, i}
 //   host:  {t:'snap', seq, time, players, pumpkins, events}   {t:'full'}
 //          {t:'maps', maps: [custom map, ...]}   (the host's custom maps, so the guest can draw them)
@@ -3845,9 +3864,7 @@ class Link {
       if (this.closed || !msg || typeof msg !== 'object') return
       this.lastHeard = this.time
       if (msg.t === 'hello') {
-        if (msg.version !== GAME_VERSION) {
-          this.handlers.onWarning?.(`Your files are different versions (you: ${GAME_VERSION}, them: ${msg.version}). Things may act weird.`)
-        }
+        this.handlers.onHello?.(msg.version)
       } else if (msg.t === 'ping') {
         this.send({ t: 'pong', time: msg.time })
       } else if (msg.t === 'pong') {
@@ -4001,6 +4018,7 @@ function createMenu(onAction) {
     el.innerHTML = `<p class="label">Practice Dummies</p>
       <div class="stepper"><button data-act="dummies-down">−</button><span data-text="dummy-count"></span><button data-act="dummies-up">+</button></div>`
   }
+  root.querySelector('[data-text=version]').textContent = 'v' + GAME_VERSION
   root.querySelector('.dup-builtin').innerHTML = BUILTIN_MAP_IDS.map(id => `<button data-act="dup:${id}">${MAPS[id].name}</button>`).join('')
   const mapCodeInput = root.querySelector('[data-input=map-code]'), exportInput = root.querySelector('[data-input=export-code]')
   const codeInput = root.querySelector('[data-input=join-code]')
@@ -4836,7 +4854,13 @@ function boot() {
 
   const menu = createMenu(act => {
     if (act === 'host') startHosting()
-    else if (act === 'show-join') { menu.show('join'); menu.setText('join-status', '') }
+    else if (act === 'show-join') { menu.show('join'); menu.setText('join-status', ''); menu.setShown('update', false) }
+    else if (act === 'update') {
+      // the hosted page: fetch it fresh (so the reload can't come from the browser's cache) and reload;
+      // a downloaded copy can't update itself, so open the hosted one
+      if (location.protocol === 'file:') location.href = GAME_URL
+      else fetch(location.href, { cache: 'reload' }).catch(() => {}).finally(() => location.reload())
+    }
     else if (act === 'connect') joinGame(menu.joinCode)
     else if (act === 'practice') { leaveSession(); resetRound(game); menu.hide() }
     else if (act === 'resume') menu.hide()
@@ -5085,49 +5109,71 @@ function boot() {
       : '')
   }
 
-  // A friend connects: they get the first free color. The first one starts a match; anyone
-  // after that jumps in at the start of the next round.
+  // A friend connects: once their hello shows the same version as ours, they get the first free
+  // color. (A different version is turned away: they're told ours by our own hello.)
   function onGuestConnection(conn) {
     conn.on('open', () => {
       if (mode !== 'host') { conn.close(); return }
-      const slot = [1, 2, 3].find(k => !links.has(k))
-      if (slot === undefined) { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 500); return }
-      const name = PLAYER_COLOR_NAMES[slot]
+      let admitted = false
       const l = new HostLink(conn, {
-        onClose: () => {
-          if (links.get(slot) !== l) return
-          links.delete(slot)
-          removePlayer(game, slot)
-          showHostStatus()
-          if (!links.size) {   // everyone left: back to playing alone
-            game.match = null
-            setDummies(game, dummyCount)
-            startTransition(game, practiceMap)
-            showMessage(`${name} left. Code ${hostCode} still works if anyone wants to join.`, 5)
-          } else showMessage(`${name} left.`)
+        onHello: version => {
+          if (admitted) return
+          if (version !== GAME_VERSION) {
+            const text = compareVersions(version, GAME_VERSION) > 0
+              ? `A friend tried to join with a newer version (${version}, you have ${GAME_VERSION}). Refresh this page to update!`
+              : `A friend tried to join with an older version (${version}). They need to refresh their page.`
+            showMessage(text, 8)
+            menu.setText('host-status', text)   // (also on the host screen, where the card covers the message)
+            setTimeout(() => l.close(), 500)   // (time for our hello to reach them, so they know why)
+            return
+          }
+          const slot = [1, 2, 3].find(k => !links.has(k))
+          if (slot === undefined) { l.send({ t: 'full' }); setTimeout(() => l.close(), 500); return }
+          admitted = true
+          admitGuest(l, slot)
         },
+        onClose: () => l.handlers.onLeave?.(),
         onWarning: text => showMessage(text, 8),
       }, now())
-      links.set(slot, l)
-      l.send({ t: 'maps', maps: customMaps })   // before any snapshot can use one
-      l.send({ t: 'welcome', slot })
-      if (!game.match) {
-        setDummies(game, 0)
-        addPlayer(game, slot)
-        startMatch(game, matchSettings)
-        menu.hide()
-        showMessage(`${name} joined!`)
-      } else {
-        queuePlayer(game, slot)
-        showMessage(`${name} joined! They'll jump in next round.`)
-      }
-      showHostStatus()
+      setTimeout(() => { if (!admitted) l.close() }, NET.helloTimeout)
     })
+  }
+
+  // The first friend starts a match; anyone after that jumps in at the start of the next round.
+  function admitGuest(l, slot) {
+    const name = PLAYER_COLOR_NAMES[slot]
+    l.handlers.onLeave = () => {
+      if (links.get(slot) !== l) return
+      links.delete(slot)
+      removePlayer(game, slot)
+      showHostStatus()
+      if (!links.size) {   // everyone left: back to playing alone
+        game.match = null
+        setDummies(game, dummyCount)
+        startTransition(game, practiceMap)
+        showMessage(`${name} left. Code ${hostCode} still works if anyone wants to join.`, 5)
+      } else showMessage(`${name} left.`)
+    }
+    links.set(slot, l)
+    l.send({ t: 'maps', maps: customMaps })   // before any snapshot can use one
+    l.send({ t: 'welcome', slot })
+    if (!game.match) {
+      setDummies(game, 0)
+      addPlayer(game, slot)
+      startMatch(game, matchSettings)
+      menu.hide()
+      showMessage(`${name} joined!`)
+    } else {
+      queuePlayer(game, slot)
+      showMessage(`${name} joined! They'll jump in next round.`)
+    }
+    showHostStatus()
   }
 
   function joinGame(code) {
     leaveSession()
     menu.show('join')
+    menu.setShown('update', false)
     if (!/^[A-Z0-9]{4}$/.test(code)) { menu.setText('join-status', 'Codes are 4 letters/numbers.'); return }
     menu.setText('join-status', 'Connecting…')
     const p = peer = new Peer({ debug: 1 })
@@ -5147,12 +5193,23 @@ function boot() {
       conn.on('open', () => {
         if (peer !== p) { conn.close(); return }
         clearTimeout(joinTimer)
+        joinTimer = setTimeout(() => fail("The host didn't let us in. Try again."), NET.connectTimeout)
         mode = 'guest'
         ui.localIndex = -1   // (until the host says which player we are)
         tuning.setEnabled(false)
         const l = link = new GuestLink(conn, {
+          onHello: version => {
+            if (version === GAME_VERSION) return
+            if (compareVersions(version, GAME_VERSION) > 0) {
+              fail(`The host has a newer version of Gourd Wars (${version}, you have ${GAME_VERSION}). Update, then join again.`)
+              menu.setShown('update', true)
+            } else {
+              fail(`The host has an older version of Gourd Wars (${version || 'unknown'}, you have ${GAME_VERSION}). Ask them to refresh their page, then try again.`)
+            }
+          },
           onClose: () => {
             if (link !== l) return
+            if (ui.localIndex < 0) { fail("Couldn't join that game. Try again."); return }   // (never let in)
             leaveSession()
             menu.show('main')
             menu.setText('main-status', 'Lost connection to the host.')
@@ -5160,9 +5217,13 @@ function boot() {
           onFull: () => fail(`That game is full (${MAX_PLAYERS} players).`),
           onWarning: text => showMessage(text, 8),
           onMaps: maps => addSessionMaps(maps),
-          onWelcome: slot => { ui.localIndex = slot; showMessage(`You're ${PLAYER_COLOR_NAMES[slot]}!`) },
+          onWelcome: slot => {   // we're in
+            clearTimeout(joinTimer)
+            ui.localIndex = slot
+            menu.hide()
+            showMessage(`You're ${PLAYER_COLOR_NAMES[slot]}!`)
+          },
         }, now())
-        menu.hide()
       })
     })
   }
