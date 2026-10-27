@@ -37,6 +37,7 @@ export function onMenuAction(act) {
   } else if (act === 'restart' && mode === 'host' && links.size) { startMatch(game, matchSettings); menu.hide() }
   else if (act === 'dummies-down' || act === 'dummies-up') changeDummies(dummyCount + (act === 'dummies-up' ? 1 : -1))
   else if (act === 'order-toggle') changeSettings(m => { m.shuffle = !m.shuffle })
+  else if (act === 'sights-toggle') changeSettings(m => { m.sights = !m.sights })
   else if (act === 'show-match') { matchReturnTo = menu.screen; openSettings() }
   else if (act === 'match-done') closeMatchSettings()
   else if (act === 'show-pumpkins') { pumpkinsReturnTo = menu.screen; menu.show('pumpkins') }

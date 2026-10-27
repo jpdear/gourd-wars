@@ -51,6 +51,7 @@ export function makeSnapshot(game) {
     // [stateCode, growth, rot, typeCode] per patch, in the map's patch order
     patches: game.patches.map(p => [PATCH_STATES.indexOf(p.state), r3(p.growth), r3(patchRot(p)), PUMPKIN_TYPE_NAMES.indexOf(p.typeName)]),
     timeScale: game.timeScale,
+    sights: game.sights,   // (the host's setting: show each player their own sight)
     transition: game.transition && { from: game.transition.from, t: r3(Math.min(1, game.transition.elapsed / game.transition.duration)) },
     match: game.match && {
       ...game.match.settings,
@@ -97,6 +98,7 @@ export function interpolateSnapshots(a, b, t) {
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? [lerp(a.movers[i][0], q[0], t), lerp(a.movers[i][1], q[1], t)] : q)),
     map: b.map,
     timeScale: b.timeScale,
+    sights: b.sights,
     transition: b.transition,
     patches: b.patches,
     match: b.match,

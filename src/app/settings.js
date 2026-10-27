@@ -35,6 +35,8 @@ export function loadSettings(game) {
   Object.assign(matchSettings, defaultMatchSettings(), loadJSON(STORAGE_KEYS.match) || {})
   if (!MATCH_MODES.includes(matchSettings.mode)) matchSettings.mode = 'rounds'
   matchSettings.shuffle = matchSettings.shuffle !== false
+  matchSettings.sights = matchSettings.sights === true
+  game.sights = matchSettings.sights
   matchSettings.maps = { ...defaultRotation(), ...(matchSettings.maps || {}) }   // (new maps start on)
 
   const dummies = loadText(STORAGE_KEYS.dummies)
@@ -68,6 +70,7 @@ export function changeSettings(fn) {
   matchSettings.rounds = clamp(Math.round(matchSettings.rounds), 1, 99)
   matchSettings.wins = clamp(Math.round(matchSettings.wins), 1, 50)
   saveJSON(STORAGE_KEYS.match, matchSettings)
+  app.game.sights = matchSettings.sights
   app.menu.showSettings(matchSettings)
   app.menu.showRotation(matchSettings.maps)
 }

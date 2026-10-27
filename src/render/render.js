@@ -13,7 +13,7 @@ import { MAP_SHIFT, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
-import { drawAimLine, drawGrappleVine, drawPlayer, handOf } from './players.js'
+import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
 import { drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
@@ -63,7 +63,7 @@ export function render(ctx, view, snap, effects, ui) {
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), X, Y, s)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
-    if (me && me.held && PUMPKIN_TYPES[me.held].aimLine && !me.dead && !me.stunned && !me.frozen) drawAimLine(ctx, me, ui.aim, X, Y, s)
+    if (me && me.held && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)
     map.scythes.forEach((sc, i) => drawScarecrow(ctx, sc, snap.scythes[i] ?? Math.PI / 2, X, Y, s))
   }
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players

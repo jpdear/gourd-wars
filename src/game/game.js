@@ -24,7 +24,7 @@ export function createGame() {
   // movers: moving platforms { def, body }; moverTime: how far along their trips they are
   const game = {
     world, time: 0, players: [], pumpkins: [], patches: [], bales: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, match: null, spawnSettings: defaultSpawnSettings(),
+    nextPumpkinId: 1, nextBaleId: 1, match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
     joining: [],        // slots waiting to jump in at the start of the next round

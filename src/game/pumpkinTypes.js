@@ -10,7 +10,6 @@
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
 //   throwMode                'throw' (charge & release), 'lob' (short and slow), 'spray' (hold to fire seeds)
 //   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed)
-//   aimLine                  while held, shows its owner a faint dotted line of where it'll go
 //   spawnable                can grow on patches (seeds and cluster pieces can't)
 //   carry                    while held: { speed, jump } multipliers, glide, wallStick: false = too heavy to hold onto walls
 // Optional hooks (see powers.js):
@@ -49,7 +48,8 @@ export const PUMPKIN_TYPES = {
     name: 'Gourd Cluster', color: '#d6a03a', rib: '#8f6a1f', mark: 'cluster',
     radius: 0.24, density: 2, restitution: 0.2,
     damage: 10, knockback: 5, stun: 0.6, breakAfterHits: 1, breakOnPlayer: true,
-    update: (game, pk) => { if (pk.age > 0.12 && pk.body.getLinearVelocity().y <= 0) splitCluster(game, pk) },
+    splitAge: 0.12,   // splits at the top of its arc (but not before this many seconds)
+    update: (game, pk) => { if (pk.age > pk.type.splitAge && pk.body.getLinearVelocity().y <= 0) splitCluster(game, pk) },
   },
   mini: {   // the 3 pieces of a Gourd Cluster
     name: 'Mini', color: '#d6a03a', rib: '#8f6a1f', spawnable: false,
@@ -85,7 +85,7 @@ export const PUMPKIN_TYPES = {
     name: 'Vine', color: '#5fae3c', rib: '#3c7a22', mark: 'vine',
     radius: 0.2, density: 1.5, restitution: 0, gravityScale: 0.25,
     damage: 5, knockback: 0, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true, lifetime: 0.55, fizzle: true,
-    throwSpeed: { min: 34, max: 42 }, aimLine: true,
+    throwSpeed: { min: 34, max: 42 },
     yankSpeed: 20, yankLift: 5,   // hits a player or a bale: it flies toward you this fast (+ lift upward)
     // hits the level: you're reeled in toward where it stuck (see Player.updateGrapple in player.js)
     //   speed, accel   reel speed (m/s) and how fast it gets there

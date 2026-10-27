@@ -1,6 +1,7 @@
 // Drawing the stick figures (from snapshot data), plus what they hold and wear.
 
 import { BODY, CONFIG } from '../config.js'
+import { BALE, TINE } from '../game/level.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { drawPumpkin, pumpkinColors } from './pumpkins.js'
@@ -44,24 +45,62 @@ export function drawGrappleVine(ctx, p, X, Y, s) {
   ctx.lineCap = 'butt'
 }
 
-// Where your held pumpkin will go (only you see it): faint dots along its path, as fast as the
-// throw would be right now (so it grows while you charge), with its drop, out to where it fizzles.
-export function drawAimLine(ctx, p, aim, X, Y, s) {
-  const type = PUMPKIN_TYPES[p.held], T = CONFIG.throw
+// How the held gourd leaves the hand right now: { speed, gravity, life (s), radius } (as in
+// Player.throwPumpkin / fireSeed; a Seed Spitter's sight is its seeds')
+function launchOf(type, charge) {
+  const T = CONFIG.throw
+  const flying = type.throwMode === 'spray' ? PUMPKIN_TYPES.seed : type
+  const [lo, hi] = type.throwMode === 'spray' ? [type.seedSpeed, type.seedSpeed]
+    : type.throwMode === 'lob' ? type.lobSpeed
+    : type.throwSpeed ? [type.throwSpeed.min, type.throwSpeed.max] : [T.minSpeed, T.maxSpeed]
+  const speed = lerp(lo, hi, charge)
+  return { speed, gravity: CONFIG.gravity * (flying.gravityScale ?? 1), life: flying.lifetime || Infinity, radius: flying.radius }
+}
+
+// What a thrown gourd would stop at: boxes { x0, x1, y0, y1 } for platforms and walls, moving
+// platforms and hay bales (where this snapshot has them; bales as if upright) and pitchfork rows.
+function sightObstacles(map, snap) {
+  const box = (x, y, w, h) => ({ x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 })
+  const boxes = map.platforms.map(p => box(p.x, p.y, p.w, p.h))
+  map.movers.forEach((m, i) => { const [x, y] = (snap.movers && snap.movers[i]) || [m.x, m.y]; boxes.push(box(x, y, m.w, m.h)) })
+  for (const [, x, y] of snap.bales) boxes.push(box(x, y, BALE.w, BALE.h))
+  for (const sp of map.spikes) boxes.push({ x0: sp.x - sp.w / 2, x1: sp.x + sp.w / 2, y0: sp.y, y1: sp.y + TINE.tip })
+  return boxes
+}
+
+// Your sight (only you see it, when the host has sights on): faint dots along where your gourd
+// would fly if thrown now (so it grows while you charge), fading out, up to the first thing it
+// would hit, where it would fizzle (Vine) or split (Gourd Cluster), or off screen.
+export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
+  const type = PUMPKIN_TYPES[p.held]
+  const { speed, gravity, life, radius } = launchOf(type, p.charge)
   const [hx, hy] = handOf(p)
   const [sx, sy] = partEnds(p.parts[PART_NAMES.indexOf('torso')], PART_HALF_LEN.torso)   // (the shoulders: aimed from there)
   const d = Math.hypot(aim.x - sx, aim.y - sy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - sy) / d
-  const { min, max } = type.throwSpeed || { min: T.minSpeed, max: T.maxSpeed }
-  const speed = lerp(min, max, p.charge), g = CONFIG.gravity * (type.gravityScale ?? 1)
-  const life = type.lifetime || 1, dots = Math.max(2, Math.round(speed * life / 0.45))
-  ctx.fillStyle = type.color
-  for (let i = 1; i <= dots; i++) {
-    const t = life * i / dots
-    ctx.globalAlpha = 0.55 * (1 - 0.6 * i / dots)   // fading toward the end of its range
-    ctx.beginPath()
-    ctx.arc(X(hx + dx * (0.15 + speed * t)), Y(hy + dy * (0.15 + speed * t) - 0.5 * g * t * t), 0.04 * s, 0, Math.PI * 2)
-    ctx.fill()
+  const x0 = hx + dx * 0.15, y0 = hy + dy * 0.15   // (where it leaves the hand)
+  let end = Math.min(life, 4)
+  if (type.splitAge) end = Math.min(end, Math.max(type.splitAge, dy * speed / gravity))   // (the top of its arc)
+  const boxes = sightObstacles(map, snap)
+  const hits = (x, y) => boxes.some(b => x > b.x0 - radius && x < b.x1 + radius && y > b.y0 - radius && y < b.y1 + radius)
+
+  // walk the arc in small steps (~5 cm), keeping a dot every 0.45 m
+  const dots = [], dt = 0.05 / Math.max(speed, 1)
+  let travelled = 0, nextDot = 0.45, px = x0, py = y0
+  for (let t = dt; t <= end; t += dt) {
+    const x = x0 + dx * speed * t, y = y0 + dy * speed * t - 0.5 * gravity * t * t
+    if (x < -1 || x > CONFIG.view.w + 1 || y < -1) break   // (off screen)
+    if (hits(x, y)) break
+    travelled += Math.hypot(x - px, y - py)
+    px = x; py = y
+    if (travelled >= nextDot) { dots.push([x, y]); nextDot += 0.45 }
   }
+  ctx.fillStyle = type.color
+  dots.forEach(([x, y], i) => {
+    ctx.globalAlpha = 0.55 * (1 - 0.6 * i / Math.max(dots.length, 1))   // fading along the way
+    ctx.beginPath()
+    ctx.arc(X(x), Y(y), 0.04 * s, 0, Math.PI * 2)
+    ctx.fill()
+  })
   ctx.globalAlpha = 1
 }
 
