@@ -79,6 +79,62 @@ export function drawPatches(ctx, snap, localIndex, X, Y, s) {
   })
 }
 
+// Decorations drawn over a pumpkin's body, by its type's mark (in the pumpkin's own frame: radius r,
+// canvas y pointing down, so negative y is the top).
+const lines = (ctx, r, color, ys) => {
+  ctx.strokeStyle = color
+  ctx.beginPath()
+  for (const oy of ys) { ctx.moveTo(-r, oy * r); ctx.lineTo(r, oy * r) }
+  ctx.stroke()
+}
+const MARKS = {
+  bands: (ctx, r, colors) => lines(ctx, r, colors.rib, [-0.4, 0.4]),
+  stripe: (ctx, r) => lines(ctx, r, 'rgba(255, 255, 255, 0.8)', [0]),
+  fuse: (ctx, r) => {
+    ctx.strokeStyle = '#3b3631'
+    ctx.beginPath()
+    ctx.moveTo(r * 0.1, -r * 1.1)
+    ctx.quadraticCurveTo(r * 0.5, -r * 1.6, r * 0.7, -r * 1.4)
+    ctx.stroke()
+    ctx.fillStyle = Math.sin(Date.now() / 60) > 0 ? '#ffd36b' : '#ff7a1a'   // spark
+    ctx.beginPath()
+    ctx.arc(r * 0.72, -r * 1.42, Math.max(1.5, r * 0.16), 0, Math.PI * 2)
+    ctx.fill()
+  },
+  ice: (ctx, r) => {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+    for (const [ox, oy] of [[-0.5, -0.3], [0.35, 0.1], [-0.1, 0.5]]) {
+      ctx.beginPath()
+      ctx.moveTo(ox * r, (oy - 0.18) * r); ctx.lineTo((ox + 0.1) * r, oy * r)
+      ctx.lineTo(ox * r, (oy + 0.18) * r); ctx.lineTo((ox - 0.1) * r, oy * r)
+      ctx.fill()
+    }
+  },
+  vine: (ctx, r) => {
+    ctx.strokeStyle = '#3c7a22'
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 1.2)
+    ctx.bezierCurveTo(r * 0.8, -r * 1.8, r * 1.2, -r * 0.8, r * 0.7, -r * 0.9)
+    ctx.stroke()
+  },
+  speckle: (ctx, r) => {
+    ctx.fillStyle = '#3b3631'
+    for (const [ox, oy] of [[-0.5, -0.2], [0.3, -0.45], [0.55, 0.25], [-0.2, 0.45], [0.05, 0]]) {
+      ctx.beginPath()
+      ctx.arc(ox * r, oy * r, Math.max(1, r * 0.09), 0, Math.PI * 2)
+      ctx.fill()
+    }
+  },
+  string: (ctx, r) => {
+    ctx.strokeStyle = '#6b6358'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, r)
+    ctx.quadraticCurveTo(r * 0.3, r * 1.6, 0, r * 2.2)
+    ctx.stroke()
+  },
+}
+
 // colors: { color, rib } (a pumpkin type, or pumpkinColors(...)); mark: the type's decoration
 // (canvas y points down here, so negative y is the top of the pumpkin)
 export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
@@ -124,49 +180,6 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
     ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)   // stem
   }
   ctx.lineWidth = Math.max(1, r * 0.1)
-  if (mark === 'bands' || mark === 'stripe') {
-    ctx.strokeStyle = mark === 'stripe' ? 'rgba(255, 255, 255, 0.8)' : colors.rib
-    ctx.beginPath()
-    for (const oy of mark === 'stripe' ? [0] : [-0.4, 0.4]) { ctx.moveTo(-r, oy * r); ctx.lineTo(r, oy * r) }
-    ctx.stroke()
-  } else if (mark === 'fuse') {
-    ctx.strokeStyle = '#3b3631'
-    ctx.beginPath()
-    ctx.moveTo(r * 0.1, -r * 1.1)
-    ctx.quadraticCurveTo(r * 0.5, -r * 1.6, r * 0.7, -r * 1.4)
-    ctx.stroke()
-    ctx.fillStyle = Math.sin(Date.now() / 60) > 0 ? '#ffd36b' : '#ff7a1a'   // spark
-    ctx.beginPath()
-    ctx.arc(r * 0.72, -r * 1.42, Math.max(1.5, r * 0.16), 0, Math.PI * 2)
-    ctx.fill()
-  } else if (mark === 'ice') {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-    for (const [ox, oy] of [[-0.5, -0.3], [0.35, 0.1], [-0.1, 0.5]]) {
-      ctx.beginPath()
-      ctx.moveTo(ox * r, (oy - 0.18) * r); ctx.lineTo((ox + 0.1) * r, oy * r)
-      ctx.lineTo(ox * r, (oy + 0.18) * r); ctx.lineTo((ox - 0.1) * r, oy * r)
-      ctx.fill()
-    }
-  } else if (mark === 'vine') {
-    ctx.strokeStyle = '#3c7a22'
-    ctx.beginPath()
-    ctx.moveTo(0, -r * 1.2)
-    ctx.bezierCurveTo(r * 0.8, -r * 1.8, r * 1.2, -r * 0.8, r * 0.7, -r * 0.9)
-    ctx.stroke()
-  } else if (mark === 'speckle') {
-    ctx.fillStyle = '#3b3631'
-    for (const [ox, oy] of [[-0.5, -0.2], [0.3, -0.45], [0.55, 0.25], [-0.2, 0.45], [0.05, 0]]) {
-      ctx.beginPath()
-      ctx.arc(ox * r, oy * r, Math.max(1, r * 0.09), 0, Math.PI * 2)
-      ctx.fill()
-    }
-  } else if (mark === 'string') {
-    ctx.strokeStyle = '#6b6358'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(0, r)
-    ctx.quadraticCurveTo(r * 0.3, r * 1.6, 0, r * 2.2)
-    ctx.stroke()
-  }
+  MARKS[mark]?.(ctx, r, colors)
   ctx.restore()
 }

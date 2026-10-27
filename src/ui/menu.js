@@ -15,7 +15,7 @@ export function createMenu(onAction) {
   // match length block (on the Match Settings screen)
   for (const el of root.querySelectorAll('.match-settings')) {
     el.innerHTML = `<p class="label">Match Length</p>
-      <div class="seg"><button data-act="mode-rounds">Rounds</button><button data-act="mode-wins">First To</button><button data-act="mode-endless">Endless</button></div>
+      <div class="seg"><button data-act="mode:rounds">Rounds</button><button data-act="mode:wins">First To</button><button data-act="mode:endless">Endless</button></div>
       <div class="stepper"><button data-act="num-down">−</button><span data-text="match-num"></span><button data-act="num-up">+</button></div>`
   }
   // the logo: one span per letter so they can drop in one after another
@@ -98,7 +98,7 @@ export function createMenu(onAction) {
     },
     showSettings(settings) {
       for (const mode of MATCH_MODES) {
-        for (const b of root.querySelectorAll(`[data-act=mode-${mode}]`)) b.classList.toggle('on', settings.mode === mode)
+        for (const b of root.querySelectorAll(`[data-act="mode:${mode}"]`)) b.classList.toggle('on', settings.mode === mode)
       }
       for (const el of root.querySelectorAll('.match-settings .stepper')) el.classList.toggle('hidden', settings.mode === 'endless')
       for (const [act, on] of [['order-toggle', settings.shuffle], ['sights-toggle', settings.sights]]) {

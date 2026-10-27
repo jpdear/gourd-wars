@@ -329,23 +329,28 @@ export function createEditor(canvas, view, hooks) {
   }
 
   // --- toolbar + panel ---
+  // buttons with data-ed="..." (tools have data-tool, problems in the Checks list data-problem)
+  const buttonActions = {
+    undo: () => restore(undo, redo),
+    redo: () => restore(redo, undo),
+    save: () => save(),
+    playtest: () => {
+      if (problems.errors.length) { setStatus('Fix the problems marked in red first.', true); return }
+      save()
+      hooks.onPlaytest(def.id)
+    },
+    exit: () => {
+      if (json() !== savedJson && !exitArmed) { exitArmed = true; updatePanel(); setStatus('You have unsaved changes. Click "Discard changes" to leave without saving.', true); return }
+      hooks.onExit()
+    },
+    'delete-piece': () => deleteSelected(),
+  }
   root.addEventListener('click', e => {
     const b = e.target.closest('button')
     if (!b) return
     b.blur()
     if (b.dataset.tool) setTool(b.dataset.tool)
-    const act = b.dataset.ed
-    if (act === 'undo') restore(undo, redo)
-    else if (act === 'redo') restore(redo, undo)
-    else if (act === 'save') save()
-    else if (act === 'playtest') {
-      if (problems.errors.length) { setStatus('Fix the problems marked in red first.', true); return }
-      save()
-      hooks.onPlaytest(def.id)
-    } else if (act === 'exit') {
-      if (json() !== savedJson && !exitArmed) { exitArmed = true; updatePanel(); setStatus('You have unsaved changes. Click "Discard changes" to leave without saving.', true); return }
-      hooks.onExit()
-    } else if (act === 'delete-piece') deleteSelected()
+    if (b.dataset.ed) buttonActions[b.dataset.ed]?.()
     else if (b.dataset.problem) {
       const [kind, index] = b.dataset.problem.split(':')
       setTool('select')

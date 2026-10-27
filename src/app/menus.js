@@ -15,55 +15,74 @@ import { app } from './state.js'
 let pumpkinsReturnTo = 'main'   // the menu screen "Done" goes back to
 let matchReturnTo = 'host'      // (same for Match Settings)
 
-export function onMenuAction(act) {
-  const { menu, game } = app
-  if (act === 'host') startHosting()
-  else if (act === 'show-join') { menu.show('join'); menu.setText('join-status', ''); menu.setShown('update', false) }
-  else if (act === 'update') {
+// Every button's action, by name. A button's data-act is the name plus any arguments, separated
+// by colons ("map:hayloft", "pk-rate:frost:rare"); they're handed to the action.
+const ACTIONS = {
+  // main menu, hosting and joining
+  host: () => startHosting(),
+  'show-join': () => { app.menu.show('join'); app.menu.setText('join-status', ''); app.menu.setShown('update', false) },
+  connect: () => joinGame(app.menu.joinCode),
+  update: () => {
     // the hosted page: fetch it fresh (so the reload can't come from the browser's cache) and reload;
     // a downloaded copy can't update itself, so open the hosted one
     if (location.protocol === 'file:') location.href = GAME_URL
     else fetch(location.href, { cache: 'reload' }).catch(() => {}).finally(() => location.reload())
-  }
-  else if (act === 'connect') joinGame(menu.joinCode)
-  else if (act === 'practice') { leaveSession(); resetRound(game); menu.hide() }
-  else if (act === 'resume') menu.hide()
-  else if (act === 'leave') { leaveSession(); menu.show('main'); menu.setText('main-status', '') }
-  else if (act === 'copy-code' && hostCode) navigator.clipboard.writeText(hostCode).catch(() => {})
-  else if (act.startsWith('mode-')) changeSettings(m => { m.mode = act.slice(5) })
-  else if (act === 'num-down' || act === 'num-up') {
-    const d = act === 'num-up' ? 1 : -1
-    changeSettings(m => { if (m.mode === 'rounds') m.rounds += d; else m.wins += d })
-  } else if (act === 'restart' && mode === 'host' && links.size) { startMatch(game, matchSettings); menu.hide() }
-  else if (act === 'dummies-down' || act === 'dummies-up') changeDummies(dummyCount + (act === 'dummies-up' ? 1 : -1))
-  else if (act === 'order-toggle') changeSettings(m => { m.shuffle = !m.shuffle })
-  else if (act === 'sights-toggle') changeSettings(m => { m.sights = !m.sights })
-  else if (act === 'show-match') { matchReturnTo = menu.screen; openSettings() }
-  else if (act === 'match-done') closeMatchSettings()
-  else if (act === 'show-pumpkins') { pumpkinsReturnTo = menu.screen; menu.show('pumpkins') }
-  else if (act === 'pumpkins-done') closePumpkinSettings()
-  else if (act.startsWith('map:')) chooseMap(act.slice(4))
-  else if (act.startsWith('rot:')) {
-    const id = act.slice(4)
-    changeSettings(m => {
-      m.maps[id] = !m.maps[id]
-      if (!mapIds().some(k => m.maps[k])) m.maps[id] = true   // keep at least one map on
-    })
-  }
-  else if (act === 'show-maps') showMyMaps()
-  else if (act === 'maps-back') menu.show('main')
-  else if (act === 'map-new') newMap()
-  else if (act === 'show-import') { menu.show('import'); menu.setText('import-status', '') }
-  else if (act === 'map-import') importMapCode()
-  else if (act === 'export-copy') copyExportCode()
-  else if (act === 'exit') {   // (a play test goes back to the editor)
+  },
+  practice: () => { leaveSession(); resetRound(app.game); app.menu.hide() },
+  resume: () => app.menu.hide(),
+  leave: () => { leaveSession(); app.menu.show('main'); app.menu.setText('main-status', '') },
+  exit: () => {   // (a play test goes back to the editor)
     if (playtestId) { const id = playtestId; leaveSession(); openEditor(id) }
-    else { leaveSession(); menu.show('main'); menu.setText('main-status', '') }
-  }
-  else if (act.startsWith('dup:')) duplicateBuiltin(act.slice(4))
-  else if (act.startsWith('map-')) myMapAction(...act.split(':'))
-  else if (act.startsWith('pk-toggle:')) changeSpawns(st => { const k = act.split(':')[1]; st[k].on = !st[k].on })
-  else if (act.startsWith('pk-rate:')) changeSpawns(st => { const [, k, rate] = act.split(':'); st[k].rate = rate })
+    else { leaveSession(); app.menu.show('main'); app.menu.setText('main-status', '') }
+  },
+  'copy-code': () => { if (hostCode) navigator.clipboard.writeText(hostCode).catch(() => {}) },
+
+  // Match Settings / Settings
+  'show-match': () => { matchReturnTo = app.menu.screen; openSettings() },
+  'match-done': () => closeMatchSettings(),
+  mode: mode => changeSettings(m => { m.mode = mode }),
+  'num-down': () => changeSettings(m => { if (m.mode === 'rounds') m.rounds--; else m.wins-- }),
+  'num-up': () => changeSettings(m => { if (m.mode === 'rounds') m.rounds++; else m.wins++ }),
+  rot: id => changeSettings(m => {
+    m.maps[id] = !m.maps[id]
+    if (!mapIds().some(k => m.maps[k])) m.maps[id] = true   // keep at least one map on
+  }),
+  'order-toggle': () => changeSettings(m => { m.shuffle = !m.shuffle }),
+  'sights-toggle': () => changeSettings(m => { m.sights = !m.sights }),
+  map: id => chooseMap(id),
+  'dummies-down': () => changeDummies(dummyCount - 1),
+  'dummies-up': () => changeDummies(dummyCount + 1),
+  restart: () => {
+    if (mode !== 'host' || !links.size) return
+    startMatch(app.game, matchSettings)
+    app.menu.hide()
+  },
+
+  // Pumpkins
+  'show-pumpkins': () => { pumpkinsReturnTo = app.menu.screen; app.menu.show('pumpkins') },
+  'pumpkins-done': () => closePumpkinSettings(),
+  'pk-toggle': k => changeSpawns(st => { st[k].on = !st[k].on }),
+  'pk-rate': (k, rate) => changeSpawns(st => { st[k].rate = rate }),
+
+  // Map Editor (My Maps)
+  'show-maps': () => showMyMaps(),
+  'maps-back': () => app.menu.show('main'),
+  'map-new': () => newMap(),
+  'show-import': () => { app.menu.show('import'); app.menu.setText('import-status', '') },
+  'map-import': () => importMapCode(),
+  'export-copy': () => copyExportCode(),
+  dup: id => duplicateBuiltin(id),
+  'map-play': id => myMapAction('map-play', id),
+  'map-edit': id => myMapAction('map-edit', id),
+  'map-copy': id => myMapAction('map-copy', id),
+  'map-code': id => myMapAction('map-code', id),
+  'map-delete': id => myMapAction('map-delete', id),
+}
+
+export function onMenuAction(act) {
+  const [name, ...args] = act.split(':')
+  if (ACTIONS[name]) ACTIONS[name](...args)
+  else if (import.meta.env.DEV) console.warn(`No menu action called "${name}" (data-act="${act}")`)
 }
 
 // One line about what's going on, for the Esc menu.
