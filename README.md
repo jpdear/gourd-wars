@@ -65,9 +65,12 @@ src/
   util/               math, colors, saved data (storage.js has every key the game saves)
 tests/
   replay.test.js      plays a scripted 3-minute match with fixed randomness and checks it
-                      plays out exactly as recorded (catches any change in how the game plays)
+                      plays out exactly as recorded (catches any change in how the game plays).
+                      Local only: other CPUs/Node versions do math a hair differently, and the
+                      physics turns that into a different match, so the deploy skips it.
   …                   versions, map codes, the network format
 ```
 
 **When the replay test fails:** something changed how the game plays. If that was the point
 (new tuning, a new pumpkin), re-record it with `npx vitest run -u`; if not, it caught a bug.
+It can also fail after you update Node (different math, same game): re-record then too.

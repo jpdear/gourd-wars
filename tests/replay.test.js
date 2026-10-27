@@ -4,6 +4,11 @@
 //
 // It fails whenever anything changes how the game plays, on purpose or not. If you meant to
 // change it (new tuning, a new pumpkin, ...), re-record with:  npx vitest run -u
+//
+// Only on the computer it was recorded on: the physics is chaotic, so the last-bit differences
+// in math (sin, cos, ...) between CPUs and Node versions grow into a different match within
+// seconds. (Games aren't affected: only the host runs the physics.) So the deploy skips it, and
+// after a Node update it may need re-recording.
 import { expect, it } from 'vitest'
 import { addPlayer, createGame, setDummies, stepGame } from '../src/game/game.js'
 import { dummyInput } from '../src/game/input.js'
@@ -13,7 +18,7 @@ import { makeSnapshot } from '../src/game/snapshot.js'
 import { mapIds } from '../src/maps/builtin.js'
 import { mulberry32, runReplay } from './replay.js'
 
-it('plays exactly like the recorded run', async () => {
+it.skipIf(process.env.CI)('plays exactly like the recorded run', async () => {   // (CI: set on GitHub's build machines)
   const random = Math.random
   Math.random = mulberry32(42)   // (the game's own randomness: patch timers, pumpkin types, maps)
   try {
