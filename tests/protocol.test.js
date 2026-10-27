@@ -3,7 +3,7 @@ import { emptyInput } from '../src/game/input.js'
 import { makeCode, packInput, unpackInput } from '../src/net/protocol.js'
 
 it('sends input compactly and gets the same input back', () => {
-  const input = { ...emptyInput(), left: true, throw: true, ragdoll: true, aimX: 12.3456, aimY: 7.891 }
+  const input = { ...emptyInput(), left: true, crouch: true, throw: true, ragdoll: true, aimX: 12.3456, aimY: 7.891 }
   expect(unpackInput(packInput(input))).toEqual({ ...input, aimX: 12.35, aimY: 7.89 })
   expect(unpackInput({})).toEqual(emptyInput())   // (garbage in: nothing pressed)
 })

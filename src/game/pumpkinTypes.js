@@ -108,12 +108,12 @@ export const PUMPKIN_TYPES = {
     name: 'Seed Spitter', color: '#a8c94a', rib: '#6f8f2a', mark: 'speckle',
     radius: 0.22, density: 2, restitution: 0.2,
     damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakOnPlayer: true,
-    throwMode: 'spray', ammo: 12, fireInterval: 0.15, seedSpeed: 22,
+    throwMode: 'spray', ammo: 15, fireInterval: 0.06, seedSpeed: 32,
   },
   seed: {   // fired by the Seed Spitter
     name: 'Seed', color: '#3d2f14', rib: '#fff6dc', mark: 'seed', spawnable: false,
     radius: 0.07, density: 1, restitution: 0, gravityScale: 0.35, refSpeed: 22,
-    damage: 2, knockback: 1.2, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true,   // small pushes add up fast
+    damage: 2, knockback: 2.6, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true,   // small pushes add up fast
   },
   balloon: {
     name: 'Balloon Gourd', color: '#c7a8e8', rib: '#8e6cc0', mark: 'string',

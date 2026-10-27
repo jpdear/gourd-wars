@@ -17,7 +17,7 @@ export const EDITOR_TOOLS = [
   })),
   { id: 'patch', label: 'Patch', key: '5', hint: 'Click to plant a pumpkin patch on a platform. Select it to make it grow just one kind of pumpkin.' },
   { id: 'bale', label: 'Hay Bale', key: '6', hint: 'Click to place a hay bale. Bales stack on top of each other.' },
-  { id: 'spikes', label: 'Pitchforks', key: '7', hint: 'Drag along a platform to lay a row of pitchforks (instant knockout).' },
+  { id: 'spikes', label: 'Pitchforks', key: '7', hint: 'Drag along a platform to lay a row of pitchforks (they hurt and bounce you up).' },
   { id: 'fire', label: 'Bonfire', key: '8', hint: 'Click to place a bonfire on a platform (burns, and hops you out).' },
   { id: 'scythe', label: 'Scarecrow', key: '9', hint: 'Click to place a scarecrow\'s pivot; its pole reaches down to the platform below. The dashed circle is the scythe\'s reach.' },
   { id: 'mover', label: 'Moving Platform', key: 'M', code: 'KeyM', hint: 'Drag to draw a moving platform where it starts. Then drag its see-through copy to where it goes: it slides back and forth between the two.' },

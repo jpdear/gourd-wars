@@ -37,6 +37,14 @@ export const CONFIG = {
       steerLock: 0.2,        // after a kick off, steering back toward the wall is weak this long
       dustEvery: 0.08,       // a puff of dust this often while sliding (s)
     },
+    crouch: {                // hold down: go soft and press your body down (on the ground: drop onto your butt)
+      lean: 0.5,             // sitting: lean back this far, away from your aim (radians; 0.5 ≈ 30°)
+      airFall: 1.5,          // the press down: fall this many times as fast
+      firmness: 0.3,         // joint motor strength while crouched (1 = normal): legs, head and free arms go floppy
+      speed: 0.5,            // scooting along while sitting (share of moveSpeed; dragging your butt slows it more)
+      legsOutTime: 0.5,      // sitting down: the legs swing out in front at full strength this long
+      legFriction: 0,        // crouched, the legs are this slippery (normal: 0.3), so they slide out and you sit on your butt
+    },
   },
   throw: { minSpeed: 14, maxSpeed: 26, chargeTime: 0.7, cooldown: 0.35 },
   punch: {                   // click with empty hands (alternates arms)
@@ -70,6 +78,9 @@ export const CONFIG = {
     balePushSpeed: 3.5,      // ...fading out as it approaches this speed (it settles around 2 m/s)
     fireDps: 15,             // bonfire damage per second (dealt in small ticks)
     fireHop: 10,             // m/s pop out of the flames
+    spikeDamage: 25,         // touching pitchforks (health is 50: two touches knock you out)
+    spikeCooldown: 0.5,      // ...then no more pitchfork damage for this long, however many tines you touch
+    spikeBounce: 12,         // m/s pop up off the tines
     scytheTurnTime: 3,       // seconds per full turn of a scarecrow's scythe
   },
   patch: {

@@ -65,6 +65,7 @@ export function localInput() {
     left: held('KeyA', 'ArrowLeft'),
     right: held('KeyD', 'ArrowRight'),
     jump: held('KeyW', 'Space', 'ArrowUp'),
+    crouch: held('KeyS', 'ArrowDown'),
     throw: held('Mouse') || mouse.down,
     harvest: held('KeyE'),
     ragdoll: held('KeyR'),

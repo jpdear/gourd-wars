@@ -32,6 +32,14 @@ const TUNABLES = [
       ['CONFIG.player.wall.jumpAway', 0, 20, 0.5, 'jump away'],
       ['CONFIG.player.wall.steerLock', 0, 0.6, 0.02, 'steer lock'],
     ]],
+    ['Crouch', [
+      ['CONFIG.player.crouch.lean', -0.5, 1.5, 0.05, 'lean back'],
+      ['CONFIG.player.crouch.airFall', 1, 3, 0.05, 'press (fall)'],
+      ['CONFIG.player.crouch.firmness', 0, 1, 0.05, 'firmness'],
+      ['CONFIG.player.crouch.speed', 0, 1, 0.05, 'scoot speed'],
+      ['CONFIG.player.crouch.legsOutTime', 0, 1.5, 0.05, 'legs out time'],
+      ['CONFIG.player.crouch.legFriction', 0, 1, 0.05, 'leg friction'],
+    ]],
     ['Body', [
       ['CONFIG.player.hoverK', 20, 400, 5],
       ['CONFIG.player.hoverD', 0, 60, 1],
@@ -75,6 +83,9 @@ const TUNABLES = [
     ['Hazards', [
       ['CONFIG.level.fireDps', 0, 60, 1, 'fire dmg / sec'],
       ['CONFIG.level.fireHop', 0, 20, 0.5, 'fire hop speed'],
+      ['CONFIG.level.spikeDamage', 0, 100, 1, 'pitchfork dmg'],
+      ['CONFIG.level.spikeCooldown', 0, 2, 0.05, 'pitchfork cooldown'],
+      ['CONFIG.level.spikeBounce', 0, 25, 0.5, 'pitchfork bounce'],
       ['CONFIG.level.scytheTurnTime', 0.5, 10, 0.1, 'scythe turn (s)'],
     ]],
   ]],

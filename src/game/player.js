@@ -18,6 +18,8 @@ import { applyHit, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, distToSegment, lerp, r3, wrapAngle } from '../util/math.js'
 
+const BODY_FRICTION = 0.3   // every body part (the legs change while crouched: see setLegFriction)
+
 export class Player {
   constructor(world, opts) {
     this.world = world
@@ -61,6 +63,7 @@ export class Player {
     this.floatTimer = 0           // Balloon: floating helplessly upward
     this.fireTimer = 0.2          // bonfire damage ticks
     this.hopCooldown = 0          // bonfire pop-out
+    this.spikeTimer = 0           // just hurt by pitchforks: not again until this runs out
     this.reviveTimer = 0          // practice: back up after a hazard KO
     this.harvestTarget = null     // the patch we're pulling on
     this.harvestProgress = 0      // 0..1
@@ -70,6 +73,10 @@ export class Player {
     this.wallGraceDir = 0         // ...the wall's side
     this.wallJumpTimer = 0        // just kicked off a wall: steering back toward it is weak until this runs out
     this.dustTimer = 0
+    this.crouching = false        // holding down: soft, pressed down (sitting, on the ground)
+    this.lowTimer = 0             // crouched just now: the ground check looks from higher up (we may be sitting on it)
+    this.sitTime = 0              // how long we've been sitting (crouched on the ground)
+    this.slipperyLegs = false     // (crouched: see setLegFriction)
     this.dead = false
     this.respawnTimer = 0
     this.prev = emptyInput()
@@ -93,7 +100,7 @@ export class Player {
       this.parts.push({ name, body, halfLen, restX: pos.x - x, restY: pos.y - y })
       return body
     }
-    const fixtureDef = { density: B.density, friction: 0.3, filterGroupIndex: this.group }
+    const fixtureDef = { density: B.density, friction: BODY_FRICTION, filterGroupIndex: this.group }
     const makeLimb = (name, topY, len) => {
       const body = this.world.createBody({ type: 'dynamic', position: new Vec2(x, topY - len / 2), angularDamping: 1 })
       body.createFixture(new planck.Box(B.limbHalfW, len / 2), fixtureDef)
@@ -239,6 +246,10 @@ export class Player {
     const stunned = this.stunned || frozen   // can't act
     const control = stunned ? 0 : Math.min(1, this.sinceStun / C.recoverTime)
     const carry = this.carry
+    this.crouching = !!input.crouch && !stunned
+    this.lowTimer = this.crouching ? 0.5 : Math.max(0, this.lowTimer - dt)
+    this.sitTime = this.crouching && this.grounded ? this.sitTime + dt : 0
+    if (this.crouching !== this.slipperyLegs) this.setLegFriction(this.crouching)
 
     this.aim.x = input.aimX
     this.aim.y = input.aimY
@@ -253,30 +264,38 @@ export class Player {
     const W = C.wall
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
     this.wallJumpTimer = Math.max(0, this.wallJumpTimer - dt)
-    const canStick = dir && !stunned && !this.grounded && this.shoveTimer <= 0 && this.gluedTimer <= 0 && this.floatTimer <= 0 &&
+    const canStick = dir && !stunned && !this.crouching && !this.grounded && this.shoveTimer <= 0 && this.gluedTimer <= 0 && this.floatTimer <= 0 &&
       !this.grapple && this.wallJumpTimer <= 0 && carry.wallStick !== false
     this.wall = canStick ? this.senseWall(dir) : null
     if (this.wall) { this.wallGrace = W.grace; this.wallGraceDir = dir }
     else this.wallGrace = Math.max(0, this.wallGrace - dt)
 
     // --- 1. hover spring ---
-    if (!stunned && this.groundDist !== null && this.jumpLock <= 0) {
+    if (!stunned && !this.crouching && this.groundDist !== null && this.jumpLock <= 0) {   // (crouched: off, so you drop and sit)
       const err = C.hoverHeight - this.groundDist
       const accel = clamp(CONFIG.gravity + C.hoverK * err - C.hoverD * (vel.y - (this.groundVel ? this.groundVel.y : 0)), 0, 5 * CONFIG.gravity)
       const uprightness = 0.3 + 0.7 * Math.max(0, Math.cos(angle))
       torso.applyForceToCenter(new Vec2(0, accel * this.mass * control * uprightness), true)
     }
 
+    // --- crouching: press the body down (crouch.airFall times gravity; with the hover spring off, that
+    // sits you down on your butt) ---
+    if (this.crouching) {
+      for (const p of this.parts) p.body.applyForceToCenter(new Vec2(0, -p.body.getMass() * CONFIG.gravity * (C.crouch.airFall - 1)), true)
+    }
+
     // --- 2. stay upright ---
     if (!stunned) {
-      const torque = C.uprightInertia * (C.uprightK * -angle - C.uprightD * torso.getAngularVelocity())
+      const lean = this.crouching && this.grounded ? this.facing * C.crouch.lean : 0   // (sitting: lean back, away from the aim)
+      const torque = C.uprightInertia * (C.uprightK * (lean - angle) - C.uprightD * torso.getAngularVelocity())
       torso.applyTorque(clamp(torque, -C.uprightMaxTorque, C.uprightMaxTorque) * control, true)
     }
 
     // --- movement (not while staggered or glued, or for a moment after a shove) ---
     if (!stunned && this.shoveTimer <= 0 && this.gluedTimer <= 0) {
       const maxAccel = this.grounded ? C.groundAccel : C.airAccel
-      let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) + (this.grounded && this.groundVel ? this.groundVel.x : 0)
+      const crouchSpeed = this.crouching && this.grounded ? C.crouch.speed : 1
+      let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) * crouchSpeed + (this.grounded && this.groundVel ? this.groundVel.x : 0)
       // Walking into a hay bale pushes it: it gets a shove, and we walk along at its speed instead
       // of through it. (Our legs alone would just fold and let us slide up over it.)
       const bale = dir && this.grounded ? this.baleAhead(game, dir, vel.x) : null
@@ -285,7 +304,9 @@ export class Player {
         bale.body.applyForceToCenter(new Vec2(dir * L.balePushForce * clamp(1 - bv * dir / L.balePushSpeed, 0, 1), 0), true)
         targetVx = dir > 0 ? Math.min(targetVx, bv) : Math.max(targetVx, bv)
       }
-      let ax = clamp((targetVx - vel.x) * 10, -maxAccel, maxAccel)
+      // (crouched and not walking: hold still harder, or the soft legs pushing on the floor shuffle you along)
+      const grip = this.crouching && this.grounded && !dir ? 60 : 10
+      let ax = clamp((targetVx - vel.x) * grip, -maxAccel, maxAccel)
       if (!this.grounded && dir === 0) ax *= 0.15   // keep momentum in the air
       if (this.wallJumpTimer > 0 && ax * this.wallGraceDir > 0) ax *= 0.15   // (let the kick off a wall happen)
       torso.applyForceToCenter(new Vec2(ax * this.mass * control, 0), true)
@@ -375,6 +396,17 @@ export class Player {
     }
 
     this.prev = { ...input }
+  }
+
+  // Crouched, the legs go slippery: however they land, they slide out under you and you sit on your butt.
+  setLegFriction(slippery) {
+    this.slipperyLegs = slippery
+    const friction = slippery ? CONFIG.player.crouch.legFriction : BODY_FRICTION
+    for (const { name, body } of this.parts) {
+      if (!name.startsWith('thigh') && !name.startsWith('shin')) continue
+      body.getFixtureList().setFriction(friction)
+      for (let edge = body.getContactList(); edge; edge = edge.next) edge.contact.resetFriction()   // (touching things now)
+    }
   }
 
   // Vine stuck in `body` at `point`: start reeling in (the spot moves along with a moving platform).
@@ -524,14 +556,16 @@ export class Player {
 
   senseGround() {
     const C = CONFIG.player
-    const pelvis = this.torso.getWorldPoint(new Vec2(0, -BODY.torsoLen / 2))
-    const len = C.hoverHeight + C.hoverReach
+    // (crouched or just now: we may be sitting on the ground, so look from the middle of the torso)
+    const lift = this.lowTimer > 0 ? BODY.torsoLen / 2 : 0
+    const origin = this.torso.getWorldPoint(new Vec2(0, -BODY.torsoLen / 2 + lift))   // (the pelvis, normally)
+    const len = C.hoverHeight + C.hoverReach + lift
     let best = null, bestBody = null
     this.debugRays = []
     // (two rays, kept inside the body's width: wider and you'd hop up onto any hay bale you walk into)
     for (const ox of [-0.05, 0.05]) {
-      const from = new Vec2(pelvis.x + ox, pelvis.y)
-      const to = new Vec2(pelvis.x + ox, pelvis.y - len)
+      const from = new Vec2(origin.x + ox, origin.y)
+      const to = new Vec2(origin.x + ox, origin.y - len)
       let hit = null, hitBody = null
       this.world.rayCast(from, to, (fixture, point, normal, fraction) => {
         const ud = fixture.getBody().getUserData()
@@ -542,7 +576,7 @@ export class Player {
         hitBody = fixture.getBody()
         return fraction
       })
-      if (hit !== null && (best === null || hit * len < best)) { best = hit * len; bestBody = hitBody }
+      if (hit !== null && (best === null || hit * len - lift < best)) { best = hit * len - lift; bestBody = hitBody }
       this.debugRays.push({ from, to, hit: hit !== null })
     }
     this.groundDist = best
@@ -599,6 +633,13 @@ export class Player {
       hipL = f * 0.55; hipR = -f * 0.25
       kneeL = -f * 0.9; kneeR = -f * 0.35
     }
+    if (this.crouching && this.grounded) {
+      // sitting: legs straight out in front, flat on the floor (so we sit on our butt, not on our folded
+      // legs; the hips allow for the lean back). After the first moment they go soft: where they end
+      // up is up to the physics
+      hipL = hipR = f * (Math.PI / 2 - C.crouch.lean)
+      kneeL = kneeR = 0
+    }
 
     // Both arms point at the aim, like holding the pumpkin with two hands
     // (or reach down to the pumpkin we're harvesting).
@@ -608,9 +649,14 @@ export class Player {
     const armTarget = aimAngle - this.torso.getAngle()
     const [frontShoulder, backShoulder] = f > 0 ? [J.shoulderR, J.shoulderL] : [J.shoulderL, J.shoulderR]
 
-    const legT = lerp(C.limpTorque, C.legTorque, control)
-    const armT = lerp(C.limpTorque, C.armTorque, control)
-    const neckT = lerp(C.limpTorque, C.neckTorque, control)
+    // crouched: everything goes soft (sitting down, the legs first swing out in front at full strength
+    // as you drop)
+    const firm = this.crouching ? C.crouch.firmness : 1
+    const legsOut = this.sitTime > 0 && this.sitTime < C.crouch.legsOutTime
+    const legT = lerp(C.limpTorque, C.legTorque * (legsOut ? 1 : firm), control)
+    const busyArms = this.held || this.harvestTarget || this.punchTimer > 0   // (arms aiming, reaching or punching stay firm)
+    const armT = lerp(C.limpTorque, C.armTorque * (busyArms ? 1 : firm), control)
+    const neckT = lerp(C.limpTorque, C.neckTorque * firm, control)
     this.drive(J.hipL, hipL, legT)
     this.drive(J.hipR, hipR, legT)
     this.drive(J.kneeL, kneeL, legT)
@@ -630,6 +676,10 @@ export class Player {
       if (!this.grounded) { rest[front] = 0.8 * f; rest[back] = -0.5 * f }
       const bend = { L: f * (this.grounded ? 0.2 + 0.4 * amt : 0.5) }
       bend.R = bend.L
+      if (this.crouching && this.grounded) {   // sitting: hands forward toward the knees (hanging down, they'd prop us up)
+        rest.L = rest.R = f * 1.2
+        bend.L = bend.R = f * 0.4
+      }
       if (this.wall) {   // on a wall: one hand up against it, the other out for balance
         const w = this.wall.dir, wallArm = w > 0 ? 'R' : 'L', freeArm = w > 0 ? 'L' : 'R'
         // (straight up, a hair away from the wall: the motor takes the short way round, and the short
@@ -740,10 +790,15 @@ export class Player {
     this.floatTimer = 0
     this.reviveTimer = 0
     this.hopCooldown = 0
+    this.spikeTimer = 0
     this.grapple = null
     this.wall = null
     this.wallGrace = 0
     this.wallJumpTimer = 0
+    this.crouching = false
+    this.lowTimer = 0
+    this.sitTime = 0
+    if (this.slipperyLegs) this.setLegFriction(false)
     this.harvestTarget = null
     this.harvestProgress = 0
   }

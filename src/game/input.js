@@ -3,7 +3,7 @@
 // the dummy, and (later) the network all produce this same shape.
 
 export function emptyInput() {
-  return { left: false, right: false, jump: false, throw: false, harvest: false, ragdoll: false, aimX: 0, aimY: 0 }
+  return { left: false, right: false, jump: false, crouch: false, throw: false, harvest: false, ragdoll: false, aimX: 0, aimY: 0 }
 }
 
 // A practice dummy just stands there, looking at the nearest real player.

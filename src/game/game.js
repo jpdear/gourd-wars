@@ -80,7 +80,7 @@ export function removePlayer(game, slot) {
   game.players = game.players.filter(q => q !== p)
   for (const pk of game.pumpkins) if (pk.owner === p) pk.owner = null
   const isMine = body => { const ud = body.getUserData(); return ud && ud.player === p }
-  game.hazardHits = game.hazardHits.filter(b => !isMine(b))
+  game.hazardHits = game.hazardHits.filter(h => !isMine(h.body))
   game.contacts = game.contacts.filter(c => !isMine(c.other))
   if (game.match) game.match.scores[slot] = 0
 }

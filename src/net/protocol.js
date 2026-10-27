@@ -23,13 +23,13 @@ export function makeCode() {
 
 export function packInput(i) {
   return {
-    l: i.left ? 1 : 0, r: i.right ? 1 : 0, j: i.jump ? 1 : 0, th: i.throw ? 1 : 0, h: i.harvest ? 1 : 0, rg: i.ragdoll ? 1 : 0,
+    l: i.left ? 1 : 0, r: i.right ? 1 : 0, j: i.jump ? 1 : 0, c: i.crouch ? 1 : 0, th: i.throw ? 1 : 0, h: i.harvest ? 1 : 0, rg: i.ragdoll ? 1 : 0,
     ax: Math.round(i.aimX * 100) / 100, ay: Math.round(i.aimY * 100) / 100,
   }
 }
 
 export function unpackInput(m) {
-  return { left: !!m.l, right: !!m.r, jump: !!m.j, throw: !!m.th, harvest: !!m.h, ragdoll: !!m.rg, aimX: +m.ax || 0, aimY: +m.ay || 0 }
+  return { left: !!m.l, right: !!m.r, jump: !!m.j, crouch: !!m.c, throw: !!m.th, harvest: !!m.h, ragdoll: !!m.rg, aimX: +m.ax || 0, aimY: +m.ay || 0 }
 }
 
 export function describePeerError(err) {

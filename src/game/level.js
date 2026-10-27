@@ -168,7 +168,23 @@ const scytheAngle = game => (game.scythes.length ? game.scythes[0].body.getAngle
 
 export function recordHazardContact(game, fixture, other) {
   const ud = fixture.getBody().getUserData()
-  if (ud && ud.kind === 'hazard') game.hazardHits.push(other.getBody())
+  if (ud && ud.kind === 'hazard') game.hazardHits.push({ body: other.getBody(), hazard: ud.hazard })
+}
+
+// Pitchforks: damage (once in a while, however many tines you touch) and a pop up off them. No
+// stagger (it'd flop you right back onto them).
+function spikePlayer(game, pl) {
+  if (pl.out || pl.spikeTimer > 0) return
+  const L = CONFIG.level, pos = pl.torso.getPosition()
+  pl.spikeTimer = L.spikeCooldown
+  pl.takeHit(game, L.spikeDamage, 0, pos)
+  if (pl.out) return   // (that knocked them out)
+  for (const part of pl.parts) {
+    const v = part.body.getLinearVelocity()
+    part.body.setLinearVelocity(new Vec2(v.x, L.spikeBounce))
+  }
+  pl.jumpLock = 0.25
+  game.events.push({ type: 'hit', x: r3(pos.x), y: r3(pos.y - 0.8) })
 }
 
 // Bonfires are just a zone (flames).
@@ -176,13 +192,17 @@ const fireBox = f => ({ x0: f.x - f.w / 2, x1: f.x + f.w / 2, y0: f.y, y1: f.y +
 const inBox = (b, p, pad) => p.x > b.x0 - pad && p.x < b.x1 + pad && p.y > b.y0 - pad && p.y < b.y1 + pad
 export const inFire = (game, p, pad) => currentMap(game).fires.some(f => inBox(fireBox(f), p, pad))
 
-// Whatever touched a pitchfork or a blade this step: players are KO'd, pumpkins and bales break.
-// Bonfires burn players and pop them out.
+// Whatever touched a pitchfork or a blade this step: players get hurt (pitchforks) or KO'd (blades),
+// pumpkins and bales break. Bonfires burn players and pop them out.
 export function updateHazards(game, dt) {
-  for (const body of game.hazardHits) {
+  for (const pl of game.players) pl.spikeTimer = Math.max(0, pl.spikeTimer - dt)
+  for (const { body, hazard } of game.hazardHits) {
     const ud = body.getUserData()
     if (!ud) continue
-    if (ud.kind === 'player') ud.player.kill(game)
+    if (ud.kind === 'player') {
+      if (hazard === 'spikes') spikePlayer(game, ud.player)
+      else ud.player.kill(game)
+    }
     else if (ud.kind === 'pumpkin') breakPumpkin(game, ud.pumpkin)
     else if (ud.kind === 'bale') breakBale(game, ud.bale, 'straw')
   }

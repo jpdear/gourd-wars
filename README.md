@@ -1,6 +1,6 @@
 # Gourd Wars
 
-A 2–4 player, Stick Fight-style physics brawler: stick figures fighting with pumpkins that grow
+A 2–4 player, physics brawler: stick figures fighting with pumpkins that grow
 out of the ground. Friends connect peer-to-peer. Desktop browsers only.
 
 **Play:** https://jpdear.github.io/gourd-wars/
