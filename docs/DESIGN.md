@@ -1,6 +1,6 @@
 # Gourd Wars: Design Doc
 
-A 2–4 player, Stick Fight-style physics brawler. You fight with pumpkins that grow out of the ground. It's one HTML file you send to your friends, connected peer-to-peer with PeerJS. Desktop browsers only.
+A 2–4 player, Stick Fight-style physics brawler. You fight with pumpkins that grow out of the ground. It's a website (https://jpdear.github.io/gourd-wars/); friends connect peer-to-peer with PeerJS. Desktop browsers only.
 
 ## Core loop
 - **Up to 4 players, free-for-all:** Blue (the host), Red, Green, Yellow, colors given out in join order (a newcomer gets the first free one). No name labels, and no text along the bottom during play (no controls line, no "you are …"); a guest gets a short "You're Red!" when they join, and the Esc menu says which color you are.
@@ -32,7 +32,7 @@ A 2–4 player, Stick Fight-style physics brawler. You fight with pumpkins that 
 - *Later:* rare pumpkins glow while growing, so both players can see them coming.
 
 ## Pumpkins
-Each type has its own rules (`PUMPKIN_TYPES` in `game.html`). Picking green = weaker; hits feed the stagger meter; **your own pumpkins can hit you** (after a 0.25 s grace period leaving your hand). Specials **glow while growing** on their patch.
+Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Picking green = weaker; hits feed the stagger meter; **your own pumpkins can hit you** (after a 0.25 s grace period leaving your hand). Specials **glow while growing** on their patch.
 
 | Pumpkin | What it does |
 |---|---|
@@ -98,19 +98,20 @@ Each type has its own rules (`PUMPKIN_TYPES` in `game.html`). Picking green = we
 
 ## Debug / tuning
 - `` ` `` shows health bars, damage numbers, debug text and the tuning panel.
-- Tuning panel: tabs (Player / Combat / Patches / Pumpkins) with collapsible sections; each section shows how many values you've changed. Every pumpkin type has its own section. Tweaks are saved in your browser; **Copy changes** gives lines to paste back into the file.
+- Tuning panel: tabs (Player / Combat / Patches / Pumpkins) with collapsible sections; each section shows how many values you've changed. Every pumpkin type has its own section. Tweaks are saved in your browser; **Copy changes** gives lines to paste back into `src/config.js` / `src/game/pumpkinTypes.js` (or to send to Claude).
 
 ## Look
 - Simple graphics: stick figures made of lines and circles, pumpkins as circles with ribs and a stem.
 - Each player has their own color (Blue, Red, Green, Yellow), never orange so they don't blend in with the pumpkins.
 
 ## Tech
-- **Physics:** Planck.js (Box2D port), loaded from a CDN.
+- **Physics:** Planck.js (Box2D port).
 - **Active ragdoll:** physics limbs on hinge joints. While you're in control, a hover spring, an upright torque, and joint motors keep the figure standing and posed. Getting hit turns them off for a moment.
 - **Rendering:** plain Canvas 2D.
 - **Networking:** PeerJS (free public matchmaking server + free relay servers for strict networks). The host runs the whole simulation, with one connection per guest (up to 3); each guest sends inputs 60×/s and draws the snapshots the host sends back 30×/s (about 1 KB with 2 players, 1.9 KB with 4: ~170 KB/s upload for a host with 3 guests), blended about 70 ms behind real time. Players live in slots 0–3 (slot = color, spawn, score); the host tells each guest its slot with a `welcome` message. Every player is driven by the same plain input object (`{left, right, jump, throw, ragdoll, aimX, aimY}`). Codes are 4 characters; the PeerJS id is `pumpkin-fight-CODE`.
-- **Versions:** `GAME_VERSION` near the top of `index.html` (shown in the main menu's corner). Both sides send it in their first message; the host only lets a friend in when it matches exactly. Otherwise the friend is told who's behind: if it's them, an **Update Now** button reloads the latest copy (a downloaded file opens the hosted game instead); if it's the host, the host sees "A friend tried to join with a newer/older version…".
-- **Hosting:** GitHub Pages, https://jpdear.github.io/gourd-wars/ (repo `jpdear/gourd-wars`, `main` branch, root). **To release:** bump `GAME_VERSION`, commit, `git push`; it's live in about a minute (browsers may keep the old copy up to ~10 min; a refresh or Update Now gets it).
+- **Versions:** `0.19.4`-style. You set the first two numbers by hand (`VERSION` in `src/version.js`; stay under 1.0 until the first full release); the build adds the third: commits since that line last changed, so every push gets a new number. The dev server adds `-dev`. Shown in the main menu's corner. Both sides send it in their first message; the host only lets a friend in when it matches exactly. Otherwise the friend is told who's behind: if it's them, an **Update Now** button reloads the latest copy; if it's the host, the host sees "A friend tried to join with a newer/older version…" (same numbers but one is a dev build: "a different build").
+- **Hosting:** GitHub Pages, https://jpdear.github.io/gourd-wars/ (repo `jpdear/gourd-wars`). Every push to `main` runs the tests, builds and publishes (`.github/workflows/deploy.yml`); it's live in about a minute. The build gives its files new names whenever they change, so browsers never mix old and new files.
+- **Code:** see the README for the project layout, running it locally, and the tests.
 - **Background tabs:** a tiny worker keeps the game ticking when its tab is hidden, so switching tabs doesn't freeze the match.
 - **Drawing:** everything is drawn from a snapshot (plain data), on both computers, so both screens look the same. Particles are made locally from `splat` events.
 

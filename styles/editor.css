@@ -1,0 +1,44 @@
+/* The map editor: toolbar and side panel. */
+#editor { display: none; font: 13px system-ui, sans-serif; color: #eee; }
+#editor.open { display: block; }
+#editor .bar {
+  position: fixed; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 6px 8px; box-sizing: border-box; background: #2c2824; box-shadow: 0 1px 0 #1e1b18;
+}
+#editor .bar .gap { flex: 1; }
+#editor button {
+  padding: 6px 9px; border: 0; border-radius: 5px; cursor: pointer; background: #4a4440; color: #eee; font: inherit;
+}
+#editor button:hover:not(:disabled) { background: #5c5550; }
+#editor button.on { background: #f28c28; color: #1e1b18; font-weight: 600; }
+#editor .bar .label { margin: 0 2px 0 6px; color: #bdb4aa; }
+#editor button.spawn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 7px; }
+#editor button.spawn .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); }
+#editor button.primary { background: #e07a1a; color: #1e1b18; font-weight: 600; }
+#editor button.primary:hover { background: #f28c28; }
+#editor button.danger { background: #a8402f; }
+#editor button:disabled { opacity: 0.4; cursor: default; }
+#editor .panel {
+  overflow-x: hidden; position: fixed; right: 0; bottom: 0; top: 44px; width: 250px; overflow-y: auto; box-sizing: border-box;
+  padding: 4px 12px 12px; background: #2c2824; box-shadow: -1px 0 0 #1e1b18;
+}
+#editor h3 { margin: 14px 0 6px; color: #f2a65a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+#editor label { display: block; color: #bdb4aa; }
+#editor .field { margin: 6px 0; }
+#editor input, #editor select {
+  box-sizing: border-box; width: 100%; margin-top: 2px; padding: 5px 6px; border: 1px solid #4a4440; border-radius: 4px;
+  background: #1e1b18; color: #eee; font: inherit;
+}
+#editor .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#editor .check { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+#editor .check input { width: auto; margin: 0; }
+#editor .panel > div > button { width: 100%; margin-top: 8px; }
+#editor .hint { margin: 0; color: #bdb4aa; line-height: 1.4; }
+#editor .status { min-height: 1.2em; margin: 6px 0 0; color: #9fd47a; }
+#editor .status.bad { color: #ffb36e; }
+#editor .problem { display: block; width: 100%; margin: 0 0 4px; padding: 5px 7px; border-radius: 4px; text-align: left; line-height: 1.35; }
+#editor .problem.err { background: #5a2420; color: #ffd0c8; }
+#editor .problem.warn { background: #4a3a20; color: #ffe0a8; }
+#editor .problem.ok { background: #2e4422; color: #c8f0a8; }
+#editor button.problem.err:hover { background: #6e2c26; }
+#editor button.problem.warn:hover { background: #5c4826; }

@@ -1,0 +1,119 @@
+/* Menus: the card, pill buttons, and the main menu's logo. */
+#menu {
+  display: none; position: fixed; inset: 0; align-items: center; justify-content: center;
+  background: rgba(36, 33, 29, 0.55); font: 15px system-ui, sans-serif; color: #3b3631;
+  --display: 'Luckiest Guy', 'Arial Black', system-ui, sans-serif;   /* the logo's font: titles, headings, buttons */
+}
+#menu.open { display: flex; }
+/* out of the game (main menu, joining, map editor list): just a backdrop, no arena behind the card */
+#menu.solid { background: radial-gradient(ellipse at 50% 35%, #4a3c2c 0%, #2e2822 55%, #1e1b18 100%); }
+#menu .card {
+  width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 24px;
+  max-height: calc(100vh - 32px); overflow-y: auto;
+  border-radius: 12px; background: #f4efe6; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); text-align: center;
+}
+#menu h1 {
+  margin: 0 0 18px; font: 400 36px/1.1 var(--display); letter-spacing: 0.03em; color: #f28c28;
+  -webkit-text-stroke: 0.08em #2a1d10; paint-order: stroke fill; text-shadow: 0 0.07em 0 #2a1d10;
+}
+#menu .screen { display: none; flex-direction: column; gap: 10px; }
+#menu .screen.active { display: flex; }
+/* pill buttons that sit on a little ledge (--edge) and press down into it */
+#menu button {
+  --edge: #1a1612;
+  padding: 14px 20px 10px; border: 0; border-radius: 999px; cursor: pointer;
+  background: #3b3631; color: #f4efe6; font: 400 18px/1 var(--display); letter-spacing: 0.04em;
+  box-shadow: 0 4px 0 var(--edge); transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
+}
+#menu button:hover { background: #4d4741; transform: translateY(-1px); box-shadow: 0 5px 0 var(--edge); }
+#menu button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+#menu button.primary { --edge: #9c4f0c; background: #e07a1a; color: #fff; }
+#menu button.primary:hover { background: #f28c28; }
+#menu button.quiet, #menu button.quiet:hover, #menu button.quiet:active { background: transparent; color: #8a8073; box-shadow: none; transform: none; }
+#menu button.quiet:hover { color: #3b3631; }
+#menu .code { font: 400 56px/1.1 var(--display); letter-spacing: 0.12em; color: #3b3631; }
+#menu input {
+  padding: 12px 10px 8px; border: 2px solid #c9bfb2; border-radius: 999px; background: #fff; text-align: center;
+  font: 400 32px/1.1 var(--display); letter-spacing: 0.15em; text-transform: uppercase;
+}
+#menu input:focus { outline: none; border-color: #e07a1a; }
+#menu .status { min-height: 1.3em; margin: 0; color: #6b6358; font-size: 13px; }
+#menu [data-text=host-status]:empty { display: none; }
+#menu .label { margin: 0; color: #8a8073; font: 400 15px/1.2 var(--display); letter-spacing: 0.04em; }
+#menu .label.note { font: 13px system-ui, sans-serif; letter-spacing: 0; }   /* (sentences read better in the plain font) */
+#menu .match-settings { display: flex; flex-direction: column; gap: 6px; }
+#menu .seg { display: flex; gap: 4px; }
+#menu .seg button, #menu .map-grid button, #menu .pk-on { --edge: #c2b6a5; background: #e2d9cc; color: #3b3631; }
+#menu .seg button:hover, #menu .map-grid button:hover, #menu .pk-on:hover { background: #d6ccbd; }
+#menu .seg button.on, #menu .map-grid button.on { --edge: #1a1612; background: #3b3631; color: #f4efe6; }
+#menu .seg button { flex: 1; padding: 9px 4px 6px; font-size: 14px; }
+#menu .stepper { display: flex; align-items: center; justify-content: center; gap: 12px; }
+#menu .stepper button { width: 36px; height: 36px; padding: 0; font: 600 20px/1 system-ui, sans-serif; }
+#menu .stepper span { min-width: 90px; font: 400 18px/1 var(--display); letter-spacing: 0.04em; }
+#menu .hidden { display: none !important; }
+#menu .map-select, #menu .map-rotation, #menu .dup-list { display: flex; flex-direction: column; gap: 6px; }
+#menu .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 6px; }
+#menu .map-grid button { padding: 9px 4px 6px; font-size: 14px; }
+#menu .pumpkin-list { display: flex; flex-direction: column; gap: 8px; }
+#menu .pk-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+#menu .pk-row .dot { flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+#menu .pk-name { flex: 1; text-align: left; white-space: nowrap; }
+#menu .pk-row button { padding: 8px 6px 5px; font-size: 13px; }
+#menu .pk-on { flex: none; width: 56px; }
+#menu .pk-on.on { --edge: #3a6326; background: #5a8f3c; color: #fff; }
+#menu .pk-on.on:hover { background: #67a046; }
+#menu .pk-row .seg { width: 186px; }
+#menu .pk-head { display: flex; align-items: center; gap: 6px; color: #8a8073; font: 400 13px/1 var(--display); letter-spacing: 0.04em; }
+#menu .pk-head span:nth-child(2) { width: 56px; }
+#menu .pk-head span:nth-child(3) { width: 186px; }
+#menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: #8a8073; font: 400 15px/1 var(--display); letter-spacing: 0.04em; }
+#menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
+#menu .pk-row.off .pk-name, #menu .pk-row.off .seg { opacity: 0.35; }
+#menu textarea {
+  box-sizing: border-box; width: 100%; padding: 8px; border: 2px solid #c9bfb2; border-radius: 8px; resize: vertical;
+  font: 12px ui-monospace, monospace; word-break: break-all;
+}
+#menu textarea:focus { outline: none; border-color: #e07a1a; }
+#menu .my-maps { display: flex; flex-direction: column; gap: 8px; }
+#menu .my-map { padding: 8px; border-radius: 8px; background: #e9e2d6; text-align: left; }
+#menu .my-map-name { margin-bottom: 6px; font-weight: 600; overflow-wrap: anywhere; }
+#menu .my-map-name .warn { color: #c0392b; font-size: 12px; font-weight: 400; }
+#menu .my-map-buttons { display: flex; gap: 5px; }
+#menu .my-map-buttons button { flex: 1; padding: 8px 2px 5px; font-size: 13px; }
+#menu button:disabled, #menu button:disabled:hover { opacity: 0.35; cursor: default; transform: none; box-shadow: 0 4px 0 var(--edge); }
+#menu button.danger { --edge: #6b2418; background: #a8402f; }
+#menu button.danger:hover { background: #c24d39; }
+
+/* main menu: the logo across the top, big pill buttons right on the backdrop (no card) */
+#menu .logo {
+  display: none; position: absolute; top: 7vh; left: 0; right: 0; text-align: center; pointer-events: none; white-space: nowrap;
+  font: 400 clamp(44px, 9vw, 124px)/1 'Luckiest Guy', 'Arial Black', Impact, sans-serif; letter-spacing: 0.03em; color: #f28c28;
+  -webkit-text-stroke: 0.08em #2a1d10; paint-order: stroke fill; text-shadow: 0 0.07em 0 #2a1d10;
+}
+#menu[data-screen=main] .logo { display: block; }
+/* the wobble: eases out from level right as the last letter lands, then sways side to side, only slowing at the
+   ends (the delays are set where the letters are made) */
+#menu .logo .wobble { display: inline-block; will-change: transform; animation: logo-sway-in 0.9s ease-in-out both, logo-sway 1.8s ease-in-out infinite alternate; }
+#menu .logo .ch { display: inline-block; will-change: transform; animation: logo-drop 0.8s ease-in both; }
+#menu .logo .gap { display: inline-block; width: 0.3em; }
+@keyframes logo-drop {
+  0% { transform: translateY(-80vh) rotate(-8deg); }
+  55% { transform: translateY(0) rotate(0); }
+  70% { transform: translateY(-0.22em); }
+  85% { transform: translateY(0); }
+  93% { transform: translateY(-0.05em); }
+  100% { transform: none; }
+}
+@keyframes logo-sway-in { from { transform: rotate(0deg); } to { transform: rotate(-2deg); } }
+@keyframes logo-sway { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { #menu .logo .ch, #menu .logo .wobble { animation: none; } }
+#menu[data-screen=main] .card { width: min(300px, calc(100vw - 32px)); margin-top: 18vh; background: transparent; box-shadow: none; }
+#menu[data-screen=main] h1 { display: none; }
+#menu[data-screen=main] .screen { gap: 14px; }
+#menu[data-screen=main] .screen button { padding: 16px 24px 12px; font-size: 22px; background: #f4efe6; color: #3b3631; }
+#menu[data-screen=main] .screen button:hover { background: #fff; }
+#menu[data-screen=main] .screen button.primary { background: #e07a1a; color: #fff; }
+#menu[data-screen=main] .screen button.primary:hover { background: #f28c28; }
+#menu[data-screen=main] .status { color: #e2d9cc; }
+#menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: #8a8073; font-size: 12px; }
+#menu[data-screen=main] .version { display: block; }
