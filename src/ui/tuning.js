@@ -24,6 +24,14 @@ const TUNABLES = [
       ['CONFIG.player.jumpSpeed', 5, 25, 0.5],
       ['CONFIG.player.coyoteTime', 0, 0.3, 0.01],
     ]],
+    ['Wall', [
+      ['CONFIG.player.wall.reach', 0.2, 1.2, 0.05, 'reach'],
+      ['CONFIG.player.wall.slideSpeed', 0, 15, 0.25, 'slide speed'],
+      ['CONFIG.player.wall.grace', 0, 0.4, 0.01, 'jump grace'],
+      ['CONFIG.player.wall.jumpUp', 0, 25, 0.5, 'jump up'],
+      ['CONFIG.player.wall.jumpAway', 0, 20, 0.5, 'jump away'],
+      ['CONFIG.player.wall.steerLock', 0, 0.6, 0.02, 'steer lock'],
+    ]],
     ['Body', [
       ['CONFIG.player.hoverK', 20, 400, 5],
       ['CONFIG.player.hoverD', 0, 60, 1],

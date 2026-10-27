@@ -38,6 +38,7 @@ export function spawnEffect(effects, ev) {
     if (ev.small) return burst(effects, ev.x, ev.y, 4, ['#ff8a1f', '#ffd23f'], [1, 3], [0.2, 0.4], [0.03, 0.05], 3)
     return burst(effects, ev.x, ev.y, 26, ['#ff8a1f', '#ffd23f', '#e2481b', '#3b3631'], [2, 6], [0.4, 0.9], [0.04, 0.09], 4)
   }
+  if (ev.type === 'dust') return burst(effects, ev.x, ev.y, 2, ['#c9bfb2', '#9a8f80'], [0.3, 1.2], [0.25, 0.45], [0.03, 0.06], 0.8)   // sliding down a wall
   if (ev.type === 'yank') return burst(effects, ev.x, ev.y, 10, ['#5fae3c', '#3c7a22'], [2, 5], [0.25, 0.45], [0.03, 0.06])
   if (ev.type === 'damage') {
     effects.popups.push({ debugOnly: true, x: ev.x + (Math.random() - 0.5) * 0.3, y: ev.y, text: `-${ev.amount}`, size: 0.34 + Math.min(ev.amount, 30) * 0.008, color: '#c8323a', age: 0, life: 0.8 })

@@ -115,6 +115,7 @@ export function tryBlock(game, player, pos, r, dir) {
   if (player.held.blocks >= PUMPKIN_TYPES.biggourd.shieldBlocks) {
     game.events.push({ type: 'splat', x: r3(sh.x), y: r3(sh.y), typeName: 'biggourd', ripeness: player.held.ripeness, rot: 0 })
     player.held = null
+    player.charging = false   // (it may have cracked mid-throw: nothing left to throw)
   }
   return true
 }

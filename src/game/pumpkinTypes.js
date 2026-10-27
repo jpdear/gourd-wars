@@ -12,7 +12,7 @@
 //   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed)
 //   aimLine                  while held, shows its owner a faint dotted line of where it'll go
 //   spawnable                can grow on patches (seeds and cluster pieces can't)
-//   carry                    while held: { speed, jump } multipliers, glide
+//   carry                    while held: { speed, jump } multipliers, glide, wallStick: false = too heavy to hold onto walls
 // Optional hooks (see powers.js):
 //   onHitPlayer(game, pk, player, part, vel)   replaces the normal hit
 //   onHitBale(game, pk, bale, vel)             hit a hay bale (instead of onHitWorld)
@@ -102,7 +102,7 @@ export const PUMPKIN_TYPES = {
     name: 'Big Gourd', color: '#d9b25c', rib: '#9c7a2e', mark: 'gourd',
     radius: 0.38, density: 2.5, restitution: 0, refSpeed: 11,
     damage: 35, knockback: 10, stun: 1.2, breakAfterHits: 1, breakOnPlayer: true,   // smashes on the first thing it hits
-    throwMode: 'lob', lobSpeed: [5, 11], carry: { speed: 0.55, jump: 0.7 }, shieldBlocks: 3,
+    throwMode: 'lob', lobSpeed: [5, 11], carry: { speed: 0.55, jump: 0.7, wallStick: false }, shieldBlocks: 3,
   },
   spitter: {
     name: 'Seed Spitter', color: '#a8c94a', rib: '#6f8f2a', mark: 'speckle',

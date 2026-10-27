@@ -65,6 +65,11 @@ export class Player {
     this.harvestTarget = null     // the patch we're pulling on
     this.harvestProgress = 0      // 0..1
     this.grapple = null           // Vine stuck in the level: { body, local, time, speed, from, best, stall } while reeling in
+    this.wall = null              // on a wall (in the air, holding toward it): { dir: -1 left / 1 right, body, x }
+    this.wallGrace = 0            // can still kick off the wall this long after letting go...
+    this.wallGraceDir = 0         // ...the wall's side
+    this.wallJumpTimer = 0        // just kicked off a wall: steering back toward it is weak until this runs out
+    this.dustTimer = 0
     this.dead = false
     this.respawnTimer = 0
     this.prev = emptyInput()
@@ -244,6 +249,16 @@ export class Player {
     this.coyote = this.grounded ? C.coyoteTime : Math.max(0, this.coyote - dt)
     if (this.pendingGlue > 0 && this.grounded) { this.gluedTimer = this.pendingGlue; this.pendingGlue = 0 }
 
+    // --- wall check: in the air, holding toward a wall (not right after kicking off one) ---
+    const W = C.wall
+    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
+    this.wallJumpTimer = Math.max(0, this.wallJumpTimer - dt)
+    const canStick = dir && !stunned && !this.grounded && this.shoveTimer <= 0 && this.gluedTimer <= 0 && this.floatTimer <= 0 &&
+      !this.grapple && this.wallJumpTimer <= 0 && carry.wallStick !== false
+    this.wall = canStick ? this.senseWall(dir) : null
+    if (this.wall) { this.wallGrace = W.grace; this.wallGraceDir = dir }
+    else this.wallGrace = Math.max(0, this.wallGrace - dt)
+
     // --- 1. hover spring ---
     if (!stunned && this.groundDist !== null && this.jumpLock <= 0) {
       const err = C.hoverHeight - this.groundDist
@@ -260,7 +275,6 @@ export class Player {
 
     // --- movement (not while staggered or glued, or for a moment after a shove) ---
     if (!stunned && this.shoveTimer <= 0 && this.gluedTimer <= 0) {
-      const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
       const maxAccel = this.grounded ? C.groundAccel : C.airAccel
       let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) + (this.grounded && this.groundVel ? this.groundVel.x : 0)
       // Walking into a hay bale pushes it: it gets a shove, and we walk along at its speed instead
@@ -273,6 +287,7 @@ export class Player {
       }
       let ax = clamp((targetVx - vel.x) * 10, -maxAccel, maxAccel)
       if (!this.grounded && dir === 0) ax *= 0.15   // keep momentum in the air
+      if (this.wallJumpTimer > 0 && ax * this.wallGraceDir > 0) ax *= 0.15   // (let the kick off a wall happen)
       torso.applyForceToCenter(new Vec2(ax * this.mass * control, 0), true)
     }
 
@@ -295,6 +310,20 @@ export class Player {
       torso.applyForceToCenter(new Vec2(0, this.mass * Math.min(1.5 * CONFIG.gravity, (-3 - vel.y) * 40)), true)
     }
 
+    // on a wall: slide down it no faster than wall.slideSpeed (relative to it: a moving platform carries you)
+    if (this.wall) {
+      const minVy = this.wall.body.getLinearVelocity().y - W.slideSpeed
+      for (const p of this.parts) {
+        const v = p.body.getLinearVelocity()
+        if (v.y < minVy) p.body.setLinearVelocity(new Vec2(v.x, minVy))
+      }
+      this.dustTimer -= dt
+      if (vel.y < minVy + W.slideSpeed - 1 && this.dustTimer <= 0) {   // (sliding, not just touching)
+        this.dustTimer = W.dustEvery
+        game.events.push({ type: 'dust', x: r3(this.wall.x), y: r3(pos.y - BODY.torsoLen / 2 - 0.5) })
+      }
+    }
+
     // --- reeled in by a Vine (overrides walking and the hover spring) ---
     this.updateGrapple(input, dt, game, stunned)
 
@@ -306,6 +335,15 @@ export class Player {
         p.body.setLinearVelocity(new Vec2(v.x, C.jumpSpeed * (carry.jump ?? 1)))
       }
       this.coyote = 0
+      this.jumpBufferTimer = 0
+      this.jumpLock = 0.2
+    } else if (!stunned && this.jumpBufferTimer > 0 && this.wallGrace > 0 && carry.wallStick !== false) {
+      // kick off the wall: up and away from it
+      const out = new Vec2(-this.wallGraceDir * W.jumpAway, W.jumpUp)
+      for (const p of this.parts) p.body.setLinearVelocity(out)
+      this.wall = null
+      this.wallGrace = 0
+      this.wallJumpTimer = W.steerLock
       this.jumpBufferTimer = 0
       this.jumpLock = 0.2
     }
@@ -514,6 +552,24 @@ export class Player {
     this.groundVel = ud && ud.mover ? bestBody.getLinearVelocity() : null
   }
 
+  // A wall at our side (dir: -1 left, 1 right) within wall.reach of the torso: the side of a platform,
+  // wall or moving platform, facing us. Two rays, chest and hips. Returns { dir, body, x } or null.
+  senseWall(dir) {
+    const reach = CONFIG.player.wall.reach
+    for (const ly of [0.15, -BODY.torsoLen / 2]) {
+      const from = this.torso.getWorldPoint(new Vec2(0, ly))
+      let found = null
+      this.world.rayCast(from, new Vec2(from.x + dir * reach, from.y), (fixture, point, normal, fraction) => {
+        const ud = fixture.getBody().getUserData()
+        if (!ud || ud.kind !== 'platform' || Math.abs(normal.x) < 0.7) return -1   // (only sides of solid ground)
+        found = { dir, body: fixture.getBody(), x: point.x }
+        return fraction
+      })
+      if (found) return found
+    }
+    return null
+  }
+
   poseLimbs(dt, vel, control) {
     const C = CONFIG.player
     const f = this.facing
@@ -534,6 +590,11 @@ export class Player {
         kneeL = -f * (0.1 + 1.1 * amt * Math.max(0, Math.cos(a)))
         kneeR = -f * (0.1 + 1.1 * amt * Math.max(0, Math.cos(b)))
       }
+    } else if (this.wall) {
+      // on a wall (we're pressed right against it): knees out, feet tucked back against it
+      const w = this.wall.dir
+      hipL = -w * 0.9; kneeL = w * 1.6
+      hipR = -w * 0.4; kneeR = w * 0.9
     } else {
       hipL = f * 0.55; hipR = -f * 0.25
       kneeL = -f * 0.9; kneeR = -f * 0.35
@@ -567,12 +628,20 @@ export class Player {
       const front = f > 0 ? 'R' : 'L', back = f > 0 ? 'L' : 'R'
       const rest = { L: -0.6 * amt * Math.sin(this.walkPhase), R: -0.6 * amt * Math.sin(this.walkPhase + Math.PI) }
       if (!this.grounded) { rest[front] = 0.8 * f; rest[back] = -0.5 * f }
-      const elbowBend = f * (this.grounded ? 0.2 + 0.4 * amt : 0.5)
+      const bend = { L: f * (this.grounded ? 0.2 + 0.4 * amt : 0.5) }
+      bend.R = bend.L
+      if (this.wall) {   // on a wall: one hand up against it, the other out for balance
+        const w = this.wall.dir, wallArm = w > 0 ? 'R' : 'L', freeArm = w > 0 ? 'L' : 'R'
+        // (straight up, a hair away from the wall: the motor takes the short way round, and the short
+        // way to "up along the wall" would swing the arm into the wall)
+        rest[wallArm] = -w * 3.05; bend[wallArm] = -w * 0.15
+        rest[freeArm] = -w * 1.2; bend[freeArm] = w * 0.5
+      }
       for (const side of ['L', 'R']) {
         const jab = this.punchTimer > 0 && this.punchArm === side
         const t = jab ? armT * 3 : armT
         this.drive(J['shoulder' + side], jab ? armTarget : rest[side], t)
-        this.drive(J['elbow' + side], jab ? 0 : elbowBend, t)
+        this.drive(J['elbow' + side], jab ? 0 : bend[side], t)
       }
     }
     this.drive(J.neck, 0, neckT)
@@ -672,6 +741,9 @@ export class Player {
     this.reviveTimer = 0
     this.hopCooldown = 0
     this.grapple = null
+    this.wall = null
+    this.wallGrace = 0
+    this.wallJumpTimer = 0
     this.harvestTarget = null
     this.harvestProgress = 0
   }

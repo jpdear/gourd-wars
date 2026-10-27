@@ -28,6 +28,15 @@ export const CONFIG = {
     limpTorque: 0.25,        // joint stiffness while ragdolled (0 = totally floppy)
     recoverTime: 0.4,        // seconds to ramp back to full control after a stun
     maxHealth: 50,           // a full-power ripe pumpkin does 25, a punch 5
+    wall: {                  // in the air, hold toward a wall to slide down it; jump to kick off
+      reach: 0.5,            // how close (torso center to the wall) counts as touching it
+      slideSpeed: 2.5,       // fastest you slide down (m/s)
+      grace: 0.12,           // a jump this long after letting go still kicks off the wall
+      jumpUp: 12,            // the kick off: up...
+      jumpAway: 4,           // ...and away from the wall (m/s)
+      steerLock: 0.2,        // after a kick off, steering back toward the wall is weak this long
+      dustEvery: 0.08,       // a puff of dust this often while sliding (s)
+    },
   },
   throw: { minSpeed: 14, maxSpeed: 26, chargeTime: 0.7, cooldown: 0.35 },
   punch: {                   // click with empty hands (alternates arms)
