@@ -27,6 +27,7 @@ export function makeSnapshot(game) {
       glued: p.gluedTimer > 0,
       floating: p.floatTimer > 0,
       charge: p.charging ? r3(p.charge) : 0,
+      lockedOn: game.pumpkins.some(pk => pk.target === p),   // a Homing gourd is coming for them
       grapple: p.grapple && !p.dead ? (({ x, y }) => [r3(x), r3(y)])(p.grapplePoint()) : null,   // where a Vine is reeling them in
       harvest: r3(p.harvestProgress),
       harvestPatch: p.harvestTarget ? game.patches.indexOf(p.harvestTarget) : -1,
@@ -36,9 +37,10 @@ export function makeSnapshot(game) {
         return [r3(pos.x), r3(pos.y), r3(wrapAngle(body.getAngle()))]
       }),
     })),
+    // [id, x, y, angle, typeName, ripeness, owner slot, radius, heading (a Homing gourd chasing someone, else null)]
     pumpkins: game.pumpkins.map(pk => {
       const pos = pk.body.getPosition()
-      return [pk.id, r3(pos.x), r3(pos.y), r3(wrapAngle(pk.body.getAngle())), pk.typeName, r3(pk.ripeness), pk.owner ? pk.owner.index : -1, r3(pk.radius)]
+      return [pk.id, r3(pos.x), r3(pos.y), r3(wrapAngle(pk.body.getAngle())), pk.typeName, r3(pk.ripeness), pk.owner ? pk.owner.index : -1, r3(pk.radius), pk.target ? r3(pk.heading) : null]
     }),
     // [id, x, y, angle, health 0..1, flags: 1 frozen, 2 sticky, 4 floating]
     bales: game.bales.map(b => {

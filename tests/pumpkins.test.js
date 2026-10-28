@@ -1,6 +1,6 @@
 import { Vec2 } from 'planck'
 import { expect, it } from 'vitest'
-import { createGame, stepGame } from '../src/game/game.js'
+import { createGame, setDummies, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { openBlackHole, tryBlock } from '../src/game/powers.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
@@ -82,4 +82,39 @@ it('an Airstrike on a player marks the ground below them, and the airdrop crushe
   expect(landed).toBeLessThan(PUMPKIN_TYPES.airstrike.delay + 0.1)
   expect(game.events.some(e => e.type === 'ko')).toBe(true)   // crushed (practice: they just refill)
   expect(game.events.some(e => e.type === 'boom')).toBe(true)
+})
+
+it('a Homing gourd thrown straight up locks onto the dummy and curves into it', () => {
+  const game = createGame()
+  const [me, dummy] = game.players
+  for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+  const c = me.torso.getPosition()
+  const pk = spawnPumpkin(game, 'homing', new Vec2(c.x, c.y + 1), new Vec2(0, 12), me)
+  let locked = false
+  for (let i = 0; i < 180 && !dummy.damageTaken; i++) {
+    stepGame(game, [emptyInput()])
+    locked ||= pk.target === dummy
+  }
+  expect(locked).toBe(true)
+  expect(dummy.damageTaken).toBeGreaterThan(0)
+  expect(me.damageTaken).toBe(0)
+})
+
+it("a Homing gourd whose target is knocked out gives up instead of picking someone else", () => {
+  const game = createGame()
+  setDummies(game, 2)
+  const me = game.players[0]
+  for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+  const c = me.torso.getPosition()
+  const pk = spawnPumpkin(game, 'homing', new Vec2(c.x, c.y + 1), new Vec2(0, 12), me)
+  for (let i = 0; i < 60 && !pk.target; i++) stepGame(game, [emptyInput()])
+  const target = pk.target
+  expect(target).toBeTruthy()
+  target.ko = true
+  stepGame(game, [emptyInput()])
+  expect(pk.target).toBeNull()
+  for (let i = 0; i < 20 && !pk.broken; i++) {
+    stepGame(game, [emptyInput()])
+    expect(pk.target).toBeNull()
+  }
 })

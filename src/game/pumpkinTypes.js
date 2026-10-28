@@ -20,7 +20,7 @@
 //   update(game, pk, dt)                       every step while flying
 
 import { freezeBale } from './level.js'
-import { callAirstrike, explode, openBlackHole, splitCluster, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { callAirstrike, explode, openBlackHole, splitCluster, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -158,6 +158,23 @@ export const PUMPKIN_TYPES = {
       explode(game, p.x, p.y, { ...blast, radius: blast.radius * pk.power }, pk.power)
       game.events.push({ type: 'shake', amount: r3(pk.type.shake * pk.power) })
     },
+  },
+  homing: {
+    name: 'Homing', color: '#d83a2c', rib: '#9a2219', mark: 'antenna',
+    radius: 0.22, density: 2, restitution: 0.2, refSpeed: 8,   // (homing counts as a full-speed hit; picked green still hits softer)
+    damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1,
+    // A little missile (see updateHoming in powers.js): `delay` s after leaving your hand it locks onto the
+    // player nearest it (never you, never anyone knocked out) and flies at them, ignoring gravity. It looks
+    // ahead and steers around what's in the way, but never turns more than 60° off the line to its target,
+    // so if they're behind cover it smashes into it. If its target is knocked out or falls off, it gives up
+    // and flies on like a Classic (no new target). Picked green: slower and turns less sharply (× power).
+    //   delay       seconds after leaving your hand before it locks on
+    //   speed       m/s while homing
+    //   turnRate    how fast it can turn (radians/s); close in (within one turning circle) it aims straight at them
+    //   lookAhead   how far it tries going a different way to get around something in the way (m)
+    //   maxChase    smashes after chasing this long (s)
+    homing: { delay: 0.5, speed: 20, turnRate: 4, lookAhead: 0.5, maxChase: 3 },
+    update: (game, pk, dt) => updateHoming(game, pk, dt),
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

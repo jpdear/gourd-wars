@@ -14,7 +14,7 @@ import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
-import { drawAirstrikeTarget, drawBlackHole, drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
+import { drawAirstrikeTarget, drawBlackHole, drawFlameTrail, drawLockOn, drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
 
@@ -54,7 +54,7 @@ export function render(ctx, view, snap, effects, ui) {
     for (const [, x, y, angle, hp, flags] of snap.bales) drawBale(ctx, x, y, angle, hp, flags, X, Y, s)
     drawPatches(ctx, snap, ui.localIndex, X, Y, s)
     for (const [, x, y, t, r] of snap.strikes) drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s)   // (under the airdrop)
-    for (const [, x, y, angle, typeName, ripeness, owner, radius] of snap.pumpkins) {
+    for (const [, x, y, angle, typeName, ripeness, owner, radius, heading] of snap.pumpkins) {
       const type = PUMPKIN_TYPES[typeName]
       if (typeName === 'vine' && snapPlayer(snap, owner)) {   // the vine trails back to the thrower's hand
         const [hx, hy] = handOf(snapPlayer(snap, owner))
@@ -65,11 +65,13 @@ export function render(ctx, view, snap, effects, ui) {
         ctx.quadraticCurveTo(X((hx + x) / 2), Y((hy + y) / 2 - 0.4), X(x), Y(y))
         ctx.stroke()
       }
+      if (heading !== null && heading !== undefined) drawFlameTrail(ctx, X(x), Y(y), radius * s, heading)   // (a Homing gourd on the hunt)
       drawPumpkin(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0), type.mark)
     }
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), X, Y, s)
+    for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
     for (const [, x, y, r] of snap.holes) drawBlackHole(ctx, x, y, r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
     if (me && me.held && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)

@@ -171,6 +171,17 @@ const MARKS = {
     ctx.moveTo(0, -r * 0.75); ctx.lineTo(0, r * 0.75)
     ctx.stroke()
   },
+  antenna: (ctx, r) => {   // a thin aerial with a blinking tip, where the stem would be
+    ctx.strokeStyle = '#3b3631'
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 0.95)
+    ctx.lineTo(r * 0.15, -r * 1.75)
+    ctx.stroke()
+    ctx.fillStyle = Math.sin(Date.now() / 90) > 0 ? '#fff3b0' : '#ff3b2a'
+    ctx.beginPath()
+    ctx.arc(r * 0.15, -r * 1.8, Math.max(1.5, r * 0.18), 0, Math.PI * 2)
+    ctx.fill()
+  },
   string: (ctx, r) => {
     ctx.strokeStyle = '#6b6358'
     ctx.lineWidth = 1
@@ -223,10 +234,46 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
     if (mark === 'gourd') { ctx.moveTo(r * 0.85, 0); ctx.ellipse(0, 0, r * 0.85, r * 0.94, 0, 0, Math.PI * 2) }   // (moveTo: no joining line)
     ctx.stroke()
     ctx.fillStyle = '#4c7a2a'
-    ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)   // stem
+    if (mark !== 'antenna') ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)   // stem (a Homing gourd has an antenna instead)
   }
   ctx.lineWidth = Math.max(1, r * 0.1)
   MARKS[mark]?.(ctx, r, colors)
+  ctx.restore()
+}
+
+// A Homing gourd's exhaust (pixels; heading: the way it's flying, world radians): a flickering
+// flame streaming out behind it, yellow at the gourd fading to red.
+export function drawFlameTrail(ctx, x, y, r, heading) {
+  const bx = -Math.cos(heading), by = Math.sin(heading)   // (backward, in canvas space: y points down)
+  const now = Date.now()
+  for (let i = 5; i >= 1; i--) {
+    const flick = 0.85 + 0.3 * Math.sin(now / 40 + i * 2.1)
+    const d = r * (0.6 + i * 0.55)
+    ctx.fillStyle = ['#fff3b0', '#ffd23f', '#ff9a2e', '#ff6a1f', '#e2381b'][i - 1]
+    ctx.globalAlpha = 0.9 - i * 0.12
+    ctx.beginPath()
+    ctx.arc(x + bx * d, y + by * d, r * (0.75 - i * 0.1) * flick, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+}
+
+// Locked on: red corner brackets turning slowly around a player's torso (x, y in pixels), so
+// everyone can see who a Homing gourd is after.
+export function drawLockOn(ctx, x, y, s) {
+  const now = Date.now()
+  const R = 0.75 * s * (1 + 0.08 * Math.sin(now / 80)), arm = 0.25 * s
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(now / 600)
+  ctx.strokeStyle = '#e2381b'
+  ctx.lineWidth = Math.max(1.5, 0.06 * s)
+  ctx.beginPath()
+  for (let k = 0; k < 4; k++) {
+    ctx.rotate(Math.PI / 2)
+    ctx.moveTo(R - arm, -R); ctx.lineTo(R, -R); ctx.lineTo(R, -R + arm)
+  }
+  ctx.stroke()
   ctx.restore()
 }
 

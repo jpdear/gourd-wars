@@ -6,7 +6,7 @@ import { breakBale, damageBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, launch, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
-import { lerp, r3 } from '../util/math.js'
+import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
 // straight outward, harder the closer it was; splats pumpkins still on their patches.
@@ -214,4 +214,79 @@ export function updateAirstrikes(game, dt) {
     st.airdrop = spawnPumpkin(game, 'airdrop', new Vec2(st.x, top), new Vec2(0, -speed), null, { power: st.power, ripeness: 1, size: st.power }, 0)
   }
   game.strikes = game.strikes.filter(st => !st.gone)
+}
+
+// Homing: once its delay is up it locks onto the player nearest it who's still in the round (not
+// the thrower) and flies at them. Each step it picks where to head:
+//   - straight at them, if nothing solid is in the way
+//   - else the smallest turn off that line (10° steps, never more than 60°, so it can't turn away from
+//     them and circle) that's clear for lookAhead m and has a clear view of them from there
+//   - else the smallest turn that's at least clear for lookAhead m
+//   - else straight at them, smashing into whatever's there (they're hidden behind cover)
+export function updateHoming(game, pk, dt) {
+  const H = pk.type.homing
+  if (pk.age < H.delay || pk.gaveUp) return
+  if (!pk.target) {
+    const pos = pk.body.getPosition()
+    const dist = pl => { const c = pl.torso.getPosition(); return Math.hypot(c.x - pos.x, c.y - pos.y) }
+    const options = game.players.filter(pl => pl !== pk.owner && !pl.out)
+    if (!options.length) { pk.gaveUp = true; return }   // nobody to chase: flies on like a Classic
+    pk.target = options.reduce((a, b) => (dist(b) < dist(a) ? b : a))
+    pk.chase = 0
+    pk.body.setGravityScale(0)
+    pk.body.setAngularVelocity(0)
+    pk.body.setTransform(pos, 0)   // (upright: antenna on top, flames out the back)
+  }
+  const target = pk.target
+  if (target.out || target.removed) {   // knocked out or fell off: it gives up (no new target)
+    pk.target = null
+    pk.gaveUp = true
+    pk.body.setGravityScale(pk.type.gravityScale ?? 1)
+    return
+  }
+  if ((pk.chase += dt) >= H.maxChase) { breakPumpkin(game, pk); return }
+  const pos = pk.body.getPosition(), goal = target.torso.getPosition(), v = pk.body.getLinearVelocity()
+  const r = pk.radius
+  const direct = Math.atan2(goal.y - pos.y, goal.x - pos.x)
+  const heading = Math.hypot(v.x, v.y) > 0.1 ? Math.atan2(v.y, v.x) : direct
+  const speed = H.speed * pk.power, turnRate = H.turnRate * pk.power
+  let want = direct
+  if (!clearPath(game, pos, goal, r)) {
+    const side = wrapAngle(heading - direct) >= 0 ? 1 : -1   // (on a tie, the side we're already turned to)
+    let fallback = null
+    search: for (let k = 1; k <= 6; k++) {
+      for (const sign of [side, -side]) {
+        const a = direct + sign * k * Math.PI / 18
+        const ahead = { x: pos.x + Math.cos(a) * H.lookAhead, y: pos.y + Math.sin(a) * H.lookAhead }
+        if (!clearPath(game, pos, ahead, r)) continue
+        if (clearPath(game, ahead, goal, r)) { want = a; break search }
+        fallback ??= a
+      }
+    }
+    if (want === direct && fallback !== null) want = fallback
+  }
+  // it snaps onto its course when it locks on; close in (inside its turning circle) it aims right at
+  // them, so it can't orbit them
+  const d = Math.hypot(goal.x - pos.x, goal.y - pos.y)
+  const sharp = pk.chase === dt || d < speed / turnRate
+  const dir = sharp ? want : heading + clamp(wrapAngle(want - heading), -turnRate * dt, turnRate * dt)
+  pk.body.setLinearVelocity(new Vec2(Math.cos(dir) * speed, Math.sin(dir) * speed))
+  pk.heading = dir
+}
+
+// Could something r wide get from a to b without touching anything solid (players and pumpkins don't count)?
+function clearPath(game, a, b, r) {
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1
+  const nx = -dy / len * r, ny = dx / len * r   // (to either side)
+  let hit = false
+  for (const k of [-1, 0, 1]) {
+    game.world.rayCast(new Vec2(a.x + nx * k, a.y + ny * k), new Vec2(b.x + nx * k, b.y + ny * k), fixture => {
+      const ud = fixture.getBody().getUserData()
+      if (ud && (ud.kind === 'player' || ud.kind === 'pumpkin')) return -1
+      hit = true
+      return 0
+    })
+    if (hit) return false
+  }
+  return true
 }

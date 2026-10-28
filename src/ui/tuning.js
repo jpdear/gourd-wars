@@ -182,6 +182,15 @@ const TUNABLES = [
       [T_ + 'airdrop.blast.stun', 0, 3, 0.05, 'blast ragdoll'],
       [T_ + 'airdrop.shake', 0, 1, 0.01, 'screen shake'],
     ]],
+    ['Homing', [
+      [T_ + 'homing.damage', 0, 100, 1],
+      [T_ + 'homing.knockback', 0, 30, 0.5],
+      [T_ + 'homing.homing.delay', 0, 2, 0.05, 'delay'],
+      [T_ + 'homing.homing.speed', 2, 50, 0.5, 'speed'],
+      [T_ + 'homing.homing.turnRate', 1, 40, 0.5, 'turn rate'],
+      [T_ + 'homing.homing.lookAhead', 0, 8, 0.1, 'look ahead'],
+      [T_ + 'homing.homing.maxChase', 0.5, 10, 0.1, 'max chase'],
+    ]],
   ]],
 ]
 
