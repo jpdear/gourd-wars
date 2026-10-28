@@ -1,7 +1,7 @@
 // MENU (the HTML card in #menu)
 
 import { MATCH_MODES } from '../game/match.js'
-import { PUMPKIN_TYPES, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
+import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
 
@@ -30,7 +30,7 @@ export function createMenu(onAction) {
       <span class="dot" style="background:${PUMPKIN_TYPES[k].color}"></span>
       <span class="pk-name">${PUMPKIN_TYPES[k].name}</span>
       <button class="pk-on" data-act="pk-toggle:${k}">On</button>
-      <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div>
+      <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
     </div>`).join('')
   // map buttons (rebuilt whenever custom maps change); maps that can't be played yet are left out
   const buildMapButtons = () => {

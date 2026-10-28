@@ -16,7 +16,7 @@ let pumpkinsReturnTo = 'main'   // the menu screen "Done" goes back to
 let matchReturnTo = 'host'      // (same for Match Settings)
 
 // Every button's action, by name. A button's data-act is the name plus any arguments, separated
-// by colons ("map:hayloft", "pk-rate:frost:rare"); they're handed to the action.
+// by colons ("map:hayloft", "pk-rate:frost:superrare"); they're handed to the action.
 const ACTIONS = {
   // main menu, hosting and joining
   host: () => startHosting(),

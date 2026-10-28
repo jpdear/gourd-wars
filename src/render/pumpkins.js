@@ -38,7 +38,8 @@ export function drawPatches(ctx, snap, localIndex, X, Y, s) {
 
     const pk = patchPumpkin(patch)
     const type = PUMPKIN_TYPES[patch.typeName]
-    if (patch.typeName !== 'classic') {   // specials glow so both players see them coming
+    if (patch.superRare) drawSuperRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type)
+    else if (patch.typeName !== 'classic') {   // specials glow so both players see them coming
       const pulse = 0.6 + 0.25 * Math.sin(Date.now() / 220)
       const g = ctx.createRadialGradient(X(pk.x), Y(pk.y), pk.r * 0.5 * s, X(pk.x), Y(pk.y), (pk.r + 0.6) * s)
       g.addColorStop(0, hexA(type.color, 0.75 * pulse))
@@ -77,6 +78,34 @@ export function drawPatches(ctx, snap, localIndex, X, Y, s) {
       ctx.textBaseline = 'alphabetic'
     }
   })
+}
+
+// A Super Rare pumpkin on its patch: a bigger, faster-pulsing gold glow (the type's color at the
+// heart) with sparkles circling it. (x, y, r in pixels; s = pixels per meter)
+const GOLD = '#ffd54a'
+function drawSuperRareGlow(ctx, x, y, r, s, type) {
+  const now = Date.now()
+  const pulse = 0.6 + 0.2 * Math.sin(now / 150)
+  const outer = r + 0.8 * s
+  const g = ctx.createRadialGradient(x, y, r * 0.5, x, y, outer)
+  g.addColorStop(0, hexA(type.color, 0.55 * pulse))
+  g.addColorStop(0.35, hexA(GOLD, 0.4 * pulse))
+  g.addColorStop(1, hexA(GOLD, 0))
+  ctx.fillStyle = g
+  ctx.beginPath()
+  ctx.arc(x, y, outer, 0, Math.PI * 2)
+  ctx.fill()
+  // 4 twinkling four-point stars going round
+  ctx.fillStyle = '#fff6c8'
+  for (let i = 0; i < 4; i++) {
+    const a = now / 900 + (i * Math.PI) / 2
+    const d = r + 0.45 * s, size = 0.09 * s * (0.6 + 0.4 * Math.sin(now / 120 + i * 1.7))
+    const sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d
+    ctx.beginPath()
+    ctx.moveTo(sx, sy - size); ctx.lineTo(sx + size * 0.3, sy); ctx.lineTo(sx, sy + size); ctx.lineTo(sx - size * 0.3, sy); ctx.closePath()
+    ctx.moveTo(sx - size, sy); ctx.lineTo(sx, sy + size * 0.3); ctx.lineTo(sx + size, sy); ctx.lineTo(sx, sy - size * 0.3); ctx.closePath()
+    ctx.fill()
+  }
 }
 
 // Decorations drawn over a pumpkin's body, by its type's mark (in the pumpkin's own frame: radius r,

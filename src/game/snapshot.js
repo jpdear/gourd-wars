@@ -49,8 +49,8 @@ export function makeSnapshot(game) {
     holes: game.holes.map(h => [h.id, r3(h.x), r3(h.y), r3(h.r)]),   // [id, x, y, core radius]
     scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),
     movers: game.movers.map(m => { const pos = m.body.getPosition(); return [r3(pos.x), r3(pos.y)] }),
-    // [stateCode, growth, rot, typeCode] per patch, in the map's patch order
-    patches: game.patches.map(p => [PATCH_STATES.indexOf(p.state), r3(p.growth), r3(patchRot(p)), PUMPKIN_TYPE_NAMES.indexOf(p.typeName)]),
+    // [stateCode, growth, rot, typeCode, superRare 0/1] per patch, in the map's patch order
+    patches: game.patches.map(p => [PATCH_STATES.indexOf(p.state), r3(p.growth), r3(patchRot(p)), PUMPKIN_TYPE_NAMES.indexOf(p.typeName), p.superRare ? 1 : 0]),
     timeScale: game.timeScale,
     sights: game.sights,   // (the host's setting: show each player their own sight)
     transition: game.transition && { from: game.transition.from, t: r3(Math.min(1, game.transition.elapsed / game.transition.duration)) },
@@ -71,9 +71,9 @@ export const snapPlayer = (snap, slot) => snap.players.find(p => p.slot === slot
 
 // A patch from a snapshot, in the same shape the patch helpers expect.
 export function patchView(snap, i) {
-  const [code, growth, rot, type] = snap.patches[i]
+  const [code, growth, rot, type, superRare] = snap.patches[i]
   const def = mapDef(snap.map).patches[i]
-  return { x: def.x, y: def.y, state: PATCH_STATES[code], growth, rot, typeName: PUMPKIN_TYPE_NAMES[type] }
+  return { x: def.x, y: def.y, state: PATCH_STATES[code], growth, rot, typeName: PUMPKIN_TYPE_NAMES[type], superRare: !!superRare }
 }
 
 // Blend two snapshots: t = 0 gives a, t = 1 gives b.

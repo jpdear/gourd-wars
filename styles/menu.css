@@ -62,10 +62,12 @@
 #menu .pk-on { flex: none; width: 56px; }
 #menu .pk-on.on { --edge: #3a6326; background: #5a8f3c; color: #fff; }
 #menu .pk-on.on:hover { background: #67a046; }
-#menu .pk-row .seg { width: 186px; }
+#menu .pk-row .seg { width: 276px; }
+#menu .pk-row .seg button { flex: 1 1 auto; }   /* (sized to their labels: "Super Rare" is long) */
 #menu .pk-head { display: flex; align-items: center; gap: 6px; color: #8a8073; font: 400 13px/1 var(--display); letter-spacing: 0.04em; }
 #menu .pk-head span:nth-child(2) { width: 56px; }
-#menu .pk-head span:nth-child(3) { width: 186px; }
+#menu .pk-head span:nth-child(3) { width: 276px; }
+#menu[data-screen=pumpkins] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
 #menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: #8a8073; font: 400 15px/1 var(--display); letter-spacing: 0.04em; }
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
 #menu .pk-row.off .pk-name, #menu .pk-row.off .seg { opacity: 0.35; }

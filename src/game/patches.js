@@ -2,20 +2,27 @@
 //   empty → growing (green → orange) → ripe → rotten → pops → empty → ...
 
 import { CONFIG } from '../config.js'
-import { PUMPKIN_TYPES, pickPumpkinType } from './pumpkinTypes.js'
+import { PUMPKIN_TYPES, isSuperRare, pickPumpkinType } from './pumpkinTypes.js'
 import { clamp, lerp, r3 } from '../util/math.js'
 
 export const PATCH_STATES = ['empty', 'growing', 'ripe', 'rotten']   // index = code sent in snapshots
 
 export function createPatches(map) {
   // only: this patch always grows that pumpkin type (custom maps)
-  return map.patches.map(p => ({ x: p.x, y: p.y, only: p.only || null, state: 'empty', timer: 0, growth: 0, typeName: p.only || 'classic' }))
+  // superRare: its type is set to Super Rare (it glows gold); never on an "only" patch
+  return map.patches.map(p => ({ x: p.x, y: p.y, only: p.only || null, state: 'empty', timer: 0, growth: 0, typeName: p.only || 'classic', superRare: false }))
+}
+
+// A new sprout: pick what it'll be.
+function pickPatchType(game, p) {
+  p.typeName = p.only || pickPumpkinType(game.spawnSettings)
+  p.superRare = !p.only && isSuperRare(game.spawnSettings, p.typeName)
 }
 
 // Start of a round: every patch about 2 seconds from ripe (each picks a new pumpkin type).
 export function resetPatches(game) {
   for (const p of game.patches) {
-    p.typeName = p.only || pickPumpkinType(game.spawnSettings)
+    pickPatchType(game, p)
     p.state = 'growing'
     p.growth = clamp(1 - 2 / CONFIG.patch.growTime, 0, 1)
     p.timer = 0
@@ -27,7 +34,7 @@ export function updatePatches(game, dt) {
   for (const p of game.patches) {
     if (p.state === 'empty') {
       p.timer -= dt
-      if (p.timer <= 0) { p.state = 'growing'; p.growth = 0; p.typeName = p.only || pickPumpkinType(game.spawnSettings) }
+      if (p.timer <= 0) { p.state = 'growing'; p.growth = 0; pickPatchType(game, p) }
     } else if (p.state === 'growing') {
       p.growth = Math.min(1, p.growth + dt / P.growTime)
       if (p.growth >= 1) { p.state = 'ripe'; p.timer = 0 }

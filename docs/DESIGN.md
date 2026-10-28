@@ -50,7 +50,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 | **Balloon Gourd** | Held: glide (fall ~3–4 m/s) and jump 25% higher. Thrown: target floats helplessly up for 2 s, then drops. |
 | **Black Hole** | Deep purple with little stars. Wherever it breaks (first thing it touches, a player too: no damage, the hole just opens on them) a **black hole** opens and stays put: its core grows from 0.8 m to 12 m across over 3.5 s, then collapses (a purple pulse); the screen shakes while it's open, harder as it grows. It **pulls on everything anywhere on the map** (players, thrower too, flying pumpkins, hay bales), harder the closer and the bigger it is (pull × radius / distance): at full size you can't outrun it from within ~13 m of its center, and further out it slows you and curves throws. Whatever reaches the core is **swallowed**: players are gone like falling off (practice: back at your spawn), pumpkins break (a Jack-o'-Boom goes off), bales are eaten; pumpkins still on a patch get ripped off (splat) once it's close. Picked green: smaller and shorter-lived. Every number is in the tuning panel. |
 
-**Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare (weights 20 / 5 / 1). Default: Classic common, all specials rare (~31% of sprouts are special). The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
+**Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare / Super Rare (weights 20 / 5 / 1 / 0.25). Default: Classic common, Black Hole super rare, all other specials rare. **Super Rare** pumpkins glow gold (bigger, faster pulse, with sparkles circling them) while growing, instead of the usual special glow. The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
 
 ## Maps
 - Stick Fight-style platform levels: floating platforms over empty space, always one screen.
@@ -97,7 +97,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 - **Esc menu (Game Menu):** Resume, Settings (not for guests: they play by the host's settings), Exit (to the main menu, or to the editor in a play test).
 - **Match Settings** (from the host screen; called **Settings** from the Esc menu) shows only what applies right now: Match Length + Maps + Random Order (on/off) for the host; Practice Map + Practice Dummies (just the number) while playing alone; Sights (on/off, everyone: see below); Pumpkins; Restart Match for a host with friends; Done.
 - **Sights** (host setting, off by default; also used in practice): while you hold any gourd, faint dots in its color show where it would fly if you threw it now (growing as you charge), fading out, until the first thing it would hit (platforms, walls, moving platforms, hay bales, pitchforks), where it would fizzle (Vine) or split (Gourd Cluster), or off screen. Only you see your own; the host's snapshots tell guests whether sights are on. The Seed Spitter's sight is its seeds' path; the Big Gourd's, its short lob.
-- **Pumpkins:** one row per type, with **Enabled** (On/Off) and **Rarity** (Common / Normal / Rare) columns.
+- **Pumpkins:** one row per type, with **Enabled** (On/Off) and **Rarity** (Common / Normal / Rare / Super Rare) columns.
 
 ## Debug / tuning
 - `` ` `` shows health bars, damage numbers, debug text and the tuning panel.

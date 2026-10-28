@@ -136,9 +136,13 @@ export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type c
 export const SPAWNABLE_TYPES = PUMPKIN_TYPE_NAMES.filter(k => PUMPKIN_TYPES[k].spawnable !== false)
 
 // How often each type grows (host setting): relative weights.
-export const SPAWN_RATES = { common: 20, normal: 5, rare: 1 }
+export const SPAWN_RATES = { common: 20, normal: 5, rare: 1, superrare: 0.25 }
+export const RATE_LABELS = { common: 'Common', normal: 'Normal', rare: 'Rare', superrare: 'Super Rare' }
+// Super rare ones glow brighter (gold) while growing.
+export const isSuperRare = (settings, k) => !!settings[k] && settings[k].rate === 'superrare'
+const DEFAULT_RATES = { classic: 'common', blackhole: 'superrare' }   // (everything else: rare)
 export const defaultSpawnSettings = () =>
-  Object.fromEntries(SPAWNABLE_TYPES.map(k => [k, { on: true, rate: k === 'classic' ? 'common' : 'rare' }]))
+  Object.fromEntries(SPAWNABLE_TYPES.map(k => [k, { on: true, rate: DEFAULT_RATES[k] || 'rare' }]))
 
 // Weighted random pick among the enabled types (Classic if everything is off).
 export function pickPumpkinType(settings) {
