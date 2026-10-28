@@ -65,7 +65,7 @@ export function runReplay(api, { seconds = 180, practiceSeconds = 30 } = {}) {
     settings.rounds = 99
     api.startMatch(game, settings)
     let events = []
-    const types = api.pumpkinTypeNames().filter(k => k !== 'mini')
+    const types = api.pumpkinTypeNames().filter(k => k !== 'mini' && k !== 'airdrop')   // (pieces of other types)
     let nextType = 0
     for (let step = 1; step <= seconds * 60; step++) {
       // every 2 s, hand the next pumpkin type to someone empty-handed (so every type gets thrown)

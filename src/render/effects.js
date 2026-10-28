@@ -8,7 +8,8 @@ import { lerp } from '../util/math.js'
 
 export function createEffects() {
   // popups: floating text (damage numbers, KO!); rings: expanding circles (blasts, a Black Hole closing)
-  return { particles: [], popups: [], rings: [] }
+  // shake: { amount (m), age, life } fading screen shake (an airdrop landing), or null
+  return { particles: [], popups: [], rings: [], shake: null }
 }
 
 // A burst of n particles flying out from (x, y).
@@ -36,6 +37,7 @@ const EFFECTS = {
     burst(fx, ev.x, ev.y, 24, ['#a46bff', '#f4efe6', '#4b2c84'], [3, 9], [0.3, 0.6], [0.03, 0.07])
     fx.rings.push({ x: ev.x, y: ev.y, r: ev.r * 2.5, color: '#a46bff', age: 0, life: 0.45 })
   },
+  shake: (fx, ev) => { fx.shake = { amount: Math.max(ev.amount, fx.shake ? fx.shake.amount : 0), age: 0, life: 0.45 } },
   pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, '#f6e7c1'], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, ['#d9b25c', '#9c7a2e', '#3b3631'], [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
   freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, ['#ffffff', '#dff4fc', '#9fd8f0'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
@@ -65,8 +67,9 @@ const EFFECTS = {
   splat: (fx, ev) => {   // a pumpkin breaking: chunks in its colors, plus seeds
     const t = PUMPKIN_TYPES[ev.typeName]
     const type = pumpkinColors(t, ev.ripeness ?? 1, ev.rot ?? 0)
-    const size = t.radius / 0.22   // splats scale with the pumpkin (a seed vs. a Big Gourd)
-    const n = Math.round(6 + 45 * t.radius)
+    const radius = ev.r ?? t.radius
+    const size = radius / 0.22   // splats scale with the pumpkin (a seed vs. a Big Gourd)
+    const n = Math.round(6 + 45 * radius)
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2
       const s = (2 + Math.random() * 6) * Math.sqrt(size)
@@ -99,5 +102,6 @@ export function updateEffects(effects, dt) {
   }
   effects.popups = effects.popups.filter(t => t.age < t.life)
   for (const ring of effects.rings) ring.age += dt
+  if (effects.shake && (effects.shake.age += dt) >= effects.shake.life) effects.shake = null
   effects.rings = effects.rings.filter(ring => ring.age < ring.life)
 }

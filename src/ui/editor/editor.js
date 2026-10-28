@@ -596,7 +596,7 @@ export function createEditor(canvas, view, hooks) {
     // what render() draws: the map with its bales and ripe patches, no players
     snapshot() {
       return {
-        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], scythes: [], movers: def.movers.map(m => [m.x, m.y]),
+        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], strikes: [], scythes: [], movers: def.movers.map(m => [m.x, m.y]),
         bales: def.bales.map((b, i) => [i, b.x, b.y + BALE.h / 2, 0, 1, 0]),
         patches: def.patches.map(p => [PATCH_STATES.indexOf('ripe'), 1, 0, PUMPKIN_TYPE_NAMES.indexOf(p.only || 'classic')]),
         timeScale: 1, transition: null, match: null,

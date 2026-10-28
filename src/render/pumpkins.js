@@ -162,6 +162,15 @@ const MARKS = {
       ctx.fill()
     }
   },
+  crosshair: (ctx, r) => {   // a red target
+    ctx.strokeStyle = '#d6332a'
+    ctx.lineWidth = Math.max(1, r * 0.12)
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2)
+    ctx.moveTo(-r * 0.75, 0); ctx.lineTo(r * 0.75, 0)
+    ctx.moveTo(0, -r * 0.75); ctx.lineTo(0, r * 0.75)
+    ctx.stroke()
+  },
   string: (ctx, r) => {
     ctx.strokeStyle = '#6b6358'
     ctx.lineWidth = 1
@@ -219,6 +228,32 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
   ctx.lineWidth = Math.max(1, r * 0.1)
   MARKS[mark]?.(ctx, r, colors)
   ctx.restore()
+}
+
+// An Airstrike target (t: 0 when called in → 1 when the airdrop is due; r: the airdrop's radius):
+// a dark shadow that spreads as the airdrop gets close, under a pulsing red crosshair.
+export function drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s) {
+  const cx = X(x), cy = Y(y)
+  const w = r * (0.3 + 0.9 * t) * s
+  ctx.fillStyle = `rgba(20, 16, 12, ${0.15 + 0.35 * t})`
+  ctx.beginPath()
+  ctx.ellipse(cx, cy, w, w * 0.3, 0, 0, Math.PI * 2)
+  ctx.fill()
+  const pulse = 1 + 0.12 * Math.sin(Date.now() / 70)
+  const R = 0.45 * s * pulse
+  ctx.strokeStyle = '#d6332a'
+  ctx.lineWidth = Math.max(1.5, 0.06 * s)
+  ctx.beginPath()
+  ctx.arc(cx, cy, R, 0, Math.PI * 2)
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {   // ticks poking out past the ring
+    ctx.moveTo(cx + dx * R * 0.5, cy + dy * R * 0.5)
+    ctx.lineTo(cx + dx * R * 1.4, cy + dy * R * 1.4)
+  }
+  ctx.stroke()
+  ctx.fillStyle = '#d6332a'
+  ctx.beginPath()
+  ctx.arc(cx, cy, Math.max(1.5, 0.06 * s), 0, Math.PI * 2)
+  ctx.fill()
 }
 
 // A Black Hole (r: its core's radius): a black core with a tight white halo, and white specks

@@ -156,7 +156,7 @@ export function updateBlackHoles(game, dt) {
     }
     for (const pk of game.pumpkins) {
       if (pk.broken) continue
-      if (pullAt(pk.body.getPosition()).d < h.r + pk.type.radius) breakPumpkin(game, pk)   // (a Jack-o'-Boom goes off)
+      if (pullAt(pk.body.getPosition()).d < h.r + pk.radius) breakPumpkin(game, pk)   // (a Jack-o'-Boom goes off)
       else pull(pk.body)
     }
     for (const bale of game.bales) {
@@ -181,4 +181,37 @@ function swallowPlayer(game, pl) {
     part.body.setTransform(new Vec2(q.x, q.y + dy), part.body.getAngle())
     part.body.setLinearVelocity(new Vec2(0, 0))
   }
+}
+
+// Airstrike: a target where it broke. A direct hit on a player puts it on whatever's below them
+// (ignoring players and pumpkins), or right where they were if that's the void.
+export function callAirstrike(game, pk) {
+  const p = pk.body.getPosition()
+  let y = p.y
+  if (pk.hitPlayer) {
+    game.world.rayCast(p, new Vec2(p.x, CONFIG.killY), (fixture, point, normal, fraction) => {
+      const ud = fixture.getBody().getUserData()
+      if (ud && (ud.kind === 'player' || ud.kind === 'pumpkin')) return -1
+      y = point.y
+      return fraction
+    })
+  }
+  game.strikes.push({ id: game.nextStrikeId++, x: p.x, y, power: pk.power, age: 0, airdrop: null })
+}
+
+// Every step: each target waits until an airdrop dropped from just above the screen (at entrySpeed,
+// or faster if it has to) would land on it right on time, then drops one. The target is gone once
+// the airdrop breaks (wherever that is: something in the way takes the hit).
+export function updateAirstrikes(game, dt) {
+  const A = PUMPKIN_TYPES.airstrike, g = CONFIG.gravity
+  for (const st of game.strikes) {
+    st.age += dt
+    if (st.airdrop) { st.gone = st.airdrop.broken; continue }
+    const r = PUMPKIN_TYPES.airdrop.radius * st.power, top = CONFIG.view.h + r + 0.5
+    const left = A.delay - st.age, fall = top - (st.y + r)   // (lands when its bottom reaches the target)
+    if (left > 0 && A.entrySpeed * left + g * left * left / 2 > fall) continue   // (too soon: it'd land early)
+    const t = Math.max(left, dt), speed = (fall - g * t * t / 2) / t
+    st.airdrop = spawnPumpkin(game, 'airdrop', new Vec2(st.x, top), new Vec2(0, -speed), null, { power: st.power, ripeness: 1, size: st.power }, 0)
+  }
+  game.strikes = game.strikes.filter(st => !st.gone)
 }

@@ -14,7 +14,7 @@ import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
-import { drawBlackHole, drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
+import { drawAirstrikeTarget, drawBlackHole, drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
 
@@ -32,9 +32,11 @@ export function render(ctx, view, snap, effects, ui) {
   ctx.beginPath()
   ctx.rect(ox, oy, CONFIG.view.w * s, CONFIG.view.h * s)
   ctx.clip()
-  // the world shakes while a Black Hole is open (harder as it grows); the HUD and text stay put
+  // the world shakes while a Black Hole is open (harder as it grows) and when an airdrop lands;
+  // the HUD and text stay put
   const H = PUMPKIN_TYPES.blackhole.hole
-  const shake = snap ? H.shake * Math.min(1, Math.max(0, ...snap.holes.map(q => q[3])) / H.maxRadius) : 0
+  const holeShake = snap ? H.shake * Math.min(1, Math.max(0, ...snap.holes.map(q => q[3])) / H.maxRadius) : 0
+  const shake = Math.max(holeShake, effects.shake ? effects.shake.amount * (1 - effects.shake.age / effects.shake.life) : 0)
   ctx.save()
   if (shake) ctx.translate((Math.random() * 2 - 1) * shake * s, (Math.random() * 2 - 1) * shake * s)
 
@@ -51,7 +53,8 @@ export function render(ctx, view, snap, effects, ui) {
   if (snap) {
     for (const [, x, y, angle, hp, flags] of snap.bales) drawBale(ctx, x, y, angle, hp, flags, X, Y, s)
     drawPatches(ctx, snap, ui.localIndex, X, Y, s)
-    for (const [, x, y, angle, typeName, ripeness, owner] of snap.pumpkins) {
+    for (const [, x, y, t, r] of snap.strikes) drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s)   // (under the airdrop)
+    for (const [, x, y, angle, typeName, ripeness, owner, radius] of snap.pumpkins) {
       const type = PUMPKIN_TYPES[typeName]
       if (typeName === 'vine' && snapPlayer(snap, owner)) {   // the vine trails back to the thrower's hand
         const [hx, hy] = handOf(snapPlayer(snap, owner))
@@ -62,7 +65,7 @@ export function render(ctx, view, snap, effects, ui) {
         ctx.quadraticCurveTo(X((hx + x) / 2), Y((hy + y) / 2 - 0.4), X(x), Y(y))
         ctx.stroke()
       }
-      drawPumpkin(ctx, X(x), Y(y), type.radius * s, angle, pumpkinColors(type, ripeness, 0), type.mark)
+      drawPumpkin(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0), type.mark)
     }
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)

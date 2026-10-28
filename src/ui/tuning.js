@@ -172,6 +172,16 @@ const TUNABLES = [
       [T_ + 'blackhole.hole.patchRip', 5, 200, 5, 'patch rip pull'],
       [T_ + 'blackhole.hole.shake', 0, 1, 0.01, 'screen shake'],
     ]],
+    ['Airstrike', [
+      [T_ + 'airstrike.delay', 0.2, 3, 0.05, 'delay'],
+      [T_ + 'airstrike.entrySpeed', 0, 40, 1, 'entry speed'],
+      [T_ + 'airdrop.radius', 0.3, 2, 0.05, 'airdrop size'],
+      [T_ + 'airdrop.blast.radius', 0.5, 8, 0.1, 'blast radius'],
+      [T_ + 'airdrop.blast.damage', 0, 100, 1, 'blast damage'],
+      [T_ + 'airdrop.blast.knockback', 0, 60, 0.5, 'blast knockback'],
+      [T_ + 'airdrop.blast.stun', 0, 3, 0.05, 'blast ragdoll'],
+      [T_ + 'airdrop.shake', 0, 1, 0.01, 'screen shake'],
+    ]],
   ]],
 ]
 

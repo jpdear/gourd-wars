@@ -1,7 +1,9 @@
+import { Vec2 } from 'planck'
 import { expect, it } from 'vitest'
 import { createGame, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { openBlackHole, tryBlock } from '../src/game/powers.js'
+import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { resetPatches } from '../src/game/patches.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES, defaultSpawnSettings } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot, patchView } from '../src/game/snapshot.js'
@@ -57,4 +59,27 @@ it('Super Rare pumpkins are flagged on their patch (and in snapshots) so they ca
     })
   }
   expect(seen).toEqual({ blackhole: true, frost: true })
+})
+
+it('an Airstrike on a player marks the ground below them, and the airdrop crushes them right on time', () => {
+  const game = createGame()
+  const [me, dummy] = game.players
+  for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+  const c = dummy.torso.getPosition()
+  spawnPumpkin(game, 'airstrike', new Vec2(c.x, c.y + 1.2), new Vec2(0, -8), me)
+  let steps = 0
+  while (!game.strikes.length && steps++ < 30) stepGame(game, [emptyInput()])
+  const st = game.strikes[0]
+  expect(st.x).toBeCloseTo(c.x, 1)
+  expect(st.y).toBeLessThan(dummy.torso.getPosition().y - 0.5)   // on the ground, not on them
+  game.events.length = 0
+  let landed = 0
+  for (let i = 1; i <= 120 && !landed; i++) {
+    stepGame(game, [emptyInput()])
+    if (!game.strikes.length) landed = i / 60
+  }
+  expect(landed).toBeGreaterThan(PUMPKIN_TYPES.airstrike.delay - 0.15)
+  expect(landed).toBeLessThan(PUMPKIN_TYPES.airstrike.delay + 0.1)
+  expect(game.events.some(e => e.type === 'ko')).toBe(true)   // crushed (practice: they just refill)
+  expect(game.events.some(e => e.type === 'boom')).toBe(true)
 })

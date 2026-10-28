@@ -2,7 +2,7 @@
 // guest, and everyone draws from them, so both screens look the same.
 
 import { PATCH_STATES, patchRot } from './patches.js'
-import { PUMPKIN_TYPE_NAMES } from './pumpkinTypes.js'
+import { PUMPKIN_TYPES, PUMPKIN_TYPE_NAMES } from './pumpkinTypes.js'
 import { mapDef } from '../maps/builtin.js'
 import { lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -38,7 +38,7 @@ export function makeSnapshot(game) {
     })),
     pumpkins: game.pumpkins.map(pk => {
       const pos = pk.body.getPosition()
-      return [pk.id, r3(pos.x), r3(pos.y), r3(wrapAngle(pk.body.getAngle())), pk.typeName, r3(pk.ripeness), pk.owner ? pk.owner.index : -1]
+      return [pk.id, r3(pos.x), r3(pos.y), r3(wrapAngle(pk.body.getAngle())), pk.typeName, r3(pk.ripeness), pk.owner ? pk.owner.index : -1, r3(pk.radius)]
     }),
     // [id, x, y, angle, health 0..1, flags: 1 frozen, 2 sticky, 4 floating]
     bales: game.bales.map(b => {
@@ -47,6 +47,8 @@ export function makeSnapshot(game) {
       return [b.id, r3(pos.x), r3(pos.y), r3(wrapAngle(b.body.getAngle())), r3(Math.max(0, b.hp) / b.maxHp), flags]
     }),
     holes: game.holes.map(h => [h.id, r3(h.x), r3(h.y), r3(h.r)]),   // [id, x, y, core radius]
+    // [id, x, y, t (0 → 1 when the airdrop is due), the airdrop's radius]
+    strikes: game.strikes.map(st => [st.id, r3(st.x), r3(st.y), r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r3(PUMPKIN_TYPES.airdrop.radius * st.power)]),
     scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),
     movers: game.movers.map(m => { const pos = m.body.getPosition(); return [r3(pos.x), r3(pos.y)] }),
     // [stateCode, growth, rot, typeCode, superRare 0/1] per patch, in the map's patch order
@@ -89,13 +91,14 @@ export function interpolateSnapshots(a, b, t) {
     }),
     pumpkins: b.pumpkins.map(q => {
       const r = a.pumpkins.find(x => x[0] === q[0])
-      return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), q[4], q[5], q[6]] : q
+      return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), ...q.slice(4)] : q
     }),
     bales: b.bales.map(q => {
       const r = a.bales.find(x => x[0] === q[0])
       return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), q[4], q[5]] : q
     }),
     holes: b.holes.map(q => { const r = a.holes.find(x => x[0] === q[0]); return r ? [q[0], q[1], q[2], lerp(r[3], q[3], t)] : q }),
+    strikes: b.strikes.map(q => { const r = a.strikes.find(x => x[0] === q[0]); return r ? [q[0], q[1], q[2], lerp(r[3], q[3], t), q[4]] : q }),
     scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? [lerp(a.movers[i][0], q[0], t), lerp(a.movers[i][1], q[1], t)] : q)),
     map: b.map,

@@ -1,5 +1,6 @@
 // PUMPKINS
-// quality: { power, ripeness } of the harvested pumpkin (full power if left out)
+// quality: { power, ripeness } of the harvested pumpkin (full power if left out), and size: its
+//   radius as a share of the type's (an Airstrike's airdrop picked green is smaller)
 // group: collision group for the first 0.25 s (default: the thrower's, so it doesn't hit them on the way out)
 
 import * as planck from 'planck'
@@ -13,15 +14,16 @@ import { clamp, r3 } from '../util/math.js'
 
 export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
   const type = PUMPKIN_TYPES[typeName]
+  const radius = type.radius * (quality?.size ?? 1)
   const body = game.world.createBody({ type: 'dynamic', position: pos, bullet: true, gravityScale: type.gravityScale ?? 1 })
-  const fixture = body.createFixture(new planck.Circle(type.radius), {
+  const fixture = body.createFixture(new planck.Circle(radius), {
     density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution,
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
   body.setAngularVelocity(owner ? -owner.facing * 8 : 0)
   const pumpkin = {
-    id: game.nextPumpkinId++, typeName, type, body, fixture, owner, hits: 0, age: 0, broken: false,
+    id: game.nextPumpkinId++, typeName, type, radius, body, fixture, owner, hits: 0, age: 0, broken: false,
     power: quality ? quality.power : 1,          // from how ripe it was when picked
     ripeness: quality ? quality.ripeness : 1,
   }
@@ -46,7 +48,7 @@ export function handlePumpkinContacts(game) {
     if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
-      if (tryBlock(game, player, pos, p.type.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
+      if (!p.type.unblockable && tryBlock(game, player, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
@@ -102,7 +104,7 @@ export function breakPumpkin(game, p) {
   if (p.broken) return
   p.broken = true
   const pos = p.body.getPosition()
-  game.events.push({ type: 'splat', x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0 })
+  game.events.push({ type: 'splat', x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
   if (p.type.onBreak) p.type.onBreak(game, p)
 }
 
@@ -130,12 +132,12 @@ export function updatePumpkins(game, dt) {
     }
     const pos = p.body.getPosition()
     // bonfires burn pumpkins (pitchforks and blades break them by touch; a Jack-o'-Boom goes off)
-    if (inFire(game, pos, p.type.radius)) {
+    if (inFire(game, pos, p.radius)) {
       breakPumpkin(game, p)
       continue
     }
     // a carried Big Gourd blocks it
-    if (game.players.some(pl => tryBlock(game, pl, pos, p.type.radius, unit(p.body.getLinearVelocity())))) {
+    if (!p.type.unblockable && game.players.some(pl => tryBlock(game, pl, pos, p.radius, unit(p.body.getLinearVelocity())))) {
       breakPumpkin(game, p)
       continue
     }
@@ -143,7 +145,7 @@ export function updatePumpkins(game, dt) {
     for (const patch of game.patches) {
       if (patch.state === 'empty') continue
       const target = patchPumpkin(patch)
-      if (Math.hypot(pos.x - target.x, pos.y - target.y) < p.type.radius + target.r) {
+      if (Math.hypot(pos.x - target.x, pos.y - target.y) < p.radius + target.r) {
         breakPumpkin(game, p)
         splatPatch(game, patch)
         break

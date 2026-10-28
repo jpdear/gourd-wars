@@ -2,7 +2,7 @@
 // full release); the build adds a third: how many commits since this line last changed
 // (0.19.0, 0.19.1, …), so every push gets a new number. The dev server adds "-dev".
 // A friend can only join a host with the exact same version.
-export const VERSION = '0.19'
+export const VERSION = '0.20'
 export const GAME_VERSION = `${VERSION}.${__BUILD_NUMBER__}`   // (__BUILD_NUMBER__: filled in by vite.config.js)
 export const GAME_URL = 'https://jpdear.github.io/gourd-wars/'   // where the latest version lives
 
