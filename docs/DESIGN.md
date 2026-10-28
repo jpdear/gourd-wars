@@ -48,6 +48,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 | **Big Gourd** | Carrying: 55% speed, 70% jump, can't hold onto walls. Short lob only; smashes on the first thing it hits (35 dmg crush). Also a shield: blocks pumpkins and punches, cracks after 3 blocks (blasts aren't blocked). |
 | **Seed Spitter** | Hold click to spray 15 dark, easy-to-see seeds, fast (one every 0.06 s, 32 m/s; 2 dmg each, a small push); 10 in a row stagger. |
 | **Balloon Gourd** | Held: glide (fall ~3–4 m/s) and jump 25% higher. Thrown: target floats helplessly up for 2 s, then drops. |
+| **Black Hole** | Deep purple with little stars. Wherever it breaks (first thing it touches, a player too: no damage, the hole just opens on them) a **black hole** opens and stays put: its core grows from 0.8 m to 12 m across over 3.5 s, then collapses (a purple pulse); the screen shakes while it's open, harder as it grows. It **pulls on everything anywhere on the map** (players, thrower too, flying pumpkins, hay bales), harder the closer and the bigger it is (pull × radius / distance): at full size you can't outrun it from within ~13 m of its center, and further out it slows you and curves throws. Whatever reaches the core is **swallowed**: players are gone like falling off (practice: back at your spawn), pumpkins break (a Jack-o'-Boom goes off), bales are eaten; pumpkins still on a patch get ripped off (splat) once it's close. Picked green: smaller and shorter-lived. Every number is in the tuning panel. |
 
 **Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare (weights 20 / 5 / 1). Default: Classic common, all specials rare (~31% of sprouts are special). The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
 
@@ -123,7 +124,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 3. ~~Pumpkin patches: grow, harvest, throw~~ ✅
 4. ~~Rounds, deaths, scoring~~ ✅ (health, KOs, host-configurable match length)
 5. More pumpkins and maps:
-   - 5a ~~10 special pumpkin types + host spawn settings~~ ✅ (the Squash Ball was later removed: 9 now)
+   - 5a ~~10 special pumpkin types + host spawn settings~~ ✅ (the Squash Ball was later removed, the Black Hole added: 10 now)
    - 5b ~~hay bales + hazards~~ ✅ (+ Testing Grounds map and a map switch)
    - 5c ~~maps + random rotation~~ ✅
 6. Custom maps:

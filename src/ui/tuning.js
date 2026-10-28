@@ -162,6 +162,16 @@ const TUNABLES = [
       [T_ + 'balloon.float', 0, 5, 0.1, 'float time'],
       [T_ + 'balloon.carry.jump', 0.5, 2, 0.05, 'carry jump'],
     ]],
+    ['Black Hole', [
+      [T_ + 'blackhole.hole.startRadius', 0.05, 1, 0.05, 'start size'],
+      [T_ + 'blackhole.hole.maxRadius', 0.2, 10, 0.1, 'max size'],
+      [T_ + 'blackhole.hole.growTime', 0.5, 15, 0.5, 'grow time'],
+      [T_ + 'blackhole.hole.collapseTime', 0.1, 2, 0.05, 'collapse time'],
+      [T_ + 'blackhole.hole.pull', 0, 400, 5, 'pull'],
+      [T_ + 'blackhole.hole.maxPull', 10, 400, 5, 'max pull'],
+      [T_ + 'blackhole.hole.patchRip', 5, 200, 5, 'patch rip pull'],
+      [T_ + 'blackhole.hole.shake', 0, 1, 0.01, 'screen shake'],
+    ]],
   ]],
 ]
 

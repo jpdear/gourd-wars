@@ -46,6 +46,7 @@ export function makeSnapshot(game) {
       const flags = (b.frozenTimer > 0 ? 1 : 0) | (b.stickyTimer > 0 ? 2 : 0) | (b.floatTimer > 0 ? 4 : 0)
       return [b.id, r3(pos.x), r3(pos.y), r3(wrapAngle(b.body.getAngle())), r3(Math.max(0, b.hp) / b.maxHp), flags]
     }),
+    holes: game.holes.map(h => [h.id, r3(h.x), r3(h.y), r3(h.r)]),   // [id, x, y, core radius]
     scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),
     movers: game.movers.map(m => { const pos = m.body.getPosition(); return [r3(pos.x), r3(pos.y)] }),
     // [stateCode, growth, rot, typeCode] per patch, in the map's patch order
@@ -94,6 +95,7 @@ export function interpolateSnapshots(a, b, t) {
       const r = a.bales.find(x => x[0] === q[0])
       return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), q[4], q[5]] : q
     }),
+    holes: b.holes.map(q => { const r = a.holes.find(x => x[0] === q[0]); return r ? [q[0], q[1], q[2], lerp(r[3], q[3], t)] : q }),
     scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? [lerp(a.movers[i][0], q[0], t), lerp(a.movers[i][1], q[1], t)] : q)),
     map: b.map,

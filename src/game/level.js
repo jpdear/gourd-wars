@@ -55,8 +55,8 @@ export function damageBale(game, bale, amount) {
   if (bale.hp <= 0) breakBale(game, bale, 'straw')
 }
 
-// how: 'straw' (smashed) or 'burn' (bonfire)
-function breakBale(game, bale, how) {
+// how: 'straw' (smashed), 'burn' (bonfire) or 'swallow' (Black Hole)
+export function breakBale(game, bale, how) {
   if (bale.broken) return
   bale.broken = true
   const p = bale.body.getPosition()

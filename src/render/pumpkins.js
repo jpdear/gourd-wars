@@ -123,6 +123,16 @@ const MARKS = {
       ctx.fill()
     }
   },
+  stars: (ctx, r) => {   // little four-point sparkles
+    ctx.fillStyle = '#f4efe6'
+    for (const [ox, oy, k] of [[-0.45, -0.35, 0.3], [0.4, -0.15, 0.22], [0.05, 0.45, 0.26], [-0.5, 0.3, 0.16], [0.55, 0.5, 0.14]]) {
+      const x = ox * r, y = oy * r, a = Math.max(1.5, k * r), b = a * 0.25
+      ctx.beginPath()
+      ctx.moveTo(x, y - a); ctx.lineTo(x + b, y - b); ctx.lineTo(x + a, y); ctx.lineTo(x + b, y + b)
+      ctx.lineTo(x, y + a); ctx.lineTo(x - b, y + b); ctx.lineTo(x - a, y); ctx.lineTo(x - b, y - b)
+      ctx.fill()
+    }
+  },
   string: (ctx, r) => {
     ctx.strokeStyle = '#6b6358'
     ctx.lineWidth = 1
@@ -180,4 +190,40 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
   ctx.lineWidth = Math.max(1, r * 0.1)
   MARKS[mark]?.(ctx, r, colors)
   ctx.restore()
+}
+
+// A Black Hole (r: its core's radius): a black core with a tight white halo, and white specks
+// streaking in from all around it.
+export function drawBlackHole(ctx, x, y, r, X, Y, s) {
+  const cx = X(x), cy = Y(y), t = Date.now() / 1000
+  // each speck falls in from 3.5 r, speeding up as it goes, then starts over from a new direction
+  // (u: 0 = far out, 1 = at the core)
+  ctx.strokeStyle = '#fff'
+  ctx.lineWidth = Math.max(1.5, 0.05 * s)
+  ctx.lineCap = 'round'
+  for (let i = 0; i < 24; i++) {
+    const cycle = t * 0.8 + i * 0.618, u = cycle % 1
+    const a = i * 2.4 + Math.floor(cycle) * 1.7 + u * 0.8   // (a slight swirl)
+    const at = v => {
+      const d = r * (1 + 2.5 * (1 - v) ** 2)
+      return [cx + Math.cos(a + (v - u)) * d * s, cy - Math.sin(a + (v - u)) * d * s]
+    }
+    ctx.globalAlpha = Math.min(1, u * 3)
+    ctx.beginPath()
+    ctx.moveTo(...at(Math.max(0, u - 0.08)))
+    ctx.lineTo(...at(u))
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  const halo = ctx.createRadialGradient(cx, cy, r * s, cx, cy, r * 1.4 * s)
+  halo.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
+  halo.addColorStop(1, 'rgba(255, 255, 255, 0)')
+  ctx.fillStyle = halo
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * 1.4 * s, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#000'
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * s, 0, Math.PI * 2)
+  ctx.fill()
 }

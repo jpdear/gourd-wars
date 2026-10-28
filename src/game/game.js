@@ -9,6 +9,7 @@ import { SCYTHE_START, buildMover, buildPitchforks, buildScythe, recordHazardCon
 import { updateMatch } from './match.js'
 import { createPatches, resetPatches, updatePatches } from './patches.js'
 import { Player } from './player.js'
+import { updateBlackHoles } from './powers.js'
 import { handlePumpkinContacts, recordPumpkinContact, updatePumpkins } from './pumpkins.js'
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
@@ -22,9 +23,10 @@ export function createGame() {
   // map: the loaded map; mapChoice: the one to load at the next round reset (set from the menu)
   // roundTime: seconds since the round started (scarecrows spin with it)
   // movers: moving platforms { def, body }; moverTime: how far along their trips they are
+  // holes: open Black Holes (see powers.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, match: null, spawnSettings: defaultSpawnSettings(), sights: false,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
     joining: [],        // slots waiting to jump in at the start of the next round
@@ -125,6 +127,7 @@ export function resetRound(game) {
   if (game.map !== game.mapChoice) loadMap(game, game.mapChoice)
   for (const pk of game.pumpkins) game.world.destroyBody(pk.body)
   game.pumpkins = []
+  game.holes = []
   resetBales(game)
   game.roundTime = 0
   for (const sc of game.scythes) sc.body.setTransform(new Vec2(sc.def.x, sc.def.y), SCYTHE_START)
@@ -144,6 +147,7 @@ export function stepGame(game, inputs) {
   updateTransition(game, CONFIG.dt)
   for (const sc of game.scythes) sc.body.setAngularVelocity(-2 * Math.PI / (sc.def.turnTime || CONFIG.level.scytheTurnTime))   // clockwise
   updateMovers(game, dt)
+  updateBlackHoles(game, dt)
   game.world.step(dt, 10, 8)
   handlePumpkinContacts(game)
   updatePumpkins(game, dt)

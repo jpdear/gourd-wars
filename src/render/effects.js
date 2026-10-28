@@ -7,7 +7,7 @@ import { pumpkinColors } from './pumpkins.js'
 import { lerp } from '../util/math.js'
 
 export function createEffects() {
-  // popups: floating text (damage numbers, KO!); rings: expanding blast circles
+  // popups: floating text (damage numbers, KO!); rings: expanding circles (blasts, a Black Hole closing)
   return { particles: [], popups: [], rings: [] }
 }
 
@@ -28,7 +28,13 @@ function burst(effects, x, y, n, colors, speed, life, size, lift = 0) {
 const EFFECTS = {
   boom: (fx, ev) => {
     burst(fx, ev.x, ev.y, 40, ['#ff9a2e', '#e2571b', '#3b3631', '#ffd36b'], [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
-    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r, age: 0, life: 0.35 })
+    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r, color: '#e2571b', age: 0, life: 0.35 })
+  },
+  hole: (fx, ev) => burst(fx, ev.x, ev.y, 18, ['#4b2c84', '#a46bff', '#0b0614'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
+  swallow: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#a46bff', '#0b0614', '#f4efe6'], [0.5, 2], [0.2, 0.4], [0.03, 0.06]),
+  collapse: (fx, ev) => {   // a hole closing: a last purple pulse
+    burst(fx, ev.x, ev.y, 24, ['#a46bff', '#f4efe6', '#4b2c84'], [3, 9], [0.3, 0.6], [0.03, 0.07])
+    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r * 2.5, color: '#a46bff', age: 0, life: 0.45 })
   },
   pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, '#f6e7c1'], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, ['#d9b25c', '#9c7a2e', '#3b3631'], [2, 6], [0.2, 0.4], [0.03, 0.07], 1),

@@ -19,7 +19,7 @@
 //   update(game, pk, dt)                       every step while flying
 
 import { freezeBale } from './level.js'
-import { explode, splitCluster, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { explode, openBlackHole, splitCluster, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -115,6 +115,21 @@ export const PUMPKIN_TYPES = {
     onHitBale: (game, pk, bale) => { bale.floatTimer = pk.type.float },
     carry: { jump: 1.25, glide: true },
     onHitPlayer: (game, pk, player, part, vel) => { knockback(game, player, part, pk, vel); player.float(pk.type.float) },
+  },
+  blackhole: {
+    name: 'Black Hole', color: '#4b2c84', rib: '#2a1752', mark: 'stars',
+    radius: 0.22, density: 2, restitution: 0.1,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
+    // Opens a black hole wherever it breaks (see updateBlackHoles in powers.js). Picked green, it
+    // grows smaller and collapses sooner (maxRadius and growTime are scaled by its power).
+    //   startRadius, maxRadius   the core grows from this to this (m) over growTime, then collapses
+    //   pull, maxPull            pulls everything anywhere on the map at pull × radius / distance m/s² (at most maxPull)
+    //   patchRip                 pumpkins still on their patch get ripped off where the pull is this strong
+    //   shake                    screen shake (m) while it's open, at full size (it grows with the hole)
+    // Whatever reaches the core is swallowed: players are gone (like falling off), pumpkins and bales break.
+    hole: { startRadius: 0.4, maxRadius: 6, growTime: 3.5, collapseTime: 0.2, pull: 150, maxPull: 200, patchRip: 60, shake: 0.12 },
+    onHitPlayer: () => {},   // no damage: the hole just opens right on top of them
+    onBreak: (game, pk) => { const p = pk.body.getPosition(); openBlackHole(game, p.x, p.y, pk.type.hole, pk.power) },
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

@@ -2,11 +2,11 @@
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
-import { damageBale } from './level.js'
+import { breakBale, damageBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
-import { launch, popPumpkin, spawnPumpkin } from './pumpkins.js'
+import { breakPumpkin, launch, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
-import { r3 } from '../util/math.js'
+import { lerp, r3 } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
 // straight outward, harder the closer it was; splats pumpkins still on their patches.
@@ -118,4 +118,67 @@ export function tryBlock(game, player, pos, r, dir) {
     player.charging = false   // (it may have cracked mid-throw: nothing left to throw)
   }
   return true
+}
+
+// Black Hole: opens where the pumpkin broke and stays put. Its core grows, then collapses.
+export function openBlackHole(game, x, y, hole, power) {
+  game.holes.push({ id: game.nextHoleId++, x, y, r: hole.startRadius, age: 0, maxR: hole.maxRadius * power, growTime: hole.growTime * power })
+  game.events.push({ type: 'hole', x: r3(x), y: r3(y) })
+}
+
+// Every step: each hole pulls on everything anywhere on the map (players, flying pumpkins, bales),
+// harder the closer it is and the bigger it's grown. Whatever reaches the core is swallowed, and
+// pumpkins still on their patches get ripped off once the pull on them is strong enough.
+export function updateBlackHoles(game, dt) {
+  const H = PUMPKIN_TYPES.blackhole.hole
+  for (const h of game.holes) {
+    h.age += dt
+    h.r = h.age < h.growTime ? lerp(H.startRadius, h.maxR, h.age / h.growTime) : h.maxR * (1 - (h.age - h.growTime) / H.collapseTime)
+    if (h.r <= 0) {
+      h.gone = true
+      game.events.push({ type: 'collapse', x: r3(h.x), y: r3(h.y), r: r3(h.maxR) })
+      continue
+    }
+    // the pull at pos: distance to the center and acceleration (m/s²) toward it
+    const pullAt = pos => {
+      const dx = h.x - pos.x, dy = h.y - pos.y, d = Math.hypot(dx, dy) || 0.01
+      const a = Math.min(H.maxPull, H.pull * h.r / d)
+      return { d, a, ax: dx / d * a, ay: dy / d * a }
+    }
+    const pull = body => {
+      const p = pullAt(body.getPosition()), m = body.getMass()
+      body.applyForceToCenter(new Vec2(p.ax * m, p.ay * m), true)
+    }
+    for (const pl of game.players) {
+      if (pl.dead) continue
+      if (pullAt(pl.torso.getPosition()).d < h.r) swallowPlayer(game, pl)
+      else for (const part of pl.parts) pull(part.body)
+    }
+    for (const pk of game.pumpkins) {
+      if (pk.broken) continue
+      if (pullAt(pk.body.getPosition()).d < h.r + pk.type.radius) breakPumpkin(game, pk)   // (a Jack-o'-Boom goes off)
+      else pull(pk.body)
+    }
+    for (const bale of game.bales) {
+      if (bale.broken) continue
+      if (pullAt(bale.body.getPosition()).d < h.r) breakBale(game, bale, 'swallow')
+      else pull(bale.body)
+    }
+    for (const patch of game.patches) {
+      if (patch.state !== 'empty' && pullAt(patchPumpkin(patch)).a >= H.patchRip) splatPatch(game, patch)
+    }
+  }
+  game.holes = game.holes.filter(h => !h.gone)
+}
+
+// Swallowed: gone, as if they fell off the map (dropped below it; checkDeath takes it from there).
+function swallowPlayer(game, pl) {
+  const c = pl.torso.getPosition()
+  game.events.push({ type: 'swallow', x: r3(c.x), y: r3(c.y) })
+  const dy = CONFIG.killY - 5 - c.y
+  for (const part of pl.parts) {
+    const q = part.body.getPosition()
+    part.body.setTransform(new Vec2(q.x, q.y + dy), part.body.getAngle())
+    part.body.setLinearVelocity(new Vec2(0, 0))
+  }
 }
