@@ -81,15 +81,13 @@ export function drawPatches(ctx, snap, localIndex, X, Y, s) {
 
 // Decorations drawn over a pumpkin's body, by its type's mark (in the pumpkin's own frame: radius r,
 // canvas y pointing down, so negative y is the top).
-const lines = (ctx, r, color, ys) => {
-  ctx.strokeStyle = color
-  ctx.beginPath()
-  for (const oy of ys) { ctx.moveTo(-r, oy * r); ctx.lineTo(r, oy * r) }
-  ctx.stroke()
-}
 const MARKS = {
-  bands: (ctx, r, colors) => lines(ctx, r, colors.rib, [-0.4, 0.4]),
-  stripe: (ctx, r) => lines(ctx, r, 'rgba(255, 255, 255, 0.8)', [0]),
+  bands: (ctx, r, colors) => {
+    ctx.strokeStyle = colors.rib
+    ctx.beginPath()
+    for (const oy of [-0.4, 0.4]) { ctx.moveTo(-r, oy * r); ctx.lineTo(r, oy * r) }
+    ctx.stroke()
+  },
   fuse: (ctx, r) => {
     ctx.strokeStyle = '#3b3631'
     ctx.beginPath()

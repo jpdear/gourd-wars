@@ -43,12 +43,11 @@ export function createGame() {
   })
   // Pumpkins don't physically shove players; the knockback comes only from applyHit(),
   // so it follows our numbers (damage, stagger, ripeness) instead of raw collision physics.
-  // (Squash Balls are the exception: they bounce off people.)
   world.on('pre-solve', contact => {
     const a = contact.getFixtureA().getBody().getUserData(), b = contact.getFixtureB().getBody().getUserData()
     const pk = a && a.kind === 'pumpkin' ? a.pumpkin : b && b.kind === 'pumpkin' ? b.pumpkin : null
     const other = pk && (a.kind === 'pumpkin' ? b : a)
-    if (pk && other && other.kind === 'player' && !pk.type.solidToPlayers) contact.setEnabled(false)
+    if (pk && other && other.kind === 'player') contact.setEnabled(false)
   })
   resetRound(game)
   return game

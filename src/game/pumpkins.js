@@ -24,7 +24,6 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
     id: game.nextPumpkinId++, typeName, type, body, fixture, owner, hits: 0, age: 0, broken: false,
     power: quality ? quality.power : 1,          // from how ripe it was when picked
     ripeness: quality ? quality.ripeness : 1,
-    lastHit: {},                                 // player index → age of last hit (pass-through types)
   }
   body.setUserData({ kind: 'pumpkin', pumpkin })
   game.pumpkins.push(pumpkin)
@@ -48,11 +47,6 @@ export function handlePumpkinContacts(game) {
       const player = ud.player
       const pos = p.body.getPosition()
       if (tryBlock(game, player, pos, p.type.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
-      if (!p.type.breakOnPlayer) {   // passes through: don't hit the same player again right away
-        const last = p.lastHit[player.index]
-        if (last !== undefined && p.age - last < 0.4) continue
-        p.lastHit[player.index] = p.age
-      }
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
@@ -64,7 +58,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (p.hits >= p.type.breakAfterHits || (hitPlayer && p.type.breakOnPlayer)) breakPumpkin(game, p)
+    if (hitPlayer || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }

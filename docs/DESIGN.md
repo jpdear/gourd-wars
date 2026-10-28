@@ -42,7 +42,6 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 | **Bouncy** | Bounces, breaks on the 4th bounce or a player hit. 15 dmg. |
 | **Jack-o'-Boom** | **Direct hit = instant KO.** Explodes on impact: 2.5 m blast, up to 40 dmg falling off with distance. Everything in it (players, thrower too, bales, pumpkins) is blown **straight outward** — up to 30 m/s at the center, less further out — and players go ragdoll. Splats patch pumpkins. |
 | **Gourd Cluster** | Splits into 3 minis (10 dmg each) at the top of its arc; bursts if it hits something first. |
-| **Squash Ball** | Ricochets for 4 s and bounces off players too (10 dmg, can hit the same player again after 0.4 s, including you). |
 | **Frost** | 8 dmg + frozen stiff for 2 s (joints lock, no control, tips over and slides). |
 | **Splat Pie** | 8 dmg + glued to the floor 1.5 s (no walking/jumping; applies on landing if hit midair). |
 | **Vine** | **Shot, not tossed:** still charged, but even a tap fires it fast (34 m/s, 42 charged) and nearly straight (¼ gravity); fizzles after ~19 m (~23 m charged). With **Sights** on, its sight shows its path to where it would hit or fizzle. Yank: hits a player → they fly toward you (5 dmg, short flop); hits the level (platforms, walls, moving platforms) → you're **reeled in** along a straight line, all the way to where it stuck (the vine stays drawn taut from your hand). It lets go when you get there, when something blocks you, after 0.7 s, if you're hit, or when you press jump; you keep a bit of your speed plus a small hop up (enough to climb onto a ledge whose side you grabbed). Every part of the reel (speed, how much of the way, stop distance, max time, kept speed, hop) and the yank on players/bales (speed, lift) is in the tuning panel's Vine section. |
@@ -50,7 +49,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 | **Seed Spitter** | Hold click to spray 15 dark, easy-to-see seeds, fast (one every 0.06 s, 32 m/s; 2 dmg each, a small push); 10 in a row stagger. |
 | **Balloon Gourd** | Held: glide (fall ~3–4 m/s) and jump 25% higher. Thrown: target floats helplessly up for 2 s, then drops. |
 
-**Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare (weights 20 / 5 / 1). Default: Classic common, all specials rare (~33% of sprouts are special). The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
+**Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare (weights 20 / 5 / 1). Default: Classic common, all specials rare (~31% of sprouts are special). The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
 
 ## Maps
 - Stick Fight-style platform levels: floating platforms over empty space, always one screen.
@@ -124,7 +123,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 3. ~~Pumpkin patches: grow, harvest, throw~~ ✅
 4. ~~Rounds, deaths, scoring~~ ✅ (health, KOs, host-configurable match length)
 5. More pumpkins and maps:
-   - 5a ~~10 special pumpkin types + host spawn settings~~ ✅
+   - 5a ~~10 special pumpkin types + host spawn settings~~ ✅ (the Squash Ball was later removed: 9 now)
    - 5b ~~hay bales + hazards~~ ✅ (+ Testing Grounds map and a map switch)
    - 5c ~~maps + random rotation~~ ✅
 6. Custom maps:

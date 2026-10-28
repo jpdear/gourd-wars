@@ -119,12 +119,6 @@ const TUNABLES = [
       [T_ + 'mini.damage', 0, 40, 1, 'piece damage'],
       [T_ + 'mini.knockback', 0, 20, 0.5, 'piece knockback'],
     ]],
-    ['Squash Ball', [
-      [T_ + 'squash.damage', 0, 40, 1],
-      [T_ + 'squash.knockback', 0, 20, 0.5],
-      [T_ + 'squash.lifetime', 0.5, 10, 0.5],
-      [T_ + 'squash.restitution', 0, 1, 0.01, 'bounciness'],
-    ]],
     ['Frost', [
       [T_ + 'frost.damage', 0, 40, 1],
       [T_ + 'frost.freeze', 0, 5, 0.1, 'freeze time'],

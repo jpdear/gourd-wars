@@ -5,8 +5,7 @@
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
-//   breakOnPlayer            breaks when it hits a player (otherwise it can hit them again after 0.4 s)
-//   solidToPlayers           physically bounces off players (others pass through after hitting)
+//                            (hitting a player always breaks it; pumpkins pass through people physically)
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
 //   throwMode                'throw' (charge & release), 'lob' (short and slow), 'spray' (hold to fire seeds)
 //   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed)
@@ -28,17 +27,17 @@ export const PUMPKIN_TYPES = {
   classic: {
     name: 'Classic', color: '#f28c28', rib: '#c4630f',
     radius: 0.22, density: 2, restitution: 0.2,
-    damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1, breakOnPlayer: true,
+    damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1,
   },
   bouncy: {
     name: 'Bouncy', color: '#ffb84a', rib: '#d98a1c', mark: 'bands',
     radius: 0.2, density: 1.5, restitution: 0.85,
-    damage: 15, knockback: 6, stun: 0.6, breakAfterHits: 4, breakOnPlayer: true,
+    damage: 15, knockback: 6, stun: 0.6, breakAfterHits: 4,
   },
   boom: {
     name: "Jack-o'-Boom", color: '#e2571b', rib: '#8c2f0b', mark: 'fuse',
     radius: 0.22, density: 2, restitution: 0.1,
-    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakOnPlayer: true,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
     blast: { radius: 2.5, damage: 40, knockback: 30, stun: 1.2 },   // everyone in the blast goes ragdoll
     // a direct hit is lethal (practice: the dummy just refills); then it explodes as usual
     onHitPlayer: (game, pk, player, part) => player.takeHit(game, Infinity, pk.type.blast.stun, part.getPosition()),
@@ -47,25 +46,19 @@ export const PUMPKIN_TYPES = {
   cluster: {
     name: 'Gourd Cluster', color: '#d6a03a', rib: '#8f6a1f', mark: 'cluster',
     radius: 0.24, density: 2, restitution: 0.2,
-    damage: 10, knockback: 5, stun: 0.6, breakAfterHits: 1, breakOnPlayer: true,
+    damage: 10, knockback: 5, stun: 0.6, breakAfterHits: 1,
     splitAge: 0.12,   // splits at the top of its arc (but not before this many seconds)
     update: (game, pk) => { if (pk.age > pk.type.splitAge && pk.body.getLinearVelocity().y <= 0) splitCluster(game, pk) },
   },
   mini: {   // the 3 pieces of a Gourd Cluster
     name: 'Mini', color: '#d6a03a', rib: '#8f6a1f', spawnable: false,
     radius: 0.12, density: 2, restitution: 0.2,
-    damage: 10, knockback: 4.5, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true,
-  },
-  squash: {
-    name: 'Squash Ball', color: '#e8d24a', rib: '#b39a1c', mark: 'stripe',
-    radius: 0.17, density: 1.2, restitution: 0.95, friction: 0,
-    damage: 10, knockback: 5, stun: 0.6, breakAfterHits: Infinity, breakOnPlayer: false, lifetime: 4,
-    solidToPlayers: true,   // bounces off people instead of passing through
+    damage: 10, knockback: 4.5, stun: 0.5, breakAfterHits: 1,
   },
   frost: {
     name: 'Frost', color: '#9fd8f0', rib: '#5aa9cc', mark: 'ice',
     radius: 0.22, density: 2, restitution: 0.2,
-    damage: 8, knockback: 3, stun: 0.6, breakAfterHits: 1, breakOnPlayer: true, freeze: 2, baleFreeze: 3,
+    damage: 8, knockback: 3, stun: 0.6, breakAfterHits: 1, freeze: 2, baleFreeze: 3,
     onHitBale: (game, pk, bale) => freezeBale(bale, pk.type.baleFreeze),   // a slippery ice block
     onHitPlayer: (game, pk, player, part, vel) => {
       knockback(game, player, part, pk, vel)
@@ -77,14 +70,14 @@ export const PUMPKIN_TYPES = {
   pie: {
     name: 'Splat Pie', color: '#f3dfb0', rib: '#c79a54', mark: 'pie',
     radius: 0.22, density: 2, restitution: 0.1,
-    damage: 8, knockback: 2, stun: 0.6, breakAfterHits: 1, breakOnPlayer: true, glue: 1.5, baleGoo: 5,
+    damage: 8, knockback: 2, stun: 0.6, breakAfterHits: 1, glue: 1.5, baleGoo: 5,
     onHitBale: (game, pk, bale) => { bale.stickyTimer = pk.type.baleGoo },   // gooey: glues whoever touches it
     onHitPlayer: (game, pk, player, part, vel) => { knockback(game, player, part, pk, vel); player.glue(pk.type.glue) },
   },
   vine: {   // shot more than thrown: fast and nearly straight, ~19 m on a tap, ~23 m charged
     name: 'Vine', color: '#5fae3c', rib: '#3c7a22', mark: 'vine',
     radius: 0.2, density: 1.5, restitution: 0, gravityScale: 0.25,
-    damage: 5, knockback: 0, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true, lifetime: 0.55, fizzle: true,
+    damage: 5, knockback: 0, stun: 0.5, breakAfterHits: 1, lifetime: 0.55, fizzle: true,
     throwSpeed: { min: 34, max: 42 },
     yankSpeed: 20, yankLift: 5,   // hits a player or a bale: it flies toward you this fast (+ lift upward)
     // hits the level: you're reeled in toward where it stuck (see Player.updateGrapple in player.js)
@@ -101,24 +94,24 @@ export const PUMPKIN_TYPES = {
   biggourd: {
     name: 'Big Gourd', color: '#d9b25c', rib: '#9c7a2e', mark: 'gourd',
     radius: 0.38, density: 2.5, restitution: 0, refSpeed: 11,
-    damage: 35, knockback: 10, stun: 1.2, breakAfterHits: 1, breakOnPlayer: true,   // smashes on the first thing it hits
+    damage: 35, knockback: 10, stun: 1.2, breakAfterHits: 1,   // smashes on the first thing it hits
     throwMode: 'lob', lobSpeed: [5, 11], carry: { speed: 0.55, jump: 0.7, wallStick: false }, shieldBlocks: 3,
   },
   spitter: {
     name: 'Seed Spitter', color: '#a8c94a', rib: '#6f8f2a', mark: 'speckle',
     radius: 0.22, density: 2, restitution: 0.2,
-    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakOnPlayer: true,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
     throwMode: 'spray', ammo: 15, fireInterval: 0.06, seedSpeed: 32,
   },
   seed: {   // fired by the Seed Spitter
     name: 'Seed', color: '#3d2f14', rib: '#fff6dc', mark: 'seed', spawnable: false,
     radius: 0.07, density: 1, restitution: 0, gravityScale: 0.35, refSpeed: 22,
-    damage: 2, knockback: 2.6, stun: 0.5, breakAfterHits: 1, breakOnPlayer: true,   // small pushes add up fast
+    damage: 2, knockback: 2.6, stun: 0.5, breakAfterHits: 1,   // small pushes add up fast
   },
   balloon: {
     name: 'Balloon Gourd', color: '#c7a8e8', rib: '#8e6cc0', mark: 'string',
     radius: 0.22, density: 0.6, restitution: 0.3, gravityScale: 0.35, refSpeed: 14,
-    damage: 3, knockback: 1, stun: 0.6, breakAfterHits: 1, breakOnPlayer: true, float: 2,
+    damage: 3, knockback: 1, stun: 0.6, breakAfterHits: 1, float: 2,
     onHitBale: (game, pk, bale) => { bale.floatTimer = pk.type.float },
     carry: { jump: 1.25, glide: true },
     onHitPlayer: (game, pk, player, part, vel) => { knockback(game, player, part, pk, vel); player.float(pk.type.float) },
