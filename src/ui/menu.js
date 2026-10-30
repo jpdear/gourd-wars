@@ -2,6 +2,7 @@
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
+import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
 
@@ -32,6 +33,9 @@ export function createMenu(onAction) {
       <button class="pk-on" data-act="pk-toggle:${k}">On</button>
       <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
     </div>`).join('')
+  // keybinds: one row per action
+  root.querySelector('.bind-list').innerHTML = BIND_ACTIONS.map(([action, label]) =>
+    `<div class="toggle-row"><span>${label}</span><button class="bind" data-act="bind:${action}"></button></div>`).join('')
   // map buttons (rebuilt whenever custom maps change); maps that can't be played yet are left out
   const buildMapButtons = () => {
     const ids = mapIds().filter(id => MAPS[id].playable !== false)
@@ -111,6 +115,17 @@ export function createMenu(onAction) {
         b.classList.toggle('on', on)
         b.textContent = on ? 'On' : 'Off'
       }
+    },
+    // the Controls screen: each action's key (waiting: the action waiting for its new key)
+    showBinds(binds, waiting = null) {
+      for (const [action] of BIND_ACTIONS) {
+        const b = root.querySelector(`[data-act="bind:${action}"]`)
+        b.textContent = action === waiting ? 'Press…' : keyName(binds[action])
+        b.classList.toggle('waiting', action === waiting)
+        b.classList.toggle('unbound', !binds[action] && action !== waiting)
+      }
+      // (the hint keeps its space when hidden, so the buttons under it don't jump)
+      root.querySelector('[data-text=bind-hint]').style.visibility = waiting ? '' : 'hidden'
     },
     rebuildMaps: buildMapButtons,
     showMap(id) {

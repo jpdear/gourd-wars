@@ -4,7 +4,7 @@
 //         game (host only, for debug rays), message, aim (where the mouse points, for the aim line),
 //         overlay (map editor: draws its markers instead of the HUD),
 //         crosshair (the mouse is locked to the game: draw where it points),
-//         damageNumbers (show them: the player's setting) }
+//         damageNumbers (show them: the player's setting), harvestKey (its name, for the harvest bubble) }
 
 import { CONFIG } from '../config.js'
 import { SCYTHE_START } from '../game/level.js'
@@ -54,7 +54,7 @@ export function render(ctx, view, snap, effects, ui) {
 
   if (snap) {
     for (const [, x, y, angle, hp, flags] of snap.bales) drawBale(ctx, x, y, angle, hp, flags, X, Y, s)
-    drawPatches(ctx, snap, ui.localIndex, X, Y, s)
+    drawPatches(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
     for (const [, x, y, t, r] of snap.strikes) drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s)   // (under the airdrop)
     for (const [, x, y, angle, typeName, ripeness, owner, radius, heading] of snap.pumpkins) {
       const type = PUMPKIN_TYPES[typeName]

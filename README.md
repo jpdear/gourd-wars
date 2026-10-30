@@ -62,6 +62,7 @@ src/
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do
     customMaps.js       My Maps, editor, play tests       controls.js keyboard + mouse
+                                                          keybinds.js your keybinds
   util/               math, colors, saved data (storage.js has every key the game saves)
 tests/
   replay.test.js      plays a scripted 3-minute match with fixed randomness and checks it

@@ -70,6 +70,10 @@
 #menu[data-screen=pumpkins] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
 #menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: #8a8073; font: 400 15px/1 var(--display); letter-spacing: 0.04em; }
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
+#menu .bind-list { display: flex; flex-direction: column; gap: 6px; }
+#menu .toggle-row button.bind { width: 128px; }
+#menu .toggle-row button.bind.waiting { --edge: #8a4a0c; background: #e07a1a; color: #fff; }
+#menu .toggle-row button.bind.unbound { color: #c0392b; }
 #menu .pk-row.off .pk-name, #menu .pk-row.off .seg { opacity: 0.35; }
 #menu textarea {
   box-sizing: border-box; width: 100%; padding: 8px; border: 2px solid #c9bfb2; border-radius: 8px; resize: vertical;

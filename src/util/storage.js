@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   dummies: 'pumpkin-fight-dummies',
   damageNumbers: 'pumpkin-fight-damage-numbers',   // your own On/Off choices (even as a guest): see prefs in app/settings.js
   lockMouse: 'pumpkin-fight-lock-mouse',
+  keybinds: 'pumpkin-fight-keybinds',              // your keybinds (see app/keybinds.js)
   tuning: 'pumpkin-fight-tuning',             // tuning panel tweaks
   tuningView: 'pumpkin-fight-tuning-ui',      // tuning panel: open tab and groups
 }

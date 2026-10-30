@@ -64,8 +64,16 @@
       <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
       <div class="toggle-row"><span>Lock Mouse</span><button class="pk-on" data-act="pref-toggle:lockMouse">Off</button></div>
       <button data-act="show-pumpkins" data-show="host-settings">Pumpkins</button>
+      <button data-act="show-controls">Controls</button>
       <button data-act="restart" data-show="restart">Restart Match</button>
       <button class="primary" data-act="match-done">Done</button>
+    </div>
+    <!-- your keybinds: click one, then press the key or mouse button for it -->
+    <div class="screen" data-screen="controls" data-title="Controls">
+      <div class="bind-list"></div>
+      <p class="label note" data-text="bind-hint">Press a key or mouse button (Esc to cancel)</p>
+      <button data-act="reset-binds">Reset to Defaults</button>
+      <button class="primary" data-act="controls-done">Done</button>
     </div>
     <div class="screen" data-screen="pumpkins" data-title="Pumpkins">
       <div class="pumpkin-list"></div>

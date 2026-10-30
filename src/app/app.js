@@ -12,6 +12,7 @@ import { createTuningPanel } from '../ui/tuning.js'
 import { lerp } from '../util/math.js'
 import { aimPoint, clearTaps, localInput, mouseLocked, setupControls, updateMouseLock } from './controls.js'
 import { createMapEditor, loadMyMaps, playtestId } from './customMaps.js'
+import { binds, keyName, loadBinds } from './keybinds.js'
 import { onMenuAction } from './menus.js'
 import { hostCode, link, links, mode } from './session.js'
 import { changeDummies, dummyCount, loadSettings, prefs, showSettings } from './settings.js'
@@ -28,6 +29,7 @@ export function boot() {
   // (in this order: the saved practice map may be a custom map, and the menus list them)
   loadMyMaps()
   loadSettings(game)
+  loadBinds()
   app.menu = createMenu(onMenuAction)
   showSettings()
   resetRound(game)   // load the saved map choice
@@ -75,6 +77,7 @@ function update(ms) {
   updateMouseLock()
   ui.crosshair = mouseLocked()   // (the real cursor is hidden while it's locked)
   ui.damageNumbers = prefs.damageNumbers
+  ui.harvestKey = keyName(binds.harvest, true)   // (for the bubble over a patch you could pick)
   if (editor.active) {   // the game holds still while you edit
     acc = 0
     app.snap = editor.snapshot()

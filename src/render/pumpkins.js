@@ -20,7 +20,8 @@ export function pumpkinColors(type, ripeness, rot) {
   }
 }
 
-export function drawPatches(ctx, snap, localIndex, X, Y, s) {
+// harvestKey: the name of your harvest key, shown in a bubble over a patch you could pick
+export function drawPatches(ctx, snap, localIndex, harvestKey, X, Y, s) {
   const me = snapPlayer(snap, localIndex)   // (none in the map editor, or before you've jumped in)
   // pelvis = bottom end of the torso
   const [, , pelvisX, pelvisY] = me ? partEnds(me.parts[0], PART_HALF_LEN.torso) : []
@@ -62,19 +63,22 @@ export function drawPatches(ctx, snap, localIndex, X, Y, s) {
       return
     }
 
-    // "E" hint when you could pick this one from where you stand
+    // your harvest key's bubble when you could pick this one from where you stand (round for one
+    // letter, stretched to fit a longer name)
     const dx = Math.abs(pelvisX - patch.x), dy = pelvisY - patch.y
     if (me && !me.dead && !me.held && canHarvest(patch) && dx < CONFIG.patch.reach && dy > 0 && dy < 1.6) {
-      const bx = X(pk.x), by = Y(pk.y + pk.r + 0.45)
+      const bx = X(pk.x), by = Y(pk.y + pk.r + 0.45), r = 0.24 * s
+      ctx.font = `bold ${Math.round((harvestKey.length > 1 ? 0.24 : 0.3) * s)}px system-ui, sans-serif`
+      const half = Math.max(0, ctx.measureText(harvestKey).width / 2 - r * 0.6)
       ctx.fillStyle = '#3b3631'
       ctx.beginPath()
-      ctx.arc(bx, by, 0.24 * s, 0, Math.PI * 2)
+      ctx.arc(bx - half, by, r, Math.PI / 2, Math.PI * 3 / 2)
+      ctx.arc(bx + half, by, r, -Math.PI / 2, Math.PI / 2)
       ctx.fill()
       ctx.fillStyle = '#f4efe6'
-      ctx.font = `bold ${Math.round(0.3 * s)}px system-ui, sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('E', bx, by + 0.01 * s)
+      ctx.fillText(harvestKey, bx, by + 0.01 * s)
       ctx.textBaseline = 'alphabetic'
     }
   })

@@ -8,7 +8,7 @@ export const app = {
   snap: null,      // the snapshot drawn this frame
   view: { s: 1, ox: 0, oy: 0, w: 0, h: 0 },   // where the arena sits on screen: s px per meter, offset (see resize)
   // what render() shows besides the game (see render/render.js)
-  ui: { debug: false, fps: 60, localIndex: 0, hud: '', debugLines: [], game: null, message: '', damageNumbers: false, crosshair: false },
+  ui: { debug: false, fps: 60, localIndex: 0, hud: '', debugLines: [], game: null, message: '', damageNumbers: false, crosshair: false, harvestKey: 'E' },
   menu: null,      // ui/menu.js
   editor: null,    // ui/editor/editor.js
   tuning: null,    // ui/tuning.js

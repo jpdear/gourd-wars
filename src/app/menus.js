@@ -9,6 +9,8 @@ import {
   copyExportCode, duplicateBuiltin, importMapCode, myMapAction, newMap, openEditor, playtestId, showMyMaps,
 } from './customMaps.js'
 import { friendNames, hostCode, joinGame, leaveSession, links, mode, playingAlone, startHosting } from './session.js'
+import { captureBind } from './controls.js'
+import { binds, resetBinds, setBind } from './keybinds.js'
 import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
 import { app } from './state.js'
 
@@ -62,6 +64,16 @@ const ACTIONS = {
   // Pumpkins
   'show-pumpkins': () => { pumpkinsReturnTo = app.menu.screen; app.menu.show('pumpkins') },
   'pumpkins-done': () => closePumpkinSettings(),
+  'show-controls': () => { app.menu.show('controls'); app.menu.showBinds(binds) },
+  'controls-done': () => closeControls(),
+  bind: action => {
+    app.menu.showBinds(binds, action)
+    captureBind(code => {
+      if (code) setBind(action, code)
+      app.menu.showBinds(binds)
+    })
+  },
+  'reset-binds': () => { resetBinds(); app.menu.showBinds(binds) },
   'pk-toggle': k => changeSpawns(st => { st[k].on = !st[k].on }),
   'pk-rate': (k, rate) => changeSpawns(st => { st[k].rate = rate }),
 
@@ -116,4 +128,5 @@ function openSettings() {
 }
 
 export const closePumpkinSettings = () => (pumpkinsReturnTo === 'match' ? openSettings() : app.menu.show(pumpkinsReturnTo))
+export const closeControls = () => openSettings()
 export const closeMatchSettings = () => (matchReturnTo === 'paused' ? openPauseMenu() : app.menu.show(matchReturnTo))
