@@ -290,3 +290,42 @@ function clearPath(game, a, b, r) {
   }
   return true
 }
+
+// Boomerang: for the first 2 × turnTime after it leaves your hand (turnTime = 2 × reach / a
+// full-charge throw's speed) its spin holds it up (no gravity) and two pulls bend it around:
+//   - a steady one straight back against the throw: it slows, stops `reach` m out (a tap: closer), and
+//     comes back as fast as it left
+//   - a sideways one toward the underside of the throw: none at first
+//     (it leaves straight), swinging it out as it turns (`width` m at the widest, just after the turn)
+//     and back in, so it comes home along the line it left on, right through your hand
+// After that it flies on straight past you, with its light gravity. launch: how it was thrown
+// ({ x, y } m/s); t: seconds since. Returns the pull (m/s²), or null once it's done curving.
+// (The sight uses this too, to draw its path.)
+export function boomerangPull(C, launch, t) {
+  const turnTime = 2 * C.reach / CONFIG.throw.maxSpeed
+  const u = t / turnTime   // (0 → 2)
+  if (u >= 2) return null
+  const speed = Math.hypot(launch.x, launch.y) || 1
+  const dx = launch.x / speed, dy = launch.y / speed
+  const sign = dx > 0 ? -1 : 1   // which way to turn (1 = counter-clockwise) to bend underneath
+  const nx = -dy * sign, ny = dx * sign
+  const back = speed / turnTime
+  // sideways it's at width × (4u³ - 4u⁴ + u⁵) / 1.106 (0 at both ends, widest at u = 1.2): this is its second derivative
+  const side = C.width / 1.106 * (speed / CONFIG.throw.maxSpeed) * (24 * u - 48 * u * u + 20 * u * u * u) / (turnTime * turnTime)
+  return { x: -dx * back + nx * side, y: -dy * back + ny * side, sign }
+}
+
+export function updateBoomerang(game, pk, dt) {
+  const C = pk.type.curve
+  const pull = boomerangPull(C, pk.launch, pk.age)
+  if (!pull) {   // done curving: on it flies, with its light gravity
+    if (pk.body.getGravityScale() === 0) pk.body.setGravityScale(pk.type.gravityScale)
+    return
+  }
+  if (pk.age === dt) {
+    pk.body.setGravityScale(0)
+    pk.body.setAngularVelocity(pull.sign * C.spin)   // (spins the way it's turning)
+  }
+  const v = pk.body.getLinearVelocity()
+  pk.body.setLinearVelocity(new Vec2(v.x + pull.x * dt, v.y + pull.y * dt))
+}

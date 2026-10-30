@@ -1,7 +1,8 @@
 // PUMPKINS
 // quality: { power, ripeness } of the harvested pumpkin (full power if left out), and size: its
 //   radius as a share of the type's (an Airstrike's airdrop picked green is smaller)
-// group: collision group for the first 0.25 s (default: the thrower's, so it doesn't hit them on the way out)
+// group: collision group for the first 0.25 s (default: the thrower's, so it doesn't hit them on the way out;
+//   for good if it missesThrower)
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
@@ -26,6 +27,7 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
     id: game.nextPumpkinId++, typeName, type, radius, body, fixture, owner, hits: 0, age: 0, broken: false,
     power: quality ? quality.power : 1,          // from how ripe it was when picked
     ripeness: quality ? quality.ripeness : 1,
+    launch: { x: vel.x, y: vel.y },              // how it was thrown (a Boomerang curves back from this)
   }
   body.setUserData({ kind: 'pumpkin', pumpkin })
   game.pumpkins.push(pumpkin)
@@ -118,7 +120,7 @@ export function popPumpkin(game, p) {
 export function updatePumpkins(game, dt) {
   for (const p of game.pumpkins) {   // (split clusters add pieces while we loop; that's fine)
     p.age += dt
-    if (p.age > 0.25 && p.fixture.getFilterGroupIndex() !== 0) p.fixture.setFilterGroupIndex(0)
+    if (p.age > 0.25 && !p.type.missesThrower && p.fixture.getFilterGroupIndex() !== 0) p.fixture.setFilterGroupIndex(0)
     if (p.body.getPosition().y < CONFIG.killY) p.broken = true
     if (p.broken) continue
     if (p.type.lifetime && p.age >= p.type.lifetime) {
@@ -136,8 +138,9 @@ export function updatePumpkins(game, dt) {
       breakPumpkin(game, p)
       continue
     }
-    // a carried Big Gourd blocks it
-    if (!p.type.unblockable && game.players.some(pl => tryBlock(game, pl, pos, p.radius, unit(p.body.getLinearVelocity())))) {
+    // a carried Big Gourd blocks it (not the thrower's own, if it missesThrower)
+    const blocks = pl => !(p.type.missesThrower && pl === p.owner) && tryBlock(game, pl, pos, p.radius, unit(p.body.getLinearVelocity()))
+    if (!p.type.unblockable && game.players.some(blocks)) {
       breakPumpkin(game, p)
       continue
     }

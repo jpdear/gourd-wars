@@ -191,6 +191,14 @@ const TUNABLES = [
       [T_ + 'homing.homing.lookAhead', 0, 8, 0.1, 'look ahead'],
       [T_ + 'homing.homing.maxChase', 0.5, 10, 0.1, 'max chase'],
     ]],
+    ['Boomerang', [
+      [T_ + 'boomerang.damage', 0, 100, 1],
+      [T_ + 'boomerang.knockback', 0, 30, 0.5],
+      [T_ + 'boomerang.curve.reach', 1, 20, 0.5, 'reach'],
+      [T_ + 'boomerang.curve.width', 0, 8, 0.25, 'swing out'],
+      [T_ + 'boomerang.gravityScale', 0, 1, 0.05, 'gravity'],
+      [T_ + 'boomerang.curve.spin', 0, 60, 1, 'spin'],
+    ]],
   ]],
 ]
 

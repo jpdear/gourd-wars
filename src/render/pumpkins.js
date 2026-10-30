@@ -7,7 +7,7 @@ import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
 import { PART_HALF_LEN, partEnds } from './players.js'
 import { hexA, mixHex } from '../util/color.js'
-import { clamp } from '../util/math.js'
+import { clamp, lerp } from '../util/math.js'
 
 const GREEN = { color: '#76a83f', rib: '#557d2a' }
 const BROWN = { color: '#7a5a32', rib: '#56401f' }
@@ -209,6 +209,11 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
     ctx.restore()
     return
   }
+  if (mark === 'boomerang') {
+    drawBoomerangGourd(ctx, r, colors)
+    ctx.restore()
+    return
+  }
   if (mark === 'cluster') {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
     ctx.restore()
@@ -239,6 +244,60 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
   ctx.lineWidth = Math.max(1, r * 0.1)
   MARKS[mark]?.(ctx, r, colors)
   ctx.restore()
+}
+
+// A crookneck gourd bent like a boomerang (around 0, 0; canvas y down): two arms meeting at a rounded
+// elbow on top, a round bulb at the end of one, the neck tapering down the other to a curled stem.
+function drawBoomerangGourd(ctx, r, colors) {
+  const at = t => {   // along the bend (a curve from the bulb, up over the elbow, down to the tip): [x, y, normal x, normal y]
+    const x = lerp(lerp(-0.85, 0, t), lerp(0, 0.85, t), t) * r, y = lerp(lerp(0.5, -1.6, t), lerp(-1.6, 0.5, t), t) * r
+    const tx = 1.7, ty = 4.2 * (2 * t - 1), d = Math.hypot(tx, ty)
+    return [x, y, ty / d, -tx / d]   // (the normal points out of the bend)
+  }
+  const [bx, by] = at(0.05), [tx, ty, tnx, tny] = at(1)
+  const pieces = [
+    () => {   // the neck: one edge out, the other back
+      const N = 14, edge = []
+      for (let i = 0; i <= N; i++) {
+        const [x, y, nx, ny] = at(lerp(0.08, 1, i / N)), w = lerp(0.34, 0.19, i / N) * r
+        edge.push([x + nx * w, y + ny * w, x - nx * w, y - ny * w])
+      }
+      edge.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+      for (let i = N; i >= 0; i--) ctx.lineTo(edge[i][2], edge[i][3])
+      ctx.closePath()
+    },
+    () => ctx.arc(bx, by, 0.44 * r, 0, Math.PI * 2),   // the bulb
+    () => ctx.arc(tx, ty, 0.19 * r, 0, Math.PI * 2),   // (a rounded tip)
+  ]
+  ctx.fillStyle = colors.color
+  ctx.strokeStyle = colors.rib
+  ctx.lineWidth = Math.max(1, r * 0.14)
+  for (const piece of pieces) { ctx.beginPath(); piece(); ctx.stroke() }
+  for (const piece of pieces) { ctx.beginPath(); piece(); ctx.fill() }   // (covers the outline where they overlap)
+  ctx.lineWidth = Math.max(1, r * 0.07)   // a ridge along the outside of the bend
+  ctx.beginPath()
+  for (let i = 0; i <= 12; i++) {
+    const [x, y, nx, ny] = at(lerp(0.12, 0.85, i / 12)), w = lerp(0.18, 0.07, i / 12) * r
+    if (i) ctx.lineTo(x + nx * w, y + ny * w); else ctx.moveTo(x + nx * w, y + ny * w)
+  }
+  ctx.stroke()
+  const ux = -tny, uy = tnx   // (on along the neck, past the tip)
+  ctx.strokeStyle = '#4c7a2a'
+  ctx.lineWidth = Math.max(1.5, r * 0.13)
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(tx, ty)
+  ctx.quadraticCurveTo(tx + ux * 0.4 * r, ty + uy * 0.4 * r, tx + (ux * 0.3 + tnx * 0.35) * r, ty + (uy * 0.3 + tny * 0.35) * r)
+  ctx.stroke()
+  ctx.lineCap = 'butt'
+}
+
+// A Boomerang in flight (pixels): faint copies of it on either side of where it is, like a blur
+// from how fast it's spinning.
+export function drawSpinBlur(ctx, x, y, r, angle, colors) {
+  ctx.globalAlpha = 0.18
+  for (const off of [-0.5, 0.5]) drawPumpkin(ctx, x, y, r, angle + off, colors, 'boomerang')
+  ctx.globalAlpha = 1
 }
 
 // A Homing gourd's exhaust (pixels; heading: the way it's flying, world radians): a flickering

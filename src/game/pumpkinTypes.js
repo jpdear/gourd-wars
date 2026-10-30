@@ -5,6 +5,7 @@
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
 //   unblockable              goes right through a carried Big Gourd's shield
+//   missesThrower            never touches the one who threw it (passes right through them and their shield)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
@@ -20,7 +21,7 @@
 //   update(game, pk, dt)                       every step while flying
 
 import { freezeBale } from './level.js'
-import { callAirstrike, explode, openBlackHole, splitCluster, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -175,6 +176,19 @@ export const PUMPKIN_TYPES = {
     //   maxChase    smashes after chasing this long (s)
     homing: { delay: 0.5, speed: 20, turnRate: 4, lookAhead: 0.5, maxChase: 3 },
     update: (game, pk, dt) => updateHoming(game, pk, dt),
+  },
+  boomerang: {
+    name: 'Boomerang', color: '#f2c230', rib: '#b88a12', mark: 'boomerang',
+    radius: 0.22, density: 2, restitution: 0.2, gravityScale: 0.12, missesThrower: true,
+    damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1,
+    // A crookneck gourd bent like a boomerang (see boomerangPull in powers.js): it flies out, hooks back
+    // swinging out underneath, and comes back along the line it left on, as fast as it left, through you (it never touches you)
+    // and on, straight, until it hits something. No gravity while it's curving; gravityScale after.
+    //   reach   how far out it gets before turning back, on a full-charge throw (m; a tap: about half)
+    //   width   how far it swings out to the side as it turns (m, at the widest; a tap: about half)
+    //   spin    how fast it spins (radians/s; just for looks)
+    curve: { reach: 15, width: 5, spin: 24 },
+    update: (game, pk, dt) => updateBoomerang(game, pk, dt),
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

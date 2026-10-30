@@ -2,7 +2,7 @@ import { Vec2 } from 'planck'
 import { expect, it } from 'vitest'
 import { createGame, setDummies, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
-import { openBlackHole, tryBlock } from '../src/game/powers.js'
+import { boomerangPull, openBlackHole, tryBlock } from '../src/game/powers.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { resetPatches } from '../src/game/patches.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES, defaultSpawnSettings } from '../src/game/pumpkinTypes.js'
@@ -96,6 +96,58 @@ it('a Homing gourd thrown straight up locks onto the dummy and curves into it', 
     locked ||= pk.target === dummy
   }
   expect(locked).toBe(true)
+  expect(dummy.damageTaken).toBeGreaterThan(0)
+  expect(me.damageTaken).toBe(0)
+})
+
+it('a Boomerang hooks back past its thrower without touching them, swinging out underneath', () => {
+  for (const aimY of [0.5, -0.5]) {   // (a little above level, a little below: underneath either way)
+    const game = createGame()
+    const me = game.players[0]
+    for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+    const c = me.torso.getPosition()
+    const start = { x: c.x, y: c.y + 5 }   // (over the platform: clear air to fly in)
+    const pk = spawnPumpkin(game, 'boomerang', new Vec2(start.x, start.y), new Vec2(-26, aimY), me)
+    let out = 0, top = -Infinity, bottom = Infinity, back = null
+    for (let i = 0; i < 240 && !pk.broken && !back; i++) {
+      stepGame(game, [emptyInput()])
+      const p = pk.body.getPosition()
+      out = Math.max(out, start.x - p.x)
+      top = Math.max(top, p.y); bottom = Math.min(bottom, p.y)
+      if (i > 30 && p.x >= start.x) back = { y: p.y, vx: pk.body.getLinearVelocity().x }
+    }
+    const { reach } = PUMPKIN_TYPES.boomerang.curve
+    expect(out).toBeGreaterThan(reach - 1)    // ~reach m out...
+    expect(out).toBeLessThan(reach + 1.5)
+    expect(back).not.toBeNull()       // ...and back through where it was thrown from (it didn't hit them),
+    expect(Math.abs(back.y - start.y)).toBeLessThan(0.3)   // along the line it left on
+    expect(back.vx).toBeGreaterThan(24)   // about as fast as it left
+    expect(bottom).toBeLessThan(start.y - 2)   // having swung underneath
+    expect(top).toBeLessThan(start.y + 1)
+    expect(me.damageTaken).toBe(0)
+  }
+})
+
+it('a Boomerang always bends toward the underside of its throw, whichever way it was aimed', () => {
+  const C = PUMPKIN_TYPES.boomerang.curve
+  for (const deg of [-150, -90, -60, -10, 0, 10, 60, 90, 150]) {
+    const a = deg * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a)
+    const pull = boomerangPull(C, { x: 26 * dx, y: 26 * dy }, 0.5)
+    const nx = dy * Math.sign(dx || 1), ny = -Math.abs(dx)   // (sideways from the throw, the lower side)
+    expect(pull.x * nx + pull.y * ny).toBeGreaterThan(0)
+  }
+})
+
+it('a Boomerang thrown away from the dummy comes back past the thrower and hits it', () => {
+  const game = createGame()
+  const [me, dummy] = game.players
+  for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+  const c = me.torso.getPosition(), d = dummy.torso.getPosition()
+  const away = Math.sign(c.x - d.x)
+  // a lighter throw from right in front of the thrower's chest, a hair below level (so it swings under,
+  // off the end of the platform, not up into the ledge): it comes back through them and on to the dummy
+  spawnPumpkin(game, 'boomerang', new Vec2(c.x + away * 0.3, c.y + 0.2), new Vec2(away * 16, -0.01), me)
+  for (let i = 0; i < 180 && !dummy.damageTaken; i++) stepGame(game, [emptyInput()])
   expect(dummy.damageTaken).toBeGreaterThan(0)
   expect(me.damageTaken).toBe(0)
 })

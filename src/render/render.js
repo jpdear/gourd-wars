@@ -14,7 +14,7 @@ import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
-import { drawAirstrikeTarget, drawBlackHole, drawFlameTrail, drawLockOn, drawPatches, drawPumpkin, pumpkinColors } from './pumpkins.js'
+import { drawAirstrikeTarget, drawBlackHole, drawFlameTrail, drawLockOn, drawPatches, drawPumpkin, drawSpinBlur, pumpkinColors } from './pumpkins.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
 
@@ -66,6 +66,7 @@ export function render(ctx, view, snap, effects, ui) {
         ctx.stroke()
       }
       if (heading !== null && heading !== undefined) drawFlameTrail(ctx, X(x), Y(y), radius * s, heading)   // (a Homing gourd on the hunt)
+      if (typeName === 'boomerang') drawSpinBlur(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0))
       drawPumpkin(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0), type.mark)
     }
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown

@@ -2,6 +2,7 @@
 
 import { BODY, CONFIG } from '../config.js'
 import { BALE, TINE } from '../game/level.js'
+import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { drawPumpkin, pumpkinColors } from './pumpkins.js'
@@ -70,7 +71,8 @@ function sightObstacles(map, snap) {
 
 // Your sight (only you see it, when the host has sights on): faint dots along where your gourd
 // would fly if thrown now (so it grows while you charge), fading out, up to the first thing it
-// would hit, where it would fizzle (Vine) or split (Gourd Cluster), or off screen.
+// would hit, where it would fizzle (Vine) or split (Gourd Cluster), or off screen (a Boomerang: once
+// it's done curving, since it can come back on).
 export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   const type = PUMPKIN_TYPES[p.held]
   const { speed, gravity, life, radius } = launchOf(type, p.charge)
@@ -84,15 +86,21 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   const hits = (x, y) => boxes.some(b => x > b.x0 - radius && x < b.x1 + radius && y > b.y0 - radius && y < b.y1 + radius)
 
   // walk the arc in small steps (~5 cm), keeping a dot every 0.45 m
-  const dots = [], dt = 0.05 / Math.max(speed, 1)
-  let travelled = 0, nextDot = 0.45, px = x0, py = y0
+  const dots = [], dt = 0.05 / Math.max(speed, 1), launch = { x: dx * speed, y: dy * speed }
+  let travelled = 0, nextDot = 0.45, x = x0, y = y0, vx = launch.x, vy = launch.y
   for (let t = dt; t <= end; t += dt) {
-    const x = x0 + dx * speed * t, y = y0 + dy * speed * t - 0.5 * gravity * t * t
-    if (x < -1 || x > CONFIG.view.w + 1 || y < -1) break   // (off screen)
+    const pull = type.curve ? boomerangPull(type.curve, launch, t) : null
+    vx += (pull ? pull.x : 0) * dt
+    vy += (pull ? pull.y : -gravity) * dt   // (a Boomerang's spin holds it up while it curves)
+    const px = x, py = y
+    x += vx * dt; y += vy * dt
+    if (y < -1) break
+    const offScreen = x < -1 || x > CONFIG.view.w + 1
+    if (offScreen && !pull) break
     if (hits(x, y)) break
     travelled += Math.hypot(x - px, y - py)
-    px = x; py = y
-    if (travelled >= nextDot) { dots.push([x, y]); nextDot += 0.45 }
+    if (travelled >= nextDot && !offScreen) dots.push([x, y])
+    if (travelled >= nextDot) nextDot += 0.45
   }
   ctx.fillStyle = type.color
   dots.forEach(([x, y], i) => {
