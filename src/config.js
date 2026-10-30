@@ -45,6 +45,25 @@ export const CONFIG = {
       legsOutTime: 0.5,      // sitting down: the legs swing out in front at full strength this long
       legFriction: 0,        // crouched, the legs are this slippery (normal: 0.3), so they slide out and you sit on your butt
     },
+    slide: {                 // crouch while running: power slide, low, keeping your speed (jump out of it to keep it in the air)
+      minSpeed: 5.5,         // going at least this fast (m/s, along the ground) when you sit down = a slide instead
+      boost: 4,              // starting a slide adds this much speed (m/s)...
+      boostMax: 11,          // ...but never pushes you past this...
+      boostCooldown: 1,      // ...and only once this often (s); a slide in between just keeps your speed
+      friction: 8,           // slowing down while sliding (m/s²)
+      brake: 30,             // ...holding the other way
+      endSpeed: 3,           // slower than this and the slide's over: you're sitting (if still crouched)
+      height: 0.45,          // pelvis height while sliding (standing: hoverHeight)
+      lean: 0.8,             // lean back this far, away from where you're sliding (radians; 0.8 ≈ 46°)
+      legStrength: 4,        // leg motors this many times as strong (swinging the lead leg out before you land on it)
+      dustEvery: 0.04,       // a puff of dust off the lead foot this often (s)
+      tripReach: 0.1,        // the lead foot trips anyone it gets this close to (m)...
+      tripStun: 0.6,         // ...no damage, but they go limp this long...
+      tripPop: 5,            // ...popped up (m/s)...
+      tripSweep: 5,          // ...legs swept out your way (m/s)
+      tripKeep: 0.7,         // tripping someone, you keep this share of your speed
+      tripImmune: 1,         // can't be tripped again for this long (s)
+    },
   },
   throw: { minSpeed: 14, maxSpeed: 26, chargeTime: 0.7, cooldown: 0.35 },
   punch: {                   // click with empty hands (alternates arms)
