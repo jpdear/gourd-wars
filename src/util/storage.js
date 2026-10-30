@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   practiceMap: 'pumpkin-fight-map',
   match: 'pumpkin-fight-match',               // match length, map rotation
   dummies: 'pumpkin-fight-dummies',
+  damageNumbers: 'pumpkin-fight-damage-numbers',   // your own On/Off choices (even as a guest): see prefs in app/settings.js
+  lockMouse: 'pumpkin-fight-lock-mouse',
   tuning: 'pumpkin-fight-tuning',             // tuning panel tweaks
   tuningView: 'pumpkin-fight-tuning-ui',      // tuning panel: open tab and groups
 }

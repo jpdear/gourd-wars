@@ -10,11 +10,11 @@ import { render } from '../render/render.js'
 import { createMenu } from '../ui/menu.js'
 import { createTuningPanel } from '../ui/tuning.js'
 import { lerp } from '../util/math.js'
-import { aimPoint, clearTaps, localInput, setupControls } from './controls.js'
+import { aimPoint, clearTaps, localInput, mouseLocked, setupControls, updateMouseLock } from './controls.js'
 import { createMapEditor, loadMyMaps, playtestId } from './customMaps.js'
 import { onMenuAction } from './menus.js'
 import { hostCode, link, links, mode } from './session.js'
-import { changeDummies, dummyCount, loadSettings, showSettings } from './settings.js'
+import { changeDummies, dummyCount, loadSettings, prefs, showSettings } from './settings.js'
 import { app, now } from './state.js'
 
 export function boot() {
@@ -72,6 +72,9 @@ function update(ms) {
   ui.fps = lerp(ui.fps, 1 / Math.max(elapsed, 1e-3), 0.05)
   ui.overlay = editor.active ? editor.drawOverlay : null
   ui.aim = aimPoint()   // (for the aim line)
+  updateMouseLock()
+  ui.crosshair = mouseLocked()   // (the real cursor is hidden while it's locked)
+  ui.damageNumbers = prefs.damageNumbers
   if (editor.active) {   // the game holds still while you edit
     acc = 0
     app.snap = editor.snapshot()

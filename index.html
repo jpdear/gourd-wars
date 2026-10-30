@@ -50,7 +50,7 @@
     <div class="screen" data-screen="paused" data-title="Game Menu">
       <p class="status" data-text="paused-info"></p>
       <button class="primary" data-act="resume">Resume</button>
-      <button data-act="show-match" data-show="settings">Settings</button>
+      <button data-act="show-match">Settings</button>
       <button data-act="exit" data-text="exit-label">Exit</button>
     </div>
     <!-- Match Settings (from the host screen) / Settings (from the Esc menu): only the parts that apply right now -->
@@ -60,8 +60,10 @@
       <div class="toggle-row" data-show="rotation"><span>Random Order</span><button class="pk-on" data-act="order-toggle">On</button></div>
       <div class="map-select" data-show="practice-map"></div>
       <div class="dummy-select" data-show="dummies"></div>
-      <div class="toggle-row"><span>Sights</span><button class="pk-on" data-act="sights-toggle">Off</button></div>
-      <button data-act="show-pumpkins">Pumpkins</button>
+      <div class="toggle-row" data-show="host-settings"><span>Sights</span><button class="pk-on" data-act="sights-toggle">Off</button></div>
+      <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
+      <div class="toggle-row"><span>Lock Mouse</span><button class="pk-on" data-act="pref-toggle:lockMouse">Off</button></div>
+      <button data-act="show-pumpkins" data-show="host-settings">Pumpkins</button>
       <button data-act="restart" data-show="restart">Restart Match</button>
       <button class="primary" data-act="match-done">Done</button>
     </div>

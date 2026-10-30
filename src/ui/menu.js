@@ -101,13 +101,16 @@ export function createMenu(onAction) {
         for (const b of root.querySelectorAll(`[data-act="mode:${mode}"]`)) b.classList.toggle('on', settings.mode === mode)
       }
       for (const el of root.querySelectorAll('.match-settings .stepper')) el.classList.toggle('hidden', settings.mode === 'endless')
-      for (const [act, on] of [['order-toggle', settings.shuffle], ['sights-toggle', settings.sights]]) {
-        for (const b of root.querySelectorAll(`[data-act=${act}]`)) {
-          b.classList.toggle('on', on)
-          b.textContent = on ? 'On' : 'Off'
-        }
-      }
+      this.showToggle('order-toggle', settings.shuffle)
+      this.showToggle('sights-toggle', settings.sights)
       this.setText('match-num', settings.mode === 'rounds' ? `${settings.rounds} rounds` : `${settings.wins} wins`)
+    },
+    // an On/Off button
+    showToggle(act, on) {
+      for (const b of root.querySelectorAll(`[data-act="${act}"]`)) {
+        b.classList.toggle('on', on)
+        b.textContent = on ? 'On' : 'Off'
+      }
     },
     rebuildMaps: buildMapButtons,
     showMap(id) {

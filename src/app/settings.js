@@ -1,5 +1,5 @@
 // The player's saved choices (this browser): which pumpkins grow, the practice map, the match
-// settings and the practice dummies. Changing one saves it and updates the menus.
+// settings, the practice dummies and your own On/Off preferences. Changing one saves it and updates the menus.
 import { MAX_PLAYERS } from '../config.js'
 import { setDummies } from '../game/game.js'
 import { MATCH_MODES, defaultMatchSettings, defaultRotation } from '../game/match.js'
@@ -19,6 +19,12 @@ export let practiceMap = 'patch'
 export const matchSettings = {}
 // practice dummies (0-3, your choice): around while you play alone, gone once a friend joins
 export let dummyCount = 1
+// your own On/Off choices (guests too: these aren't the host's), each with its button's action
+//   damageNumbers  numbers over whoever gets hurt (always shown with the tuning panel open)
+//   lockMouse      lock the mouse to the game while you play (see app/controls.js); off by default:
+//                  the browser shows a notice each time it locks
+export const prefs = { damageNumbers: false, lockMouse: false }
+const PREF_BUTTONS = { damageNumbers: 'pref-toggle:damageNumbers', lockMouse: 'pref-toggle:lockMouse' }
 
 // Load the saved choices. (After the custom maps are registered: the practice map may be one.)
 export function loadSettings(game) {
@@ -41,6 +47,8 @@ export function loadSettings(game) {
 
   const dummies = loadText(STORAGE_KEYS.dummies)
   if (dummies !== null && Number.isFinite(Number(dummies))) dummyCount = clamp(Math.round(Number(dummies)), 0, MAX_PLAYERS - 1)
+
+  for (const name in prefs) prefs[name] = loadText(STORAGE_KEYS[name]) === 'on'
 }
 
 // Show them all in the menus (once those exist).
@@ -50,6 +58,7 @@ export function showSettings() {
   menu.showRotation(matchSettings.maps)
   menu.showSpawnSettings(spawnSettings)
   menu.showMap(practiceMap)
+  for (const name in prefs) menu.showToggle(PREF_BUTTONS[name], prefs[name])
 }
 
 export function changeSpawns(fn) {
@@ -73,6 +82,13 @@ export function changeSettings(fn) {
   app.game.sights = matchSettings.sights
   app.menu.showSettings(matchSettings)
   app.menu.showRotation(matchSettings.maps)
+}
+
+export function togglePref(name) {
+  if (!(name in prefs)) return
+  prefs[name] = !prefs[name]
+  saveText(STORAGE_KEYS[name], prefs[name] ? 'on' : 'off')
+  app.menu.showToggle(PREF_BUTTONS[name], prefs[name])
 }
 
 export function changeDummies(n) {

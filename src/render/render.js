@@ -2,7 +2,9 @@
 // Draws one frame from a snapshot (snap can be null while the guest waits for the first one).
 //   ui: { debug, fps, localIndex, hud (center text outside a match), debugLines,
 //         game (host only, for debug rays), message, aim (where the mouse points, for the aim line),
-//         overlay (map editor: draws its markers instead of the HUD) }
+//         overlay (map editor: draws its markers instead of the HUD),
+//         crosshair (the mouse is locked to the game: draw where it points),
+//         damageNumbers (show them: the player's setting) }
 
 import { CONFIG } from '../config.js'
 import { SCYTHE_START } from '../game/level.js'
@@ -11,7 +13,7 @@ import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { snapPlayer } from '../game/snapshot.js'
 import { MAP_SHIFT, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
-import { drawBanner, drawDebug, drawHud } from './hud.js'
+import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlameTrail, drawLockOn, drawPatches, drawPumpkin, drawSpinBlur, pumpkinColors } from './pumpkins.js'
@@ -99,7 +101,7 @@ export function render(ctx, view, snap, effects, ui) {
   ctx.globalAlpha = 1
   ctx.textAlign = 'center'
   for (const t of effects.popups) {
-    if (t.debugOnly && !ui.debug) continue   // damage numbers are a debug/tuning aid only
+    if (t.damage && !ui.debug && !ui.damageNumbers) continue   // damage numbers: only if you turned them on (or with the tuning panel)
     ctx.globalAlpha = 1 - Math.pow(t.age / t.life, 2)
     ctx.fillStyle = t.color || theme.ink
     ctx.font = `bold ${Math.round(t.size * s)}px system-ui, sans-serif`
@@ -121,5 +123,6 @@ export function render(ctx, view, snap, effects, ui) {
     ctx.fillStyle = theme.ink
     ctx.fillText(ui.message, XS(CONFIG.view.w / 2), Y(12.6))
   }
+  if (ui.crosshair && ui.aim) drawCrosshair(ctx, XS(ui.aim.x), Y(ui.aim.y))
   ctx.restore()
 }

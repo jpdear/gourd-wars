@@ -69,8 +69,9 @@ function sightObstacles(map, snap) {
   return boxes
 }
 
-// Your sight (only you see it, when the host has sights on): faint dots along where your gourd
-// would fly if thrown now (so it grows while you charge), fading out, up to the first thing it
+// Your sight (only you see it, when the host has sights on): dots in your gourd's colour, with a
+// dark edge so they show up on any map, along where your gourd would fly if thrown now (so it
+// grows while you charge), fading a little toward the far end, up to the first thing it
 // would hit, where it would fizzle (Vine) or split (Gourd Cluster), or off screen (a Boomerang: once
 // it's done curving, since it can come back on).
 export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
@@ -103,11 +104,14 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
     if (travelled >= nextDot) nextDot += 0.45
   }
   ctx.fillStyle = type.color
+  ctx.strokeStyle = 'rgba(30, 24, 20, 0.85)'
+  ctx.lineWidth = Math.max(1.5, 0.025 * s)
   dots.forEach(([x, y], i) => {
-    ctx.globalAlpha = 0.55 * (1 - 0.6 * i / Math.max(dots.length, 1))   // fading along the way
+    ctx.globalAlpha = 0.6 * (1 - 0.35 * i / Math.max(dots.length, 1))   // fading a little along the way
     ctx.beginPath()
-    ctx.arc(X(x), Y(y), 0.04 * s, 0, Math.PI * 2)
+    ctx.arc(X(x), Y(y), 0.075 * s, 0, Math.PI * 2)
     ctx.fill()
+    ctx.stroke()
   })
   ctx.globalAlpha = 1
 }

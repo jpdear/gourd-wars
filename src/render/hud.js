@@ -35,6 +35,25 @@ export function drawHud(ctx, snap, ui, X, Y, s) {
   }
 }
 
+// Where you're aiming, while the mouse is locked to the game (the real cursor is hidden then):
+// a white crosshair with a dark edge, so it shows up on anything (pixels: the same size at any zoom).
+export function drawCrosshair(ctx, x, y) {
+  const arm = (d0, d1) => {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      ctx.moveTo(x + dx * d0, y + dy * d0)
+      ctx.lineTo(x + dx * d1, y + dy * d1)
+    }
+  }
+  ctx.lineCap = 'round'
+  for (const [color, width] of [['rgba(30, 24, 20, 0.85)', 3], ['#fff', 1.5]]) {
+    ctx.strokeStyle = color
+    ctx.lineWidth = width
+    ctx.beginPath()
+    arm(3, 7.5)
+    ctx.stroke()
+  }
+}
+
 // Everyone's score in a row, each in their color, centered at height y.
 function drawScores(ctx, snap, ui, X, Y, s, y) {
   const players = snap.players, gap = 1.6

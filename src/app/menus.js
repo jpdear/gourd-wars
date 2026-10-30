@@ -9,7 +9,7 @@ import {
   copyExportCode, duplicateBuiltin, importMapCode, myMapAction, newMap, openEditor, playtestId, showMyMaps,
 } from './customMaps.js'
 import { friendNames, hostCode, joinGame, leaveSession, links, mode, playingAlone, startHosting } from './session.js'
-import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings } from './settings.js'
+import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
 import { app } from './state.js'
 
 let pumpkinsReturnTo = 'main'   // the menu screen "Done" goes back to
@@ -49,6 +49,7 @@ const ACTIONS = {
   }),
   'order-toggle': () => changeSettings(m => { m.shuffle = !m.shuffle }),
   'sights-toggle': () => changeSettings(m => { m.sights = !m.sights }),
+  'pref-toggle': name => togglePref(name),
   map: id => chooseMap(id),
   'dummies-down': () => changeDummies(dummyCount - 1),
   'dummies-up': () => changeDummies(dummyCount + 1),
@@ -98,14 +99,15 @@ export function openPauseMenu() {
   const { menu } = app
   menu.show('paused')
   menu.setText('paused-info', describeSession())
-  menu.setShown('settings', mode !== 'guest')   // (guests play by the host's settings)
   menu.setText('exit-label', playtestId ? 'Exit to Editor' : 'Exit')
 }
 
 // Match Settings (from the host screen) / Settings (from the Esc menu): just the parts that apply right now
+// (a guest plays by the host's settings: theirs are only their own, like damage numbers and mouse lock)
 function openSettings() {
   const { menu } = app
   menu.show('match', matchReturnTo === 'paused' ? 'Settings' : 'Match Settings')
+  menu.setShown('host-settings', mode !== 'guest')
   menu.setShown('match-length', mode === 'host')
   menu.setShown('rotation', mode === 'host')
   menu.setShown('practice-map', playingAlone() && !playtestId)
