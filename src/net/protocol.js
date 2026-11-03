@@ -47,6 +47,10 @@ const SNAPSHOT_LISTS = {
     unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4) }),
   },
   holes: fields('id', 'x', 'y', 'r'),
+  crows: {   // (down as 0/1; what it carries by number, -1: nothing)
+    pack: c => [c.id, c.x, c.y, c.angle, c.down ? 1 : 0, c.carry ? WEAPON_TYPE_NAMES.indexOf(c.carry) : -1, c.dir],
+    unpack: ([id, x, y, angle, down, carry, dir]) => ({ id, x, y, angle, down: !!down, carry: WEAPON_TYPE_NAMES[carry] ?? null, dir }),
+  },
   weapons: {   // (its type by number)
     pack: w => [w.id, WEAPON_TYPE_NAMES.indexOf(w.typeName), w.x, w.y, w.angle],
     unpack: ([id, type, x, y, angle]) => ({ id, typeName: WEAPON_TYPE_NAMES[type], x, y, angle }),

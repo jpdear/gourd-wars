@@ -9,9 +9,10 @@
 // panel is up. Esc lets go too (the browser's rule) and opens the pause menu.
 import { CONFIG } from '../config.js'
 import { emptyInput } from '../game/input.js'
+import { sendCrow } from '../game/crows.js'
 import { dropFromSky } from '../game/weapons.js'
 import { RESERVED_KEYS, binds } from './keybinds.js'
-import { closeControls, closeMatchSettings, closePumpkinSettings, openPauseMenu } from './menus.js'
+import { closeControls, closeListSettings, closeMatchSettings, openPauseMenu } from './menus.js'
 import { localGame } from './session.js'
 import { prefs } from './settings.js'
 import { app } from './state.js'
@@ -34,15 +35,18 @@ function finishCapture(code) {
 }
 
 // Keys for testing, only in debug mode (` ), and only where this computer runs the game:
-//   T   a pitchfork drops in from the sky, over the mouse
+//   T   a crow comes right away, bringing a pitchfork
+//   Y   a pitchfork drops in from the sky, over the mouse
 const DEBUG_KEYS = {
-  KeyT: game => dropFromSky(game, 'pitchfork', aimPoint().x),
+  KeyT: game => sendCrow(game, 'pitchfork'),
+  KeyY: game => dropFromSky(game, 'pitchfork', aimPoint().x),
 }
 
 // Esc in a menu: back out of it
 const ESC_FROM = {
   paused: () => app.menu.hide(),
-  pumpkins: closePumpkinSettings,
+  pumpkins: closeListSettings,
+  weapons: closeListSettings,
   match: closeMatchSettings,
   controls: closeControls,
 }

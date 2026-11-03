@@ -30,6 +30,7 @@ export function makeSnapshot(game) {
       floating: p.floating,
       charge: p.charging ? r3(p.charge) : 0,
       lockedOn: game.pumpkins.some(pk => pk.target === p),   // a Homing gourd is coming for them
+      pecked: game.pecks.some(pk => pk.victim === p),         // a crow's on their head
       grapple: p.grapple && !p.dead ? (({ x, y }) => [r3(x), r3(y)])(p.grapplePoint()) : null,   // where a Vine is reeling them in
       // what they're picking up (harvest: how far along, 0..1), or else could pick up from where they stand: [x, y, r]
       harvest: r3(p.harvestProgress),
@@ -58,6 +59,11 @@ export function makeSnapshot(game) {
       }
     }),
     holes: game.holes.map(h => ({ id: h.id, x: r3(h.x), y: r3(h.y), r: r3(h.r) })),   // r: the core's radius
+    // down: knocked down (else flying over, carrying a weapon of type `carry`, or null); dir: which way it faces
+    crows: game.crows.map(c => {
+      const p = c.body.getPosition()
+      return { id: c.id, x: r3(p.x), y: r3(p.y), angle: r3(wrapAngle(c.body.getAngle())), down: c.state === 'down', carry: c.carrying, dir: c.dir }
+    }),
     weapons: game.looseWeapons.map(w => ({ id: w.id, typeName: w.typeName, x: r3(w.x), y: r3(w.y), angle: r3(wrapAngle(w.angle)) })),   // (x, y: the grip)
     // t: 0 → 1 when the airdrop is due; r: the airdrop's radius
     strikes: game.strikes.map(st => ({
@@ -113,6 +119,7 @@ export function interpolateSnapshots(a, b, t) {
     bales: byId(a.bales, b.bales, moved),
     holes: byId(a.holes, b.holes, (r, q) => ({ ...q, r: lerp(r.r, q.r, t) })),
     weapons: byId(a.weapons, b.weapons, moved),
+    crows: byId(a.crows, b.crows, moved),
     strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
     scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? { x: lerp(a.movers[i].x, q.x, t), y: lerp(a.movers[i].y, q.y, t) } : q)),

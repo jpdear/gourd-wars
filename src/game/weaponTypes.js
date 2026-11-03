@@ -31,6 +31,8 @@
 //       carrySpeed            ...slowing you down this much (× your speed)
 //       fling                 { speed, damage, stun }: then flung off it toward the aim
 
+import { SPAWN_RATES } from './pumpkinTypes.js'
+
 export const WEAPON_TYPES = {
   pitchfork: {
     name: 'Pitchfork', color: '#9a6a3a', metal: '#8d949c', uses: 8,
@@ -46,3 +48,23 @@ export const WEAPON_TYPES = {
   },
 }
 export const WEAPON_TYPE_NAMES = Object.keys(WEAPON_TYPES)   // index = type code in snapshots
+
+// Which weapons crows bring, and how often: the host's choice (also used in practice; see app/settings.js).
+//   drops   how often a crow comes: one of DROP_RATES (the times are CONFIG.crow.every)
+//   types   each weapon: { on, rate } (rate: how likely it's the one a crow brings, weighted like the
+//           pumpkins' rarities: SPAWN_RATES)
+export const DROP_RATES = ['off', 'rare', 'normal', 'often']
+export const DROP_RATE_LABELS = { off: 'Off', rare: 'Rare', normal: 'Normal', often: 'Often' }
+export const defaultWeaponSettings = () => ({
+  drops: 'normal',
+  types: Object.fromEntries(WEAPON_TYPE_NAMES.map(k => [k, { on: true, rate: 'normal' }])),
+})
+
+// Weighted random pick among the weapons that are on (null if they're all off).
+export function pickWeaponType(settings) {
+  const options = WEAPON_TYPE_NAMES.filter(k => settings.types[k] && settings.types[k].on)
+  const weight = k => SPAWN_RATES[settings.types[k].rate] || 0
+  let r = Math.random() * options.reduce((sum, k) => sum + weight(k), 0)
+  for (const k of options) if ((r -= weight(k)) < 0) return k
+  return options[options.length - 1] ?? null
+}

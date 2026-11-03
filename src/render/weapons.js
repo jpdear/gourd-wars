@@ -30,7 +30,7 @@ function line(ctx, x1, y1, x2, y2) {
 }
 
 // A weapon with its grip at world (x, y), pointing along angle (butt → head).
-function drawWeapon(ctx, typeName, x, y, angle, X, Y, s) {
+export function drawWeapon(ctx, typeName, x, y, angle, X, Y, s) {
   ctx.save()
   ctx.translate(X(x), Y(y))
   ctx.rotate(-angle)   // (the canvas's y points down)

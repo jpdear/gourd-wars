@@ -6,21 +6,19 @@
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
-import { CONFIG } from '../config.js'
+import { COLLIDE, CONFIG } from '../config.js'
+import { knockDownCrow } from './crows.js'
 import { damageBale, inFire, shoveBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, r3 } from '../util/math.js'
-
-// Pumpkins' collision category: things can let them pass right through (held weapons do).
-export const PUMPKIN_CATEGORY = 0x0002
 
 export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
   const type = PUMPKIN_TYPES[typeName]
   const radius = type.radius * (quality?.size ?? 1)
   const body = game.world.createBody({ type: 'dynamic', position: pos, bullet: true, gravityScale: type.gravityScale ?? 1 })
   const fixture = body.createFixture(new planck.Circle(radius), {
-    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution, filterCategoryBits: PUMPKIN_CATEGORY,
+    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution, filterCategoryBits: COLLIDE.pumpkin,
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
@@ -48,8 +46,9 @@ export function handlePumpkinContacts(game) {
     const p = c.pumpkin
     if (p.broken) continue
     const ud = c.other.getUserData()
-    const hitPlayer = ud && ud.kind === 'player'
-    if (hitPlayer) {
+    const hitPlayer = ud && ud.kind === 'player', hitCrow = ud && ud.kind === 'crow'
+    if (hitCrow) knockDownCrow(game, ud.crow)   // (a crow flying over: it drops what it's carrying)
+    else if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
       if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
@@ -64,7 +63,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (hitPlayer || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
+    if (hitPlayer || hitCrow || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }
@@ -119,8 +118,8 @@ export function cutPumpkin(game, p) {
 
 function splat(game, p) {
   p.broken = true
-  const pos = p.body.getPosition()
-  game.events.push({ type: 'splat', x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
+  const pos = p.body.getPosition(), type = p.type.breakEvent === undefined ? 'splat' : p.type.breakEvent
+  if (type) game.events.push({ type, x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
 }
 
 // Gone without a splat (a fizzled vine, a cluster that split): just a small puff.

@@ -5,6 +5,7 @@ import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
+import { drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawHeldWeapon } from './weapons.js'
 import { mixHex } from '../util/color.js'
@@ -175,6 +176,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   }
 
   if (crowned) drawCrown(ctx, p.parts[PART_NAMES.indexOf('head')], X, Y, s)
+  if (p.pecked) drawPeckingCrow(ctx, p, X, Y, s)
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s)
   if (p.weapon) drawHeldWeapon(ctx, p, X, Y, s)

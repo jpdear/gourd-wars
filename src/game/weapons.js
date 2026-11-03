@@ -15,6 +15,7 @@
 // Only attacks hurt. During one, whatever the blade touches:
 //   players            hit, each at most once a swing
 //   hay bales          damaged and shoved
+//   a crow flying over knocked down (see crows.js)
 //   the level          (platforms, walls, hazards) the blade clanks off it and the swing stops
 // and, checked along the blade since they aren't solid to it:
 //   flying pumpkins    cut (see cutPumpkin)
@@ -25,10 +26,11 @@
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
-import { CONFIG } from '../config.js'
+import { COLLIDE, CONFIG } from '../config.js'
+import { knockDownCrow } from './crows.js'
 import { baleAt, damageBale, shoveBale, skyDrop } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
-import { PUMPKIN_CATEGORY, applyHit, cutPumpkin, launch } from './pumpkins.js'
+import { applyHit, cutPumpkin, launch } from './pumpkins.js'
 import { WEAPON_TYPES } from './weaponTypes.js'
 import { lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -64,10 +66,10 @@ export function clearWeapons(game) {
   game.looseWeapons = []
 }
 
-// What a weapon can stick into: anything solid but people, pumpkins and weapons in someone's hands.
+// What a weapon can stick into: anything solid but people, pumpkins, crows and weapons in someone's hands.
 function sticksTo(body) {
   const ud = body.getUserData()
-  return !ud || (ud.kind !== 'player' && ud.kind !== 'pumpkin' && ud.kind !== 'weapon')
+  return !ud || !['player', 'pumpkin', 'crow', 'weapon'].includes(ud.kind)
 }
 // (a bale it was stuck in broke: its body is gone)
 const gone = body => { const ud = body.getUserData(); return !!(ud && ud.bale && ud.bale.broken) }
@@ -136,6 +138,7 @@ const FLING = { motion: 'snap', time: 0.18, cooldown: 0.3 }   // (the swing afte
 const TOUCH = {
   player: (w, game, holder, body, ud, p, dir) => w.hitPlayer(game, holder, ud.player, body, p, dir),
   bale: (w, game, holder, body, ud, p, dir) => w.hitBale(game, holder, ud.bale, p, dir),
+  crow: (w, game, holder, body, ud, p) => { knockDownCrow(game, ud.crow); return w.wear(game, holder, p) },
   platform: (w, game, holder, body, ud, p, dir) => w.clank(game, holder, p, dir),
   hazard: (w, game, holder, body, ud, p, dir) => w.clank(game, holder, p, dir),
 }
@@ -168,7 +171,7 @@ export class HeldWeapon {
     // neck, the head on from there (its mass: heft.mass, spread over them)
     const neck = type.length - type.grip - type.blade
     const area = (neck + type.grip) * 2 * SHAFT + type.blade * type.headWidth
-    const fixture = { density: H.mass / area, friction: 0.4, filterGroupIndex: player.group, filterMaskBits: 0xFFFF & ~PUMPKIN_CATEGORY }
+    const fixture = { density: H.mass / area, friction: 0.4, filterGroupIndex: player.group, filterCategoryBits: COLLIDE.weapon, filterMaskBits: 0xFFFF & ~COLLIDE.pumpkin }
     body.createFixture(new planck.Box((neck + type.grip) / 2, SHAFT, new Vec2((neck - type.grip) / 2, 0), 0), fixture)
     this.blade = body.createFixture(new planck.Box(type.blade / 2, type.headWidth / 2, new Vec2(neck + type.blade / 2, 0), 0), fixture)
     body.setUserData({ kind: 'weapon', weapon: this })

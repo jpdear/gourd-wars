@@ -3,9 +3,11 @@
 // Everything about how a particular type looks is here, in tables by its mark or name: its shape
 // (BODIES) and decoration (MARKS), extras while it flies (IN_FLIGHT) and how it's held (HELD).
 
+import { CONFIG } from '../config.js'
 import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
+import { crowShape } from './crows.js'
 import { handOf } from './players.js'
 import { hexA, mixHex } from '../util/color.js'
 import { clamp, lerp } from '../util/math.js'
@@ -192,6 +194,7 @@ const BODIES = {
     ctx.fill()
   },
   boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
+  crow: (ctx, r) => crowShape(ctx, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
   cluster: (ctx, r, colors) => {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
   },

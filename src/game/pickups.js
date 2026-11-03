@@ -1,5 +1,5 @@
 // PICKUPS — what you can pick up with the harvest key (with empty hands): a pumpkin from its patch,
-// a weapon stuck in the ground. Hold the key next to one for its `time` and it's in your hands.
+// a weapon stuck in the ground, a crow lying dazed. Hold the key next to one for its `time` and it's in your hands.
 //
 // Each source lists what could be picked up right now, as pickups:
 //   key       what it is (switching to a different one starts the pull over)
@@ -10,10 +10,11 @@
 
 import { Vec2 } from 'planck'
 import { BODY, CONFIG } from '../config.js'
+import { crowPickups } from './crows.js'
 import { patchPickups } from './patches.js'
 import { weaponPickups } from './weapons.js'
 
-const SOURCES = [patchPickups, weaponPickups]
+const SOURCES = [patchPickups, weaponPickups, crowPickups]
 
 // The pickup this player is standing at (the closest one, sideways), or null.
 export function findPickup(game, player) {

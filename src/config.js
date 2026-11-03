@@ -113,6 +113,18 @@ export const CONFIG = {
     baleMultiplier: 2,       // weapons do this many times their damage to hay bales
     clankPush: 2,            // the blade bounced off something hard: you're pushed back this fast (m/s)
   },
+  crow: {                    // crows bring weapons (see game/crows.js)
+    every: { rare: 45, normal: 25, often: 12 },   // a crow about this often (s, ±25%), by the host's Weapon Drops setting
+    firstAfter: 8,           // never in the first this many seconds of a round
+    maxLoose: 3,             // no new crow while this many weapons lie around (or are on their way)
+    speed: 7,                // flying across (m/s)
+    length: 0.75,            // beak to tail (m; a big crow: easy to read at game scale)
+    radius: 0.27,            // (its body, to hit)
+    talons: 0.21,            // what it carries hangs from its feet, this far below its middle (m)
+    wakeTime: 8,             // knocked down and left lying there, it comes to and flies off after this long (s)
+    pickTime: 0.15,          // hold the harvest key this long to pick it up
+    peck: { time: 1.5, every: 0.25, damage: 2 },   // thrown into someone: pecks their head this long, this often, this hard
+  },
   patch: {
     growTime: 4,             // seconds from sprout to ripe
     ripeTime: 8,             // how long it stays ripe before rotting
@@ -123,6 +135,12 @@ export const CONFIG = {
     greenPower: [0.4, 0.75], // power of a green pumpkin, from just-pickable to almost ripe
   },
 }
+
+// Collision categories: what passes through what. Everything else is in category 1 and touches all of these.
+//   pumpkin   thrown pumpkins: held weapons let them pass right through
+//   crow      a crow flying over: only pumpkins and weapons can hit it (people jumping into it don't)
+//   weapon    a weapon in someone's hands
+export const COLLIDE = { pumpkin: 0x0002, crow: 0x0004, weapon: 0x0008 }
 
 // Stick figure proportions (meters)
 export const BODY = {

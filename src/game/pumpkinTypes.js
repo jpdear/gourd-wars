@@ -8,6 +8,7 @@
 //   unblockable              goes right through a carried Big Gourd's shield
 //   uncuttable               a weapon's blade can't cut it in the air (it just keeps coming)
 //   cutSetsOff               cut by a weapon's blade, its special effect still goes off (onBreak)
+//   breakEvent               the event when it breaks (default 'splat'; null: none, its onBreak shows something)
 //   missesThrower            never touches the one who threw it (passes right through them and their shield)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
@@ -28,6 +29,7 @@
 import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
 import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { peck } from './crows.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -183,6 +185,16 @@ export const PUMPKIN_TYPES = {
     //   maxChase    smashes after chasing this long (s)
     homing: { delay: 0.5, speed: 20, turnRate: 4, lookAhead: 0.5, maxChase: 3 },
     update: (game, pk, dt) => updateHoming(game, pk, dt),
+  },
+  crow: {   // a dazed crow, picked up and thrown (see crows.js): it pecks whoever it hits, and flies off if it misses
+    name: 'Crow', color: '#2d2a33', rib: '#141218', mark: 'crow', spawnable: false,
+    radius: 0.27, density: 0.6, restitution: 0.1, gravityScale: 0.9,   // (the size of a crow: CONFIG.crow.radius)
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakEvent: null, cutSetsOff: true,
+    onHitPlayer: (game, pk, player) => { pk.pecking = true; peck(game, player) },
+    onBreak: (game, pk) => {
+      const p = pk.body.getPosition()
+      if (!pk.pecking) game.events.push({ type: 'crowAway', x: r3(p.x), y: r3(p.y) })
+    },
   },
   boomerang: {
     name: 'Boomerang', color: '#f2c230', rib: '#b88a12', mark: 'boomerang',

@@ -10,7 +10,8 @@ import { lerp } from '../util/math.js'
 export function createEffects() {
   // popups: floating text (damage numbers, KO!); rings: expanding circles (blasts, a Black Hole closing)
   // shake: { amount (m), age, life } fading screen shake (an airdrop landing), or null
-  return { particles: [], popups: [], rings: [], shake: null }
+  // birds: crows flying off { x, y, vx, vy, dir, age, life }; feathers: drifting down { x, y, vx, vy, turn, spin, sway, age, life }
+  return { particles: [], popups: [], rings: [], birds: [], feathers: [], shake: null }
 }
 
 // A burst of n particles flying out from (x, y).
@@ -22,6 +23,17 @@ function burst(effects, x, y, n, colors, speed, life, size, lift = 0) {
       x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + lift,
       life: lerp(life[0], life[1], Math.random()), age: 0,
       r: lerp(size[0], size[1], Math.random()), color: colors[i % colors.length],
+    })
+  }
+}
+
+// n black feathers popping out of (x, y), then drifting down, rocking side to side.
+function feathers(effects, x, y, n, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = speed * (0.4 + Math.random() * 0.6)
+    effects.feathers.push({
+      x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 1, turn: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 8,
+      sway: Math.random() * Math.PI * 2, age: 0, life: 1 + Math.random() * 0.8,
     })
   }
 }
@@ -40,6 +52,13 @@ const EFFECTS = {
   },
   shake: (fx, ev) => { fx.shake = { amount: Math.max(ev.amount, fx.shake ? fx.shake.amount : 0), age: 0, life: 0.45 } },
   pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, '#f6e7c1'], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
+  feathers: (fx, ev) => feathers(fx, ev.x, ev.y, 7, 2.5),   // a crow knocked down
+  peck: (fx, ev) => feathers(fx, ev.x, ev.y, 2, 1.8),       // a crow pecking at someone's head
+  crowAway: (fx, ev) => {   // a crow flying off: a few feathers, and up and away it goes
+    feathers(fx, ev.x, ev.y, 4, 2)
+    const dir = Math.random() < 0.5 ? -1 : 1
+    fx.birds.push({ x: ev.x, y: ev.y, vx: dir * 5, vy: 4, dir, age: 0, life: 2 })
+  },
   clank: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#fff6c8', '#ffd23f', '#b9bfc6'], [3, 8], [0.1, 0.25], [0.02, 0.04]),   // a blade off something hard
   weaponBreak: (fx, ev) => {   // a weapon snapping: splinters of its handle and bits of metal
     const t = WEAPON_TYPES[ev.typeName]
@@ -107,6 +126,22 @@ export function updateEffects(effects, dt) {
     t.y += 1.2 * dt
   }
   effects.popups = effects.popups.filter(t => t.age < t.life)
+  for (const b of effects.birds) {
+    b.age += dt
+    b.x += b.vx * dt
+    b.y += b.vy * dt
+  }
+  effects.birds = effects.birds.filter(b => b.age < b.life)
+  for (const f of effects.feathers) {   // (air drag: they soon just float down, rocking)
+    f.age += dt
+    f.vx *= Math.exp(-4 * dt)
+    f.vy = f.vy * Math.exp(-4 * dt) - 0.9 * (1 - Math.exp(-4 * dt))
+    f.sway += dt * 5
+    f.x += (f.vx + Math.cos(f.sway) * 0.4) * dt
+    f.y += f.vy * dt
+    f.turn += f.spin * dt * Math.exp(-2 * f.age)
+  }
+  effects.feathers = effects.feathers.filter(f => f.age < f.life)
   for (const ring of effects.rings) ring.age += dt
   if (effects.shake && (effects.shake.age += dt) >= effects.shake.life) effects.shake = null
   effects.rings = effects.rings.filter(ring => ring.age < ring.life)
