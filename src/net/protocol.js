@@ -15,6 +15,7 @@
 
 import { PATCH_STATES } from '../game/patches.js'
 import { PUMPKIN_TYPE_NAMES } from '../game/pumpkinTypes.js'
+import { WEAPON_TYPE_NAMES } from '../game/weaponTypes.js'
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'   // no 0/O or 1/I look-alikes
 
@@ -46,6 +47,10 @@ const SNAPSHOT_LISTS = {
     unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4) }),
   },
   holes: fields('id', 'x', 'y', 'r'),
+  weapons: {   // (its type by number)
+    pack: w => [w.id, WEAPON_TYPE_NAMES.indexOf(w.typeName), w.x, w.y, w.angle],
+    unpack: ([id, type, x, y, angle]) => ({ id, typeName: WEAPON_TYPE_NAMES[type], x, y, angle }),
+  },
   strikes: fields('id', 'x', 'y', 't', 'r'),
   movers: fields('x', 'y'),
   patches: {   // (its state and pumpkin type by number)

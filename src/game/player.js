@@ -12,7 +12,7 @@ import { Vec2 } from 'planck'
 import { BODY, CONFIG } from '../config.js'
 import { emptyInput } from './input.js'
 import { baleAt, damageBale } from './level.js'
-import { canHarvest, emptyPatch, patchPower, patchPumpkin, patchRipeness } from './patches.js'
+import { findPickup } from './pickups.js'
 import { applyHit, launch, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES, throwSpeeds } from './pumpkinTypes.js'
 import { clamp, distToSegment, lerp, r3, wrapAngle } from '../util/math.js'
@@ -44,11 +44,13 @@ const freshLife = () => ({
   // hazards (kept up by level.js)
   hopCooldown: 0,             // bonfire pop-out
   spikeTimer: 0,              // just hurt by pitchforks: not again until this runs out
-  // hands
+  // hands (holding a pumpkin or a weapon, never both)
   held: null,                 // { typeName, power, ripeness, ammo?, blocks? } while holding a pumpkin
+  weapon: null,               // a HeldWeapon (weapons.js) while holding one
   charging: false,
   punchTimer: 0,              // > 0 while a jab is out
-  harvestTarget: null,        // the patch we're pulling on
+  pickup: null,               // what we could pick up from where we stand (see pickups.js)
+  harvestTarget: null,        // ...the one we're pulling on (holding the harvest key)
   harvestProgress: 0,         // 0..1
   // moving
   grapple: null,              // Vine stuck in the level: { body, local, time, speed, from, best, stall } while reeling in
@@ -62,6 +64,8 @@ const freshLife = () => ({
   slide: null,                // power sliding (crouched while running): { dir: -1 left / 1 right, lead: 'L' / 'R', dustTimer }
   slideBoostTimer: 0,         // the slide's starting boost is used up until this runs out
   slideAir: false,            // jumped out of (or slid off the edge after) a slide: air control won't eat the extra speed
+  lungeTimer: 0,              // lunging (a weapon's thrust): we move at lungeVx (sideways, m/s) until this runs out
+  lungeVx: 0,
 })
 
 export class Player {
@@ -196,7 +200,7 @@ export class Player {
       if (!game.match) {
         this.health = CONFIG.player.maxHealth   // practice: nobody really dies
       } else {
-        this.knockOut()
+        this.knockOut(game)
         return true
       }
     }
@@ -237,8 +241,28 @@ export class Player {
     this.stun(seconds)
   }
 
-  // Held-pumpkin effects on movement (Big Gourd is heavy, Balloon makes you floaty).
-  get carry() { return (this.held && PUMPKIN_TYPES[this.held.typeName].carry) || {} }
+  get handsFull() { return !!(this.held || this.weapon) }
+
+  // What we're holding changes how we move (a Big Gourd is heavy, a Balloon makes you floaty...).
+  get carry() {
+    if (this.weapon) return this.weapon.carry
+    return (this.held && PUMPKIN_TYPES[this.held.typeName].carry) || {}
+  }
+
+  holdPumpkin(typeName, power, ripeness) {
+    this.held = { typeName, power, ripeness, ammo: PUMPKIN_TYPES[typeName].ammo, blocks: 0 }
+    this.sprayTimer = 0
+  }
+
+  holdWeapon(weapon) {
+    this.weapon = weapon
+    weapon.takeUp(this)
+  }
+
+  // Where the shoulders are (throws, punches and swings are aimed from here).
+  shoulder() {
+    return this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
+  }
 
   // The front hand (the one closest to where you're aiming) holds the pumpkin.
   handPosition() {
@@ -246,10 +270,22 @@ export class Player {
     return forearm.getWorldPoint(new Vec2(0, -BODY.armSeg / 2))
   }
 
-  // Empty hands: nothing to throw anymore.
+  // Empty hands: nothing to throw or swing anymore.
   dropHeld() {
+    if (this.weapon) this.weapon.release()
     this.held = null
+    this.weapon = null
     this.charging = false
+  }
+
+  // The body part (if any) within `pad` of `point`.
+  partAt(point, pad) {
+    for (const part of this.parts) {
+      const a = part.body.getWorldPoint(new Vec2(0, part.halfLen))
+      const b = part.body.getWorldPoint(new Vec2(0, -part.halfLen))
+      if (distToSegment(point, a, b) < partRadius(part) + pad) return part.body
+    }
+    return null
   }
 
   // A held pumpkin whose type has shieldBlocks (a Big Gourd) is a shield, in the front hand: { x, y, r,
@@ -327,6 +363,7 @@ export class Player {
     this.floatTimer = Math.max(0, this.floatTimer - dt)
     this.jumpLock = Math.max(0, this.jumpLock - dt)
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt)
+    this.lungeTimer = Math.max(0, this.lungeTimer - dt)
     if (this.stunTimer > 0) {
       this.stunTimer -= dt
       this.sinceStun = 0
@@ -399,6 +436,9 @@ export class Player {
       const maxAccel = this.grounded ? C.groundAccel : C.airAccel
       const crouchSpeed = this.crouching && this.grounded ? C.crouch.speed : 1
       let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) * crouchSpeed + (this.grounded && this.groundVel ? this.groundVel.x : 0)
+      // lunging: the lunge sets the pace (unless we're already running faster the same way)
+      const lunging = this.lungeTimer > 0
+      if (lunging && !(targetVx * this.lungeVx > 0 && Math.abs(targetVx) > Math.abs(this.lungeVx))) targetVx = this.lungeVx
       // Walking into a hay bale pushes it: it gets a shove, and we walk along at its speed instead
       // of through it. (Our legs alone would just fold and let us slide up over it.)
       const bale = dir && this.grounded ? this.baleAhead(game, dir, vel.x) : null
@@ -410,7 +450,7 @@ export class Player {
       // (crouched and not walking: hold still harder, or the soft legs pushing on the floor shuffle you along)
       const grip = this.crouching && this.grounded && !dir ? 60 : 10
       let ax = clamp((targetVx - vel.x) * grip, -maxAccel, maxAccel)
-      if (!this.grounded && dir === 0) ax *= 0.15   // keep momentum in the air
+      if (!this.grounded && dir === 0 && !lunging) ax *= 0.15   // keep momentum in the air
       // after a slide: going faster than you can run, holding forward (or nothing) doesn't slow you down
       if (this.slideAir && !this.grounded && dir * vel.x >= 0 && Math.abs(vel.x) > C.moveSpeed * (carry.speed ?? 1)) ax = 0
       if (this.wallJumpTimer > 0 && ax * this.wallGraceDir > 0) ax *= 0.15   // (let the kick off a wall happen)
@@ -477,8 +517,10 @@ export class Player {
     this.poseLimbs(dt, vel, control)
     if (this.slide) this.updateSlideFoot(dt, game)
 
-    // --- throwing (or punching with empty hands) ---
-    if (canAct) {
+    // --- swinging a weapon (even when we can't act: that cuts a swing short), or throwing (or
+    // punching with empty hands) ---
+    if (this.weapon) this.weapon.update(game, this, input, dt)
+    else if (canAct) {
       const clicked = input.throw && !this.prev.throw
       const heldType = this.held && PUMPKIN_TYPES[this.held.typeName]
       if (heldType && heldType.throwMode === 'spray') {
@@ -487,7 +529,7 @@ export class Player {
       } else if (clicked && this.held && this.throwCooldown <= 0) {
         this.charging = true
         this.charge = 0
-      } else if (clicked && !this.held && !this.harvestTarget && this.punchCooldown <= 0) {
+      } else if (clicked && !this.handsFull && !this.harvestTarget && this.punchCooldown <= 0) {
         this.startPunch(game)
       }
       if (this.charging) {
@@ -628,9 +670,17 @@ export class Player {
     this.jumpLock = Math.max(this.jumpLock, 0.1)   // hover spring off while reeling
   }
 
+  // A burst forward (a weapon's thrust): for `time` s we move at vx (sideways, m/s) instead of walking.
+  // Not into a hay bale right in front of us, or we'd end up climbing onto it.
+  lunge(game, vx, time) {
+    if (this.baleAhead(game, Math.sign(vx), 0)) return
+    this.lungeVx = vx
+    this.lungeTimer = time
+  }
+
   startPunch(game) {
     const P = CONFIG.punch
-    const shoulder = this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
+    const shoulder = this.shoulder()
     const dx = this.aim.x - shoulder.x, dy = this.aim.y - shoulder.y
     const d = Math.hypot(dx, dy) || 1
     this.punchDir = { x: dx / d, y: dy / d }
@@ -654,15 +704,12 @@ export class Player {
       if (other === this || other.dead) continue
       // a carried Big Gourd sits in front of the body, so it gets hit first
       if (other.tryBlock(game, fist, P.reach, this.punchDir)) { this.punchLanded = true; return }
-      for (const part of other.parts) {
-        const a = part.body.getWorldPoint(new Vec2(0, part.halfLen))
-        const b = part.body.getWorldPoint(new Vec2(0, -part.halfLen))
-        if (distToSegment(fist, a, b) < partRadius(part) + P.reach) {
-          this.punchLanded = true
-          applyHit(game, other, part.body, this.punchDir.x, this.punchDir.y, P.knockback, P.damage, P.stun)
-          game.events.push({ type: 'hit', x: r3(fist.x), y: r3(fist.y) })
-          return
-        }
+      const part = other.partAt(fist, P.reach)
+      if (part) {
+        this.punchLanded = true
+        applyHit(game, other, part, this.punchDir.x, this.punchDir.y, P.knockback, P.damage, P.stun)
+        game.events.push({ type: 'hit', x: r3(fist.x), y: r3(fist.y) })
+        return
       }
     }
     const bale = baleAt(game, fist, P.reach)
@@ -681,13 +728,15 @@ export class Player {
     this.health = 0
     const head = this.head.getPosition()
     game.events.push({ type: 'ko', x: r3(head.x), y: r3(head.y + 0.6) })
-    this.knockOut()
+    this.knockOut(game)
     if (!game.match) this.reviveTimer = 1.2
   }
 
-  knockOut() {
+  // Limp for the rest of the round. A pumpkin in hand is lost; a weapon falls where we went down.
+  knockOut(game) {
     this.ko = true
-    this.stunTimer = Infinity   // limp for the rest of the round
+    this.stunTimer = Infinity
+    if (this.weapon) this.weapon.drop(game)
     this.dropHeld()
     this.harvestTarget = null
     this.harvestProgress = 0
@@ -700,32 +749,19 @@ export class Player {
     return baleAt(game, { x: pelvis.x + dir * reach, y: pelvis.y - 0.55 }, 0)
   }
 
-  // Hold harvest next to a patch with empty hands to pick its pumpkin.
+  // Hold harvest with empty hands next to something to pick up (see pickups.js).
   updateHarvest(input, dt, game, canAct) {
-    const target = canAct && input.harvest && !this.held && !this.charging ? this.findPatch(game) : null
-    if (target !== this.harvestTarget) this.harvestProgress = 0   // walked away, let go, or switched patch
+    this.pickup = canAct && !this.handsFull && !this.charging ? findPickup(game, this) : null
+    const target = input.harvest ? this.pickup : null
+    if (target?.key !== this.harvestTarget?.key) this.harvestProgress = 0   // walked away, let go, or switched to another
     this.harvestTarget = target
     if (!target) return
-    this.harvestProgress += dt / CONFIG.patch.harvestTime
+    this.harvestProgress += dt / target.time
     if (this.harvestProgress >= 1) {
-      const type = PUMPKIN_TYPES[target.typeName]
-      this.held = { typeName: target.typeName, power: patchPower(target), ripeness: patchRipeness(target), ammo: type.ammo, blocks: 0 }
-      this.sprayTimer = 0
-      emptyPatch(target)
-      this.harvestTarget = null
+      target.take(this)
+      this.pickup = this.harvestTarget = null
       this.harvestProgress = 0
     }
-  }
-
-  findPatch(game) {
-    const pelvis = this.torso.getWorldPoint(new Vec2(0, -BODY.torsoLen / 2))
-    let best = null
-    let bestDx = CONFIG.patch.reach
-    for (const patch of game.patches) {
-      const dx = Math.abs(pelvis.x - patch.x), dy = pelvis.y - patch.y
-      if (canHarvest(patch) && dx < bestDx && dy > 0 && dy < 1.6) { best = patch; bestDx = dx }
-    }
-    return best
   }
 
   senseGround() {
@@ -745,7 +781,7 @@ export class Player {
         const ud = fixture.getBody().getUserData()
         // ignore all players (another player's body under you isn't ground; the hover spring
         // would launch you), pumpkins, and hazards (you'd hover over pitchforks instead of landing on them)
-        if (ud && (ud.kind === 'player' || ud.kind === 'pumpkin' || ud.kind === 'hazard')) return -1
+        if (ud && (ud.kind === 'player' || ud.kind === 'pumpkin' || ud.kind === 'hazard' || ud.kind === 'weapon')) return -1
         hit = fraction
         hitBody = fixture.getBody()
         return fraction
@@ -824,11 +860,12 @@ export class Player {
       hipR = r[0]; kneeR = r[1]
     }
 
-    // Both arms point at the aim, like holding the pumpkin with two hands
-    // (or reach down to the pumpkin we're harvesting).
-    const shoulder = this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
-    const target = this.harvestTarget ? patchPumpkin(this.harvestTarget) : this.aim
+    // Both arms point at the aim, like holding the pumpkin with two hands (or reach for what we're
+    // picking up). A weapon: both hands on its handle, where it says. (Angles here are from straight down.)
+    const shoulder = this.shoulder()
+    const target = this.harvestTarget ? this.harvestTarget.at : this.aim
     const aimAngle = Math.atan2(target.x - shoulder.x, -(target.y - shoulder.y))
+    const grips = this.weapon && !this.harvestTarget ? this.weapon.hands() : null
     const armTarget = aimAngle - this.torso.getAngle()
     const [frontShoulder, backShoulder] = f > 0 ? [J.shoulderR, J.shoulderL] : [J.shoulderL, J.shoulderR]
 
@@ -837,7 +874,7 @@ export class Player {
     const firm = this.crouching && !this.slide ? C.crouch.firmness : 1
     const legsOut = this.sitTime > 0 && this.sitTime < C.crouch.legsOutTime
     const legT = lerp(C.limpTorque, C.legTorque * (this.slide ? C.slide.legStrength : legsOut ? 1 : firm), control)
-    const busyArms = this.held || this.harvestTarget || this.punchTimer > 0   // (arms aiming, reaching or punching stay firm)
+    const busyArms = this.handsFull || this.harvestTarget || this.punchTimer > 0   // (arms aiming, reaching or punching stay firm)
     const armT = lerp(C.limpTorque, C.armTorque * (busyArms ? 1 : firm), control)
     const neckT = lerp(C.limpTorque, C.neckTorque * firm, control)
     this.drive(J.hipL, hipL, legT)
@@ -845,8 +882,12 @@ export class Player {
     this.drive(J.kneeL, kneeL, legT)
     this.drive(J.kneeR, kneeR, legT)
     const [frontElbow, backElbow] = f > 0 ? [J.elbowR, J.elbowL] : [J.elbowL, J.elbowR]
-    if (this.held || this.harvestTarget) {
-      // straight arms: holding the pumpkin with both hands / reaching for one
+    if (grips) {
+      const T = armT * CONFIG.weapon.armStrength   // (firm: it has to keep up with the swing)
+      this.reachFor(frontShoulder, frontElbow, grips.front, T)
+      this.reachFor(backShoulder, backElbow, grips.back, T)
+    } else if (this.handsFull || this.harvestTarget) {
+      // straight arms: holding something with both hands / reaching for it
       this.drive(frontShoulder, armTarget, armT)
       this.drive(backShoulder, armTarget - 0.15 * f, armT)
       this.drive(frontElbow, 0, armT)
@@ -885,6 +926,16 @@ export class Player {
     this.drive(J.neck, 0, neckT)
   }
 
+  // Pose one arm (its shoulder and elbow joints) so its hand lands on `point` (as close as it can
+  // reach), the elbow bending down below the line to it.
+  reachFor(shoulderJoint, elbowJoint, point, torque) {
+    const sh = this.shoulder(), dx = point.x - sh.x, dy = point.y - sh.y
+    const lift = Math.acos(clamp(Math.hypot(dx, dy) / (2 * BODY.armSeg), 0, 1))   // upper arm off the line to the hand (the forearm comes back up as much)
+    const toHand = Math.atan2(dx, -dy) - this.torso.getAngle()
+    this.drive(shoulderJoint, toHand - this.facing * lift, torque)
+    this.drive(elbowJoint, this.facing * 2 * lift, torque)
+  }
+
   // Joint motor as a spring: spin toward the target angle, with limited strength.
   // While stunned, the motor just resists motion a little (floppy, not chaotic).
   drive(joint, target, torque) {
@@ -904,7 +955,7 @@ export class Player {
   throwPumpkin(game) {
     const T = CONFIG.throw
     const hand = this.handPosition()
-    const shoulder = this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
+    const shoulder = this.shoulder()
     let dx = this.aim.x - shoulder.x, dy = this.aim.y - shoulder.y
     const d = Math.hypot(dx, dy) || 1
     dx /= d; dy /= d
@@ -922,7 +973,7 @@ export class Player {
   fireSeed(game) {
     const type = PUMPKIN_TYPES[this.held.typeName]
     const hand = this.handPosition()
-    const shoulder = this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
+    const shoulder = this.shoulder()
     const a = Math.atan2(this.aim.y - shoulder.y, this.aim.x - shoulder.x) + (Math.random() - 0.5) * 0.12
     const dx = Math.cos(a), dy = Math.sin(a)
     const tv = this.torso.getLinearVelocity()
@@ -951,6 +1002,7 @@ export class Player {
   }
 
   respawn() {
+    this.dropHeld()
     const { x, y } = this.spawn
     for (const p of this.parts) {
       p.body.setTransform(new Vec2(x + p.restX, y + p.restY), 0)

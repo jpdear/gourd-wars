@@ -9,8 +9,10 @@
 // panel is up. Esc lets go too (the browser's rule) and opens the pause menu.
 import { CONFIG } from '../config.js'
 import { emptyInput } from '../game/input.js'
+import { dropFromSky } from '../game/weapons.js'
 import { RESERVED_KEYS, binds } from './keybinds.js'
 import { closeControls, closeMatchSettings, closePumpkinSettings, openPauseMenu } from './menus.js'
+import { localGame } from './session.js'
 import { prefs } from './settings.js'
 import { app } from './state.js'
 
@@ -29,6 +31,12 @@ function finishCapture(code) {
   const done = capturing
   capturing = null
   done(code)
+}
+
+// Keys for testing, only in debug mode (` ), and only where this computer runs the game:
+//   T   a pitchfork drops in from the sky, over the mouse
+const DEBUG_KEYS = {
+  KeyT: game => dropFromSky(game, 'pitchfork', aimPoint().x),
 }
 
 // Esc in a menu: back out of it
@@ -71,6 +79,7 @@ export function setupControls() {
       ui.debug = !ui.debug
       tuning.setVisible(ui.debug)
     }
+    if (ui.debug && DEBUG_KEYS[e.code] && localGame()) DEBUG_KEYS[e.code](localGame())
     if (e.code === 'Escape') {
       if (performance.now() - unlockedAt < 300) return   // (this Esc let go of the mouse: that already opened the pause menu)
       if (!menu.open) openPauseMenu()

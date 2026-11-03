@@ -6,6 +6,8 @@
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
 //   unblockable              goes right through a carried Big Gourd's shield
+//   uncuttable               a weapon's blade can't cut it in the air (it just keeps coming)
+//   cutSetsOff               cut by a weapon's blade, its special effect still goes off (onBreak)
 //   missesThrower            never touches the one who threw it (passes right through them and their shield)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
@@ -45,6 +47,7 @@ export const PUMPKIN_TYPES = {
     radius: 0.22, density: 2, restitution: 0.1,
     damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
     blast: { radius: 2.5, damage: 40, knockback: 30, stun: 1.2 },   // everyone in the blast goes ragdoll
+    cutSetsOff: true,   // (cut it right in front of you and it goes off in your face)
     // a direct hit is lethal (practice: the dummy just refills); then it explodes as usual
     onHitPlayer: (game, pk, player, part) => player.takeHit(game, Infinity, pk.type.blast.stun, part.getPosition()),
     onBreak: (game, pk) => { const p = pk.body.getPosition(); explode(game, p.x, p.y, pk.type.blast, pk.power) },
@@ -100,7 +103,7 @@ export const PUMPKIN_TYPES = {
   biggourd: {
     name: 'Big Gourd', color: '#d9b25c', rib: '#9c7a2e', mark: 'gourd',
     radius: 0.38, density: 2.5, restitution: 0, refSpeed: 11,
-    damage: 35, knockback: 10, stun: 1.2, breakAfterHits: 1,   // smashes on the first thing it hits
+    damage: 35, knockback: 10, stun: 1.2, breakAfterHits: 1, uncuttable: true,   // smashes on the first thing it hits
     throwMode: 'lob', lobSpeed: [5, 11], carry: { speed: 0.55, jump: 0.7, wallStick: false, slide: false }, shieldBlocks: 3,
   },
   spitter: {
@@ -153,7 +156,7 @@ export const PUMPKIN_TYPES = {
   airdrop: {   // the giant gourd an Airstrike drops: a real falling body that smashes on the first thing it hits
     name: 'Airdrop', color: '#6b7a3a', rib: '#47522a', mark: 'crosshair', spawnable: false,
     radius: 0.9, density: 3, restitution: 0, lifetime: 4, fizzle: true,
-    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, unblockable: true,   // (crushes right through a Big Gourd shield)
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, unblockable: true, uncuttable: true,   // (crushes right through a Big Gourd shield, and any blade)
     blast: { radius: 5, damage: 50, knockback: 34, stun: 1.3 },   // (radius scaled by power, like its size)
     shake: 0.3,   // screen shake (m) when it lands, fading out
     // whoever it lands on is crushed (practice: the dummy just refills); then it explodes as usual

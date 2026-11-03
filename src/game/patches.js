@@ -48,6 +48,17 @@ export function updatePatches(game, dt) {
   }
 }
 
+// Patches with a pumpkin ready to pick, as pickups (see pickups.js).
+export function patchPickups(game) {
+  return game.patches.filter(canHarvest).map(p => ({
+    key: p, x: p.x, y: p.y, at: patchPumpkin(p), time: CONFIG.patch.harvestTime,
+    take: player => {
+      player.holdPumpkin(p.typeName, patchPower(p), patchRipeness(p))
+      emptyPatch(p)
+    },
+  }))
+}
+
 export function emptyPatch(p) {
   p.state = 'empty'
   p.growth = 0

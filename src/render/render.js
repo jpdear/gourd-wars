@@ -17,7 +17,9 @@ import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches } from './pumpkins.js'
+import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
+import { drawLooseWeapon } from './weapons.js'
 import { lerp } from '../util/math.js'
 
 export function render(ctx, view, snap, effects, ui) {
@@ -54,7 +56,9 @@ export function render(ctx, view, snap, effects, ui) {
 
   if (snap) {
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s)
-    drawPatches(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
+    drawPatches(ctx, snap, X, Y, s)
+    for (const w of snap.weapons) drawLooseWeapon(ctx, w, X, Y, s)
+    drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown

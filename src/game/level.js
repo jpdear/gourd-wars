@@ -12,6 +12,16 @@ import { lerp, r3 } from '../util/math.js'
 
 export const BALE = { w: 1.0, h: 0.8, density: 7, friction: 0.45 }   // ~5.6 kg: slides along at about half walking speed when pushed
 
+// Where something coming in from the sky at x starts falling (its center; r: how far it reaches up
+// from there): just above the screen, or, if the map has a roof there (anything solid along the top
+// edge of the screen, like the barn's ceiling), just under it, so it comes in under the roof instead
+// of landing on it.
+export function skyDrop(game, x, r) {
+  const top = CONFIG.view.h
+  const roofs = currentMap(game).platforms.filter(p => p.y + p.h / 2 >= top - 0.01 && Math.abs(x - p.x) < p.w / 2)
+  return roofs.length ? Math.min(...roofs.map(p => p.y - p.h / 2)) - r - 0.05 : top + r + 0.5
+}
+
 export function resetBales(game) {
   for (const b of game.bales) game.world.destroyBody(b.body)
   game.bales = []

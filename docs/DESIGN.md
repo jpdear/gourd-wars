@@ -31,7 +31,7 @@ A 2–4 player, Stick Fight-style physics brawler. You fight with pumpkins that 
 - Each map has fixed pumpkin patches (3 on the current map: middle of the main platform + each side ledge).
 - Empty → sprout grows green → orange over ~4 s → ripe for ~8 s → rots (brown) for 2 s → pops → empty ~2 s → regrows.
 - Pick it early (40–75% power, greener = weaker) or wait for ripe (100%). Power scales knockback and stun. Rotten pumpkins can't be picked.
-- Harvesting = hold E (your harvest key) for 0.5 s next to the patch. Walking away, letting go, or getting stunned cancels it. A bubble with the key's name shows when you're in reach.
+- Harvesting = hold E (your harvest key) for 0.15 s next to the patch. Walking away, letting go, or getting stunned cancels it. A bubble with the key's name shows when you're in reach.
 - You can knock a pumpkin off the vine by hitting it with a thrown pumpkin (both splat, the patch starts over).
 - Each round (and when a friend joins) starts with patches ~2 s from ripe.
 - *Later:* rare pumpkins glow while growing, so both players can see them coming.
@@ -58,6 +58,29 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 
 **Spawning (host setting, also used in practice):** every type can be turned on/off and set to Common / Normal / Rare / Super Rare (weights 20 / 5 / 1 / 0.25). Default: Classic common, Black Hole and Airstrike super rare, all other specials rare. **Super Rare** pumpkins glow gold (bigger, faster pulse, with sparkles circling them) while growing, instead of the usual special glow. The **Pumpkins** screen is under Match Settings (Esc menu → Settings in practice).
 
+## Weapons (in progress: build step 8)
+Farm tools that drop from the sky: something to fight over mid-round. **Built so far:** the Pitchfork (quick thrust + charged Skewer), picking weapons up, wearing out, cutting pumpkins (in practice, a debug key drops one: see Debug). Everything else below is the plan.
+- **Crows bring them:** every so often a crow flaps across the top of the screen carrying a tool and drops it over a platform, where it sticks in the ground (blade down, riding along on a moving platform or bale). Hit the crow (a pumpkin, a swing) and it drops the tool right there and falls to the floor, dazed: a physics object anyone can pick up and **throw like a pumpkin**: whoever it hits gets a **pecking frenzy** (it latches onto their head and pecks for ~1.5 s, small damage ticks, then flies off). Lying there unheld, it wakes up after 8 s and flies off; a thrown crow that misses flies off when it lands. No new crow while 3+ weapons lie around.
+- **Picking one up:** empty hands, harvest key next to it: you yank it out in 0.25 s (getting hit cancels it). Unclaimed weapons stay until the round ends.
+- **It takes your hands**, like a pumpkin: holding a weapon you can't harvest. Click swings it instead of punching. It's carried at chest height pointing at the mouse, hands spread along the handle: the back hand near the butt (pulled in beside the body), the front hand ~0.4 m up the shaft; in a thrust both arms straighten, pushing it 0.3 m out. You pull it out of the ground raised straight up, and it swings down to your aim.
+- **A real object in your hands:** held, a weapon is solid: it's pulled toward where you aim with limited strength (its **heft**: mass, pull force, turn torque, snap; the Pitchfork's is light: ~0.1 s to swing round, overshooting a little), so it has some weight, gets stopped by the floor and walls, and shoves anyone it's brought down onto or swung into. **Only attacks hurt** (a tap or a charged move); otherwise it just bumps people. It never touches you, and flying pumpkins pass right through it (except an attack cuts them). Knocked down, your grip goes slack and it flops. Lying loose in the level, weapons aren't solid.
+- **Swings move your body:** a thrust lunges you along the aim (sideways only: thrusting straight up doesn't lift you): ~1.2 m on a tap, more on a Skewer.
+- **Attacks:** press = the quick swing, right away. Keep holding and it charges (the weapon pulls back; it shakes a little once fully charged); let go fully charged = the weapon's charged special (costs 2 uses). Let go sooner and nothing more happens. **Throw Weapon** *(planned)* (its own key, default F) throws it for a big hit. A thrown weapon with uses left lands for anyone to pick up (a throw that hits costs 2 uses; a miss is free; at 0 it snaps on impact).
+- **Wear:** each weapon has a number of uses. A swing that touches anything (a player, a bale, a pumpkin, the level) costs one, however much it hits; the one that uses the last one snaps it (splinters). No hint how worn it is until then. Knocked out holding one, it falls where you went down, with its uses left (falling off the map, it's gone).
+- **Blades vs the level:** a blade that hits a platform, wall, moving platform or hazard clanks off it (sparks): the swing stops and you're pushed back a little.
+- **Blades vs thrown pumpkins:** every weapon but the Shovel **cuts** a flying pumpkin out of the air: it splats without its special effect (only a Jack-o'-Boom still goes off: in your face if it's close). A thrown Big Gourd (and an Airstrike's airdrop) can't be cut: it keeps coming. An attack also knocks a pumpkin growing on its patch off the vine (it splats and the patch starts over, like a thrown pumpkin knocking it off). *(planned)* The Shovel bats pumpkins straight back at whoever threw them.
+- **Blades vs shields:** a held Big Gourd blocks a swing like a punch (it cracks; the blade clanks).
+- *(planned)* **Parries:** two swings that meet clang (both stop, both pushed back, both lose a use).
+- **Host settings** *(planned)*: a Weapons screen under Match Settings: each weapon on/off + rarity, and how often crows come (Off / Rare / Normal / Often; Normal ≈ every 25 s, never in the first 8 s of a round). Practice too.
+
+| Weapon | Feel | Tap | Charged | Thrown *(planned)* | Uses | Carrying it |
+|---|---|---|---|---|---|---|
+| **Pitchfork** ✅ tap + charged | poke (longest reach) | thrust along the aim, pushed 0.3 m out, with a lunge (7 m/s for 0.2 s, ~1.2 m): tines ~1–1.4 m out from the chest, ~2.8 m from where you started; 12 dmg | **Skewer** (charge 0.7 s, a bigger lunge: 10 m/s for 0.22 s): the first one it reaches is caught on the tines (5 dmg) and hoisted overhead, limp, while you walk at 60% speed; click to fling them where you aim (18 m/s, 15 dmg), or they're flung after 1 s. Getting knocked down drops them | **Javelin:** fast, nearly straight, 25 dmg; sticks in walls as a peg you can stand on for 6 s | 8 | normal |
+| **Scythe** | reap (area) | slow, wide ~200° overhead arc hitting everyone in it, 16 dmg, hooking them toward you | **Whirl:** two full spins (22 dmg, flung outward), cutting pumpkins | **Buzzsaw:** straight, spinning through players (20 each) and bales, embeds in a wall | 6 | heavy: 85% speed, 90% jump, no wall slide |
+| **Shovel** | bat (counter) | big-knockback swing (10 dmg, always a full launch); bats pumpkins back at the thrower | **Home Run:** the blade shields you while you wind up; release = huge launch (20 dmg, up to ~30 m/s) | **Bonk:** end over end, 18 dmg + dazed 1.2 s | 7 | 95% speed |
+| **Rake** | trip & drag | low sweep along the floor: trips (like a slide tackle), 6 dmg, pulls them ~1 m in | **Long Pull:** hooks the first player, bale or loose weapon ~3.5 m out and hauls it all the way in | **Trap:** lands tines up; step on it and the handle smacks you (15 dmg, stagger, knocked back) | 7 | normal |
+| **Sickle** | quick | very fast slashes (5 dmg), alternating; every 3rd in a row is an uppercut (pops them up, 8 dmg) | **Flurry:** a burst of rapid slashes | fast, flat spin, 14 dmg, bounces once off a wall | 14 | light: 110% speed |
+
 ## Maps
 - Stick Fight-style platform levels: floating platforms over empty space, always one screen.
 - **Moving platforms:** slide back and forth between two spots (gliding in and out of each stop), waiting a moment at each end. A faint dashed rail shows the route. You ride along (you hover, so the platform's speed is added to yours); bales and pumpkins ride on friction. They start over every round and wait at the start during the pan. They pass through walls, and squash whatever's in the way.
@@ -66,6 +89,7 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 - **Pitchforks:** solid tines; touching them does 25 damage (half your health: two touches knock you out) and pops you up off them (12 m/s), with no stagger. Then no more pitchfork damage for 0.5 s, however many tines you touch. All three numbers are in the tuning panel (Level → Hazards). **Scarecrow scythe:** a solid blade spinning a full circle every 3 s; it shoves whatever it hits and touching it is an instant KO. In practice you get back up after 1.2 s.
 - **Bonfires:** 15 damage/sec while in the flames, plus a hop out (10 m/s); no burn after you leave.
 - Hazards also destroy pumpkins (a Jack-o'-Boom goes off) and hay bales (bonfires burn them).
+- **Roofs:** anything solid along the top edge of the screen (the barn's ceiling) is a roof: things coming in from the sky (an Airstrike's airdrop, dropped weapons, *later* crows) come in just under it instead of landing on it.
 - **Testing Grounds** (temporary map with one of everything) is off in the rotation by default; turn it on under Match Settings → Maps, or pick it as the practice map.
 - **Maps**, each with its own sky and scenery:
   - **The Patch** — the original: floating platforms, soft hills.
@@ -106,7 +130,8 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 - **Pumpkins:** one row per type, with **Enabled** (On/Off) and **Rarity** (Common / Normal / Rare / Super Rare) columns.
 
 ## Debug / tuning
-- `` ` `` shows health bars, damage numbers, debug text and the tuning panel.
+- `` ` `` shows health bars, damage numbers, debug text and the tuning panel (a Weapons tab has each weapon's heft and attack numbers; heft mass applies the next time one's picked up).
+- In debug mode (practice or hosting), **T** drops a Pitchfork in from the sky, over the mouse.
 - Tuning panel: tabs (Player / Combat / Patches / Pumpkins) with collapsible sections; each section shows how many values you've changed. Every pumpkin type has its own section. Tweaks are saved in your browser; **Copy changes** gives lines to paste back into `src/config.js` / `src/game/pumpkinTypes.js` (or to send to Claude).
 
 ## Look
@@ -137,6 +162,13 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
    - 6a ~~map editor + custom maps (storage, play test, codes, rotation, sent to the guest)~~ ✅
    - 6b ~~moving platforms (engine + editor tool)~~ ✅
 7. ~~Up to 4 players (free-for-all, join anytime, crowns, 1–3 practice dummies)~~ ✅
+8. Weapons (see Weapons):
+   - 8.1 ~~Pitchfork end to end: holding, tap thrust, hits, wear and snapping, yanking it out, drawing, network~~ ✅
+   - 8.2 crow drops + the Weapons settings screen
+   - 8.3 charged specials (~~hold to charge; Pitchfork's Skewer~~ ✅), Throw Weapon key, thrown weapons
+   - 8.4 Scythe, Shovel, Rake, Sickle
+   - 8.5 parries
+   - 8.6 tuning panel tab, tests, version bump
 
 ## Open questions
 - Should a fully charged Classic hit be able to knock someone off from mid-platform? (`knockback` in `PUMPKIN_TYPES`)

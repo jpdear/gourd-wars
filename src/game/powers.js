@@ -2,7 +2,7 @@
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
-import { breakBale, damageBale } from './level.js'
+import { breakBale, damageBale, skyDrop } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
@@ -171,7 +171,7 @@ export function callAirstrike(game, pk) {
   game.strikes.push({ id: game.nextStrikeId++, x: p.x, y, power: pk.power, age: 0, airdrop: null })
 }
 
-// Every step: each target waits until an airdrop dropped from just above the screen (at entrySpeed,
+// Every step: each target waits until an airdrop dropped from the sky (see skyDrop; at entrySpeed,
 // or faster if it has to) would land on it right on time, then drops one. The target is gone once
 // the airdrop breaks (wherever that is: something in the way takes the hit).
 export function updateAirstrikes(game, dt) {
@@ -179,7 +179,7 @@ export function updateAirstrikes(game, dt) {
   for (const st of game.strikes) {
     st.age += dt
     if (st.airdrop) { st.gone = st.airdrop.broken; continue }
-    const r = PUMPKIN_TYPES.airdrop.radius * st.power, top = CONFIG.view.h + r + 0.5
+    const r = PUMPKIN_TYPES.airdrop.radius * st.power, top = skyDrop(game, st.x, r)
     const left = A.delay - st.age, fall = top - (st.y + r)   // (lands when its bottom reaches the target)
     if (left > 0 && A.entrySpeed * left + g * left * left / 2 > fall) continue   // (too soon: it'd land early)
     const t = Math.max(left, dt), speed = (fall - g * t * t / 2) / t

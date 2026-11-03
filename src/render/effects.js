@@ -3,6 +3,7 @@
 
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
+import { WEAPON_TYPES } from '../game/weaponTypes.js'
 import { pumpkinColors } from './pumpkins.js'
 import { lerp } from '../util/math.js'
 
@@ -39,6 +40,11 @@ const EFFECTS = {
   },
   shake: (fx, ev) => { fx.shake = { amount: Math.max(ev.amount, fx.shake ? fx.shake.amount : 0), age: 0, life: 0.45 } },
   pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, '#f6e7c1'], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
+  clank: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#fff6c8', '#ffd23f', '#b9bfc6'], [3, 8], [0.1, 0.25], [0.02, 0.04]),   // a blade off something hard
+  weaponBreak: (fx, ev) => {   // a weapon snapping: splinters of its handle and bits of metal
+    const t = WEAPON_TYPES[ev.typeName]
+    burst(fx, ev.x, ev.y, 18, [t.color, t.color, t.metal], [2, 6], [0.4, 0.8], [0.03, 0.07], 2)
+  },
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, ['#d9b25c', '#9c7a2e', '#3b3631'], [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
   freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, ['#ffffff', '#dff4fc', '#9fd8f0'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
   straw: (fx, ev) => burst(fx, ev.x, ev.y, 26, ['#e2b84a', '#c9982f', '#f3d77a', '#8a5a2b'], [2, 7], [0.4, 0.8], [0.04, 0.09], 2),

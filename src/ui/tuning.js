@@ -1,17 +1,19 @@
 // TUNING PANEL (opens with the debug overlay)
 // Sliders change the values live. Tweaks are saved in this browser so they
 // survive a reload; "Copy changes" puts them on the clipboard so you can
-// paste them into config.js / pumpkinTypes.js (or into a chat).
+// paste them into config.js / pumpkinTypes.js / weaponTypes.js (or into a chat).
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
+import { WEAPON_TYPES } from '../game/weaponTypes.js'
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
-const TUNING_ROOTS = { CONFIG, PUMPKIN_TYPES }
+const TUNING_ROOTS = { CONFIG, PUMPKIN_TYPES, WEAPON_TYPES }
 
 // Tabs → collapsible groups → sliders: [path, min, max, step, label (defaults to the last part of the path)]
 const T_ = 'PUMPKIN_TYPES.'
+const W_ = 'WEAPON_TYPES.'
 const TUNABLES = [
   ['Player', [
     ['World', [
@@ -216,6 +218,27 @@ const TUNABLES = [
       [T_ + 'boomerang.curve.width', 0, 8, 0.25, 'swing out'],
       [T_ + 'boomerang.gravityScale', 0, 1, 0.05, 'gravity'],
       [T_ + 'boomerang.curve.spin', 0, 60, 1, 'spin'],
+    ]],
+  ]],
+  ['Weapons', [
+    ['Pitchfork', [
+      [W_ + 'pitchfork.heft.mass', 0.05, 3, 0.05, 'mass'],
+      [W_ + 'pitchfork.heft.force', 1, 200, 1, 'pull force'],
+      [W_ + 'pitchfork.heft.torque', 1, 100, 1, 'turn torque'],
+      [W_ + 'pitchfork.heft.snap', 0.05, 1, 0.05, 'snap'],
+      [W_ + 'pitchfork.uses', 1, 30, 1, 'uses'],
+      [W_ + 'pitchfork.tap.damage', 0, 60, 1, 'thrust dmg'],
+      [W_ + 'pitchfork.tap.knockback', 0, 25, 0.5, 'thrust knockback'],
+      [W_ + 'pitchfork.tap.time', 0.1, 1, 0.01, 'thrust time'],
+      [W_ + 'pitchfork.tap.cooldown', 0, 1, 0.01, 'thrust cooldown'],
+      [W_ + 'pitchfork.tap.reach', 0, 0.6, 0.02, 'thrust push'],
+      [W_ + 'pitchfork.tap.lunge.speed', 0, 15, 0.5, 'thrust lunge'],
+      [W_ + 'pitchfork.tap.lunge.time', 0, 0.5, 0.01, 'thrust lunge time'],
+      [W_ + 'pitchfork.charge.chargeTime', 0.1, 2, 0.05, 'skewer charge'],
+      [W_ + 'pitchfork.charge.lunge.speed', 0, 15, 0.5, 'skewer lunge'],
+      [W_ + 'pitchfork.charge.grab.time', 0.2, 3, 0.05, 'skewer hold'],
+      [W_ + 'pitchfork.charge.grab.fling.speed', 0, 40, 0.5, 'fling speed'],
+      [W_ + 'pitchfork.charge.grab.fling.damage', 0, 60, 1, 'fling dmg'],
     ]],
   ]],
 ]

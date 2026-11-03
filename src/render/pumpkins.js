@@ -3,11 +3,10 @@
 // Everything about how a particular type looks is here, in tables by its mark or name: its shape
 // (BODIES) and decoration (MARKS), extras while it flies (IN_FLIGHT) and how it's held (HELD).
 
-import { CONFIG } from '../config.js'
-import { canHarvest, patchPumpkin, patchRipeness } from '../game/patches.js'
+import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
-import { PART_HALF_LEN, handOf, partEnds } from './players.js'
+import { handOf } from './players.js'
 import { hexA, mixHex } from '../util/color.js'
 import { clamp, lerp } from '../util/math.js'
 
@@ -22,12 +21,8 @@ export function pumpkinColors(type, ripeness, rot) {
   }
 }
 
-// harvestKey: the name of your harvest key, shown in a bubble over a patch you could pick
-export function drawPatches(ctx, snap, localIndex, harvestKey, X, Y, s) {
-  const me = snapPlayer(snap, localIndex)   // (none in the map editor, or before you've jumped in)
-  // pelvis = bottom end of the torso
-  const [, , pelvisX, pelvisY] = me ? partEnds(me.parts[0], PART_HALF_LEN.torso) : []
-
+// (Picking them: see render/pickups.js.)
+export function drawPatches(ctx, snap, X, Y, s) {
   snap.patches.forEach((_, i) => {
     const patch = patchView(snap, i)
     // leaves on the ground
@@ -53,36 +48,6 @@ export function drawPatches(ctx, snap, localIndex, harvestKey, X, Y, s) {
       ctx.fill()
     }
     drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.r * s, 0, pumpkinColors(type, patchRipeness(patch), patch.rot), type.mark)
-
-    // harvest progress ring (whoever is pulling on it)
-    const progress = Math.max(0, ...snap.players.map(p => (p.harvestPatch === i ? p.harvest : 0)))
-    if (progress > 0) {
-      ctx.strokeStyle = '#3b3631'
-      ctx.lineWidth = 0.06 * s
-      ctx.beginPath()
-      ctx.arc(X(pk.x), Y(pk.y), (pk.r + 0.15) * s, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2)
-      ctx.stroke()
-      return
-    }
-
-    // your harvest key's bubble when you could pick this one from where you stand (round for one
-    // letter, stretched to fit a longer name)
-    const dx = Math.abs(pelvisX - patch.x), dy = pelvisY - patch.y
-    if (me && !me.dead && !me.held && canHarvest(patch) && dx < CONFIG.patch.reach && dy > 0 && dy < 1.6) {
-      const bx = X(pk.x), by = Y(pk.y + pk.r + 0.45), r = 0.24 * s
-      ctx.font = `bold ${Math.round((harvestKey.length > 1 ? 0.24 : 0.3) * s)}px system-ui, sans-serif`
-      const half = Math.max(0, ctx.measureText(harvestKey).width / 2 - r * 0.6)
-      ctx.fillStyle = '#3b3631'
-      ctx.beginPath()
-      ctx.arc(bx - half, by, r, Math.PI / 2, Math.PI * 3 / 2)
-      ctx.arc(bx + half, by, r, -Math.PI / 2, Math.PI / 2)
-      ctx.fill()
-      ctx.fillStyle = '#f4efe6'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(harvestKey, bx, by + 0.01 * s)
-      ctx.textBaseline = 'alphabetic'
-    }
   })
 }
 

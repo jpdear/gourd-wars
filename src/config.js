@@ -102,13 +102,23 @@ export const CONFIG = {
     spikeBounce: 12,         // m/s pop up off the tines
     scytheTurnTime: 3,       // seconds per full turn of a scarecrow's scythe
   },
+  pickup: {                  // standing at something to pick up with the harvest key (a pumpkin, a weapon)
+    reach: 1.1,              // how close (sideways) you need to be
+    height: 1.6,             // ...with your hips at most this far above where it sits
+  },
+  weapon: {
+    yankTime: 0.25,          // hold the harvest key this long to pull one out of the ground
+    armStrength: 3,          // holding one, the arms are this many times as strong (so the hands keep up with a swing)
+    limp: 0.1,               // ragdolled holding one, it's pulled along this much as hard as usual (it flops)
+    baleMultiplier: 2,       // weapons do this many times their damage to hay bales
+    clankPush: 2,            // the blade bounced off something hard: you're pushed back this fast (m/s)
+  },
   patch: {
     growTime: 4,             // seconds from sprout to ripe
     ripeTime: 8,             // how long it stays ripe before rotting
     rotTime: 2,              // rotten for this long, then it pops
     regrowTime: 2,           // empty for about this long before a new sprout (±25%)
     harvestTime: 0.15,       // hold E this long to pick it
-    reach: 1.1,              // how close (sideways) you need to be
     minGrowth: 0.2,          // tiny sprouts can't be picked yet
     greenPower: [0.4, 0.75], // power of a green pumpkin, from just-pickable to almost ripe
   },

@@ -12,12 +12,15 @@ import { patchPumpkin, splatPatch } from './patches.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, r3 } from '../util/math.js'
 
+// Pumpkins' collision category: things can let them pass right through (held weapons do).
+export const PUMPKIN_CATEGORY = 0x0002
+
 export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
   const type = PUMPKIN_TYPES[typeName]
   const radius = type.radius * (quality?.size ?? 1)
   const body = game.world.createBody({ type: 'dynamic', position: pos, bullet: true, gravityScale: type.gravityScale ?? 1 })
   const fixture = body.createFixture(new planck.Circle(radius), {
-    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution,
+    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution, filterCategoryBits: PUMPKIN_CATEGORY,
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
@@ -103,10 +106,21 @@ const unit = v => { const d = Math.hypot(v.x, v.y) || 1; return { x: v.x / d, y:
 
 export function breakPumpkin(game, p) {
   if (p.broken) return
+  splat(game, p)
+  if (p.type.onBreak) p.type.onBreak(game, p)
+}
+
+// A weapon's blade cuts it in the air: it splats without its special effect going off (unless its
+// type says it still does: cutSetsOff).
+export function cutPumpkin(game, p) {
+  if (p.type.cutSetsOff) breakPumpkin(game, p)
+  else if (!p.broken) splat(game, p)
+}
+
+function splat(game, p) {
   p.broken = true
   const pos = p.body.getPosition()
   game.events.push({ type: 'splat', x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
-  if (p.type.onBreak) p.type.onBreak(game, p)
 }
 
 // Gone without a splat (a fizzled vine, a cluster that split): just a small puff.
