@@ -15,7 +15,7 @@ import { baleAt, damageBale } from './level.js'
 import { canHarvest, emptyPatch, patchPower, patchPumpkin, patchRipeness } from './patches.js'
 import { tryBlock } from './powers.js'
 import { applyHit, spawnPumpkin } from './pumpkins.js'
-import { PUMPKIN_TYPES } from './pumpkinTypes.js'
+import { PUMPKIN_TYPES, throwSpeeds } from './pumpkinTypes.js'
 import { clamp, distToSegment, lerp, r3, wrapAngle } from '../util/math.js'
 
 const BODY_FRICTION = 0.3   // every body part (the legs change while crouched: see setLegFriction)
@@ -833,8 +833,7 @@ export class Player {
     let dx = this.aim.x - shoulder.x, dy = this.aim.y - shoulder.y
     const d = Math.hypot(dx, dy) || 1
     dx /= d; dy /= d
-    const type = PUMPKIN_TYPES[this.held.typeName]
-    const [lo, hi] = type.throwMode === 'lob' ? type.lobSpeed : type.throwSpeed ? [type.throwSpeed.min, type.throwSpeed.max] : [T.minSpeed, T.maxSpeed]
+    const [lo, hi] = throwSpeeds(PUMPKIN_TYPES[this.held.typeName])
     const speed = lerp(lo, hi, this.charge)
     const tv = this.torso.getLinearVelocity()
     const pos = new Vec2(hand.x + dx * 0.15, hand.y + dy * 0.15)

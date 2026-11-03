@@ -3,9 +3,9 @@
 import { BODY, CONFIG } from '../config.js'
 import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
-import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
+import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
-import { drawPumpkin, pumpkinColors } from './pumpkins.js'
+import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 
@@ -46,14 +46,11 @@ export function drawGrappleVine(ctx, p, X, Y, s) {
   ctx.lineCap = 'butt'
 }
 
-// How the held gourd leaves the hand right now: { speed, gravity, life (s), radius } (as in
-// Player.throwPumpkin / fireSeed; a Seed Spitter's sight is its seeds')
+// How the held gourd leaves the hand right now: { speed, gravity, life (s), radius } (a Seed
+// Spitter's sight is its seeds')
 function launchOf(type, charge) {
-  const T = CONFIG.throw
   const flying = type.throwMode === 'spray' ? PUMPKIN_TYPES.seed : type
-  const [lo, hi] = type.throwMode === 'spray' ? [type.seedSpeed, type.seedSpeed]
-    : type.throwMode === 'lob' ? type.lobSpeed
-    : type.throwSpeed ? [type.throwSpeed.min, type.throwSpeed.max] : [T.minSpeed, T.maxSpeed]
+  const [lo, hi] = throwSpeeds(type)
   const speed = lerp(lo, hi, charge)
   return { speed, gravity: CONFIG.gravity * (flying.gravityScale ?? 1), life: flying.lifetime || Infinity, radius: flying.radius }
 }
@@ -178,34 +175,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
 
   if (crowned) drawCrown(ctx, p.parts[PART_NAMES.indexOf('head')], X, Y, s)
 
-  // pumpkin in the front hand, growing a little while charging
-  if (p.held) {
-    const [handX, handY] = handOf(p)
-    const type = PUMPKIN_TYPES[p.held]
-    const colors = pumpkinColors(type, p.heldRipeness, 0)
-    if (p.held === 'balloon') {   // held by its string, floating above the hand
-      ctx.strokeStyle = '#6b6358'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(X(handX), Y(handY))
-      ctx.lineTo(X(handX), Y(handY + 0.5))
-      ctx.stroke()
-      drawPumpkin(ctx, X(handX), Y(handY + 0.5 + type.radius), type.radius * s, 0, colors)
-    } else {
-      drawPumpkin(ctx, X(handX), Y(handY), type.radius * (1 + 0.25 * p.charge) * s, 0, colors, type.mark)
-    }
-    if (p.heldCracks) {   // Big Gourd shield taking damage
-      ctx.strokeStyle = '#3b3631'
-      ctx.lineWidth = 0.025 * s
-      for (let i = 0; i < p.heldCracks; i++) {
-        const a = i * 2.1 + 0.4, r = type.radius
-        ctx.beginPath()
-        ctx.moveTo(X(handX), Y(handY))
-        ctx.lineTo(X(handX + Math.cos(a) * r * 0.9), Y(handY + Math.sin(a) * r * 0.9))
-        ctx.stroke()
-      }
-    }
-  }
+  if (p.held) drawHeldPumpkin(ctx, p, X, Y, s)
 }
 
 // A little gold crown sitting on a head ([x, y, angle]), tilting with it.

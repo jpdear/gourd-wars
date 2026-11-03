@@ -1,6 +1,7 @@
 // Every pumpkin type. Numbers are at full power (a fast, ripe throw); throwing softer or
 // picking it green scales damage and knockback down.
-//   name, color, rib, mark   how it looks (mark = extra decoration, see drawPumpkin)
+//   name, color, rib, mark   how it looks (mark = its shape and decoration; anything else special about
+//                            how a type looks, in flight or held, is in render/pumpkins.js)
 //   radius, density, restitution, friction, gravityScale
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
@@ -10,7 +11,8 @@
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
 //   throwMode                'throw' (charge & release), 'lob' (short and slow), 'spray' (hold to fire seeds)
-//   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed)
+//   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed;
+//                            see throwSpeeds)
 //   spawnable                can grow on patches (seeds and cluster pieces can't)
 //   carry                    while held: { speed, jump } multipliers, glide, wallStick: false = too heavy to hold onto walls,
 //                            slide: false = too heavy to slide
@@ -21,6 +23,7 @@
 //   onBreak(game, pk)                          when it breaks
 //   update(game, pk, dt)                       every step while flying
 
+import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
 import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { knockback } from './pumpkins.js'
@@ -193,6 +196,15 @@ export const PUMPKIN_TYPES = {
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots
+
+// How fast this type leaves the hand: [a quick tap, a full charge] in m/s. (A Seed Spitter's is
+// its seeds': it fires them all at the same speed.) Throwing and the sight both go by this.
+export function throwSpeeds(type) {
+  if (type.throwMode === 'spray') return [type.seedSpeed, type.seedSpeed]
+  if (type.throwMode === 'lob') return type.lobSpeed
+  if (type.throwSpeed) return [type.throwSpeed.min, type.throwSpeed.max]
+  return [CONFIG.throw.minSpeed, CONFIG.throw.maxSpeed]
+}
 export const SPAWNABLE_TYPES = PUMPKIN_TYPE_NAMES.filter(k => PUMPKIN_TYPES[k].spawnable !== false)
 
 // How often each type grows (host setting): relative weights.

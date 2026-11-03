@@ -1,11 +1,13 @@
 // Drawing pumpkins and their patches.
 // Green when unripe, the type's own color when ripe, brown as it rots.
+// Everything about how a particular type looks is here, in tables by its mark or name: its shape
+// (BODIES) and decoration (MARKS), extras while it flies (IN_FLIGHT) and how it's held (HELD).
 
 import { CONFIG } from '../config.js'
 import { canHarvest, patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
-import { PART_HALF_LEN, partEnds } from './players.js'
+import { PART_HALF_LEN, handOf, partEnds } from './players.js'
 import { hexA, mixHex } from '../util/color.js'
 import { clamp, lerp } from '../util/math.js'
 
@@ -196,13 +198,26 @@ const MARKS = {
   },
 }
 
-// colors: { color, rib } (a pumpkin type, or pumpkinColors(...)); mark: the type's decoration
-// (canvas y points down here, so negative y is the top of the pumpkin)
-export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(-angle)
-  if (mark === 'seed') {   // dark seed with a light outline, so it shows on the light background
+// The usual pumpkin body: an outline w × h (times r), a rib down the middle (plus any more in
+// ribs: [w, h] each), and a stem on top. (In the pumpkin's own frame, like MARKS.)
+function roundPumpkin(ctx, r, colors, { w = 1.08, h = 1, ribs = [], stem = true } = {}) {
+  ctx.fillStyle = colors.color
+  ctx.strokeStyle = colors.rib
+  ctx.lineWidth = Math.max(1, r * 0.12)
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * w, r * h, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 0.45, r * 0.98, 0, 0, Math.PI * 2)
+  for (const [rw, rh] of ribs) { ctx.moveTo(r * rw, 0); ctx.ellipse(0, 0, r * rw, r * rh, 0, 0, Math.PI * 2) }   // (moveTo: no joining line)
+  ctx.stroke()
+  ctx.fillStyle = '#4c7a2a'
+  if (stem) ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)
+}
+
+// Bodies that aren't the usual round pumpkin, by the type's mark (in the pumpkin's own frame, like MARKS).
+const BODIES = {
+  seed: (ctx, r, colors) => {   // dark seed with a light outline, so it shows on the light background
     ctx.fillStyle = colors.color
     ctx.strokeStyle = colors.rib
     ctx.lineWidth = Math.max(1.5, r * 0.35)
@@ -210,44 +225,102 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
     ctx.ellipse(0, 0, r * 1.35, r * 0.9, 0, 0, Math.PI * 2)
     ctx.stroke()
     ctx.fill()
-    ctx.restore()
-    return
-  }
-  if (mark === 'boomerang') {
-    drawBoomerangGourd(ctx, r, colors)
-    ctx.restore()
-    return
-  }
-  if (mark === 'cluster') {   // three little gourds stuck together
+  },
+  boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
+  cluster: (ctx, r, colors) => {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
-    ctx.restore()
-    return
-  }
-  ctx.fillStyle = colors.color
-  ctx.strokeStyle = colors.rib
-  ctx.lineWidth = Math.max(1, r * 0.12)
-  ctx.beginPath()
-  if (mark === 'pie') ctx.ellipse(0, 0, r * 1.15, r * 0.7, 0, 0, Math.PI * 2)        // a flat pie
-  else if (mark === 'gourd') ctx.ellipse(0, 0, r * 1.15, r * 0.95, 0, 0, Math.PI * 2) // squat and wide
-  else ctx.ellipse(0, 0, r * 1.08, r, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.beginPath()
-  if (mark === 'pie') {
+  },
+  pie: (ctx, r, colors) => {   // a flat pie: crust and slits
+    ctx.fillStyle = colors.color
+    ctx.strokeStyle = colors.rib
+    ctx.lineWidth = Math.max(1, r * 0.12)
+    ctx.beginPath()
+    ctx.ellipse(0, 0, r * 1.15, r * 0.7, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
     ctx.lineWidth = Math.max(1, r * 0.2)
     ctx.ellipse(0, 0, r * 1.05, r * 0.6, 0, 0, Math.PI * 2)   // crust
     ctx.stroke()
     ctx.fillStyle = colors.rib
     for (const ox of [-0.4, 0, 0.4]) ctx.fillRect(ox * r - r * 0.05, -r * 0.2, r * 0.1, r * 0.4)   // slits
-  } else {
-    ctx.ellipse(0, 0, r * 0.45, r * 0.98, 0, 0, Math.PI * 2)
-    if (mark === 'gourd') { ctx.moveTo(r * 0.85, 0); ctx.ellipse(0, 0, r * 0.85, r * 0.94, 0, 0, Math.PI * 2) }   // (moveTo: no joining line)
-    ctx.stroke()
-    ctx.fillStyle = '#4c7a2a'
-    if (mark !== 'antenna') ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)   // stem (a Homing gourd has an antenna instead)
-  }
+  },
+  gourd: (ctx, r, colors) => roundPumpkin(ctx, r, colors, { w: 1.15, h: 0.95, ribs: [[0.85, 0.94]] }),   // squat and wide
+  antenna: (ctx, r, colors) => roundPumpkin(ctx, r, colors, { stem: false }),   // (a Homing gourd: an antenna instead of a stem)
+}
+
+// colors: { color, rib } (a pumpkin type, or pumpkinColors(...)); mark: the type's shape (BODIES;
+// round if it isn't there) and decoration (MARKS)
+// (canvas y points down here, so negative y is the top of the pumpkin)
+export function drawPumpkin(ctx, x, y, r, angle, colors, mark) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(-angle)
+  ;(BODIES[mark] || roundPumpkin)(ctx, r, colors)
   ctx.lineWidth = Math.max(1, r * 0.1)
   MARKS[mark]?.(ctx, r, colors)
   ctx.restore()
+}
+
+// Extras drawn under some types while they fly, by type name. pk: a pumpkin from the snapshot
+// { x, y, angle, typeName, ripeness, owner (slot), radius, heading }; colors: its colors right now.
+const IN_FLIGHT = {
+  vine: (ctx, pk, colors, snap, X, Y, s) => {   // it trails back to the thrower's hand
+    const owner = snapPlayer(snap, pk.owner)
+    if (!owner) return
+    const [hx, hy] = handOf(owner)
+    ctx.strokeStyle = '#3c7a22'
+    ctx.lineWidth = 0.05 * s
+    ctx.beginPath()
+    ctx.moveTo(X(hx), Y(hy))
+    ctx.quadraticCurveTo(X((hx + pk.x) / 2), Y((hy + pk.y) / 2 - 0.4), X(pk.x), Y(pk.y))
+    ctx.stroke()
+  },
+  homing: (ctx, pk, colors, snap, X, Y, s) => {   // on the hunt (it has a heading): flames out the back
+    if (pk.heading !== null && pk.heading !== undefined) drawFlameTrail(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.heading)
+  },
+  boomerang: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors),
+}
+
+// A thrown pumpkin (pk: as in IN_FLIGHT).
+export function drawFlyingPumpkin(ctx, pk, snap, X, Y, s) {
+  const type = PUMPKIN_TYPES[pk.typeName]
+  const colors = pumpkinColors(type, pk.ripeness, 0)
+  IN_FLIGHT[pk.typeName]?.(ctx, pk, colors, snap, X, Y, s)
+  drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, type.mark)
+}
+
+// Types held some other way than in the hand, by type name. hand: [x, y] of the front hand.
+const HELD = {
+  balloon: (ctx, type, colors, [hx, hy], X, Y, s) => {   // by its string, floating above the hand
+    ctx.strokeStyle = '#6b6358'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(X(hx), Y(hy))
+    ctx.lineTo(X(hx), Y(hy + 0.5))
+    ctx.stroke()
+    drawPumpkin(ctx, X(hx), Y(hy + 0.5 + type.radius), type.radius * s, 0, colors)
+  },
+}
+
+// The pumpkin a player (from the snapshot) is holding: in their front hand, growing a little while
+// they charge a throw. A Big Gourd shield shows a crack for each hit it has blocked.
+export function drawHeldPumpkin(ctx, p, X, Y, s) {
+  const hand = handOf(p), [hx, hy] = hand
+  const type = PUMPKIN_TYPES[p.held]
+  const colors = pumpkinColors(type, p.heldRipeness, 0)
+  if (HELD[p.held]) HELD[p.held](ctx, type, colors, hand, X, Y, s)
+  else drawPumpkin(ctx, X(hx), Y(hy), type.radius * (1 + 0.25 * p.charge) * s, 0, colors, type.mark)
+  if (p.heldCracks) {
+    ctx.strokeStyle = '#3b3631'
+    ctx.lineWidth = 0.025 * s
+    for (let i = 0; i < p.heldCracks; i++) {
+      const a = i * 2.1 + 0.4, r = type.radius
+      ctx.beginPath()
+      ctx.moveTo(X(hx), Y(hy))
+      ctx.lineTo(X(hx + Math.cos(a) * r * 0.9), Y(hy + Math.sin(a) * r * 0.9))
+      ctx.stroke()
+    }
+  }
 }
 
 // A crookneck gourd bent like a boomerang (around 0, 0; canvas y down): two arms meeting at a rounded
@@ -298,7 +371,7 @@ function drawBoomerangGourd(ctx, r, colors) {
 
 // A Boomerang in flight (pixels): faint copies of it on either side of where it is, like a blur
 // from how fast it's spinning.
-export function drawSpinBlur(ctx, x, y, r, angle, colors) {
+function drawSpinBlur(ctx, x, y, r, angle, colors) {
   ctx.globalAlpha = 0.18
   for (const off of [-0.5, 0.5]) drawPumpkin(ctx, x, y, r, angle + off, colors, 'boomerang')
   ctx.globalAlpha = 1
@@ -306,7 +379,7 @@ export function drawSpinBlur(ctx, x, y, r, angle, colors) {
 
 // A Homing gourd's exhaust (pixels; heading: the way it's flying, world radians): a flickering
 // flame streaming out behind it, yellow at the gourd fading to red.
-export function drawFlameTrail(ctx, x, y, r, heading) {
+function drawFlameTrail(ctx, x, y, r, heading) {
   const bx = -Math.cos(heading), by = Math.sin(heading)   // (backward, in canvas space: y points down)
   const now = Date.now()
   for (let i = 5; i >= 1; i--) {

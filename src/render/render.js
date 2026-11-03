@@ -15,8 +15,8 @@ import { MAP_SHIFT, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
-import { drawGrappleVine, drawPlayer, drawSight, handOf } from './players.js'
-import { drawAirstrikeTarget, drawBlackHole, drawFlameTrail, drawLockOn, drawPatches, drawPumpkin, drawSpinBlur, pumpkinColors } from './pumpkins.js'
+import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
+import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches } from './pumpkins.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
 
@@ -57,19 +57,7 @@ export function render(ctx, view, snap, effects, ui) {
     drawPatches(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
     for (const [, x, y, t, r] of snap.strikes) drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s)   // (under the airdrop)
     for (const [, x, y, angle, typeName, ripeness, owner, radius, heading] of snap.pumpkins) {
-      const type = PUMPKIN_TYPES[typeName]
-      if (typeName === 'vine' && snapPlayer(snap, owner)) {   // the vine trails back to the thrower's hand
-        const [hx, hy] = handOf(snapPlayer(snap, owner))
-        ctx.strokeStyle = '#3c7a22'
-        ctx.lineWidth = 0.05 * s
-        ctx.beginPath()
-        ctx.moveTo(X(hx), Y(hy))
-        ctx.quadraticCurveTo(X((hx + x) / 2), Y((hy + y) / 2 - 0.4), X(x), Y(y))
-        ctx.stroke()
-      }
-      if (heading !== null && heading !== undefined) drawFlameTrail(ctx, X(x), Y(y), radius * s, heading)   // (a Homing gourd on the hunt)
-      if (typeName === 'boomerang') drawSpinBlur(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0))
-      drawPumpkin(ctx, X(x), Y(y), radius * s, angle, pumpkinColors(type, ripeness, 0), type.mark)
+      drawFlyingPumpkin(ctx, { x, y, angle, typeName, ripeness, owner, radius, heading }, snap, X, Y, s)
     }
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
