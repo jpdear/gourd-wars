@@ -33,11 +33,8 @@ export function startTransition(game, nextMap) {
   if (!from) return   // nothing to pan from
   game.transition = { from, elapsed: 0, duration: CONFIG.match.transitionTime, starts }
   game.players.forEach(p => {
-    const c = p.torso.getPosition(), dx = starts[p.index].x - MAP_SHIFT - c.x, dy = starts[p.index].y - c.y
-    for (const part of p.parts) {
-      const q = part.body.getPosition()
-      part.body.setTransform(new Vec2(q.x + dx, q.y + dy), part.body.getAngle())
-    }
+    const c = p.torso.getPosition()
+    p.moveBy(starts[p.index].x - MAP_SHIFT - c.x, starts[p.index].y - c.y)
     p.stun(game.transition.duration + 0.05)   // limp: dangling while carried
     p.setGhost(true)                          // passes through platforms, scythes... on the way
   })
@@ -62,7 +59,7 @@ export function updateTransition(game, dt) {
   if (t >= 1) {   // set down: the round has started
     game.transition = null
     for (const p of game.players) {
-      p.stunTimer = 0
+      p.endStun()
       p.setGhost(false)
     }
   }

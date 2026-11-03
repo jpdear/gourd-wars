@@ -2,7 +2,7 @@ import { Vec2 } from 'planck'
 import { expect, it } from 'vitest'
 import { createGame, setDummies, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
-import { boomerangPull, openBlackHole, tryBlock } from '../src/game/powers.js'
+import { boomerangPull, openBlackHole } from '../src/game/powers.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { resetPatches } from '../src/game/patches.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES, defaultSpawnSettings } from '../src/game/pumpkinTypes.js'
@@ -15,7 +15,7 @@ it('a Big Gourd shield cracking mid-throw leaves nothing to throw (no crash on r
   me.held = { typeName: 'biggourd', power: 1, ripeness: 1, blocks: 0 }
   stepGame(game, [{ ...emptyInput(), throw: true, aimX: 20, aimY: 5 }])   // start charging
   expect(me.charging).toBe(true)
-  for (let i = 0; i < PUMPKIN_TYPES.biggourd.shieldBlocks; i++) tryBlock(game, me, me.handPosition(), 0.1, { x: -1, y: 0 })
+  for (let i = 0; i < PUMPKIN_TYPES.biggourd.shieldBlocks; i++) me.tryBlock(game, me.handPosition(), 0.1, { x: -1, y: 0 })
   expect(me.held).toBeNull()
   expect(me.charging).toBe(false)
   expect(() => stepGame(game, [{ ...emptyInput(), throw: false, aimX: 20, aimY: 5 }])).not.toThrow()   // release

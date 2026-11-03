@@ -23,9 +23,9 @@ export function makeSnapshot(game) {
       held: p.held && !p.dead ? p.held.typeName : null,
       heldRipeness: p.held ? r3(p.held.ripeness) : 0,
       heldCracks: p.held ? p.held.blocks || 0 : 0,
-      frozen: p.frozenTimer > 0,
-      glued: p.gluedTimer > 0,
-      floating: p.floatTimer > 0,
+      frozen: p.frozen,
+      glued: p.glued,
+      floating: p.floating,
       charge: p.charging ? r3(p.charge) : 0,
       lockedOn: game.pumpkins.some(pk => pk.target === p),   // a Homing gourd is coming for them
       grapple: p.grapple && !p.dead ? (({ x, y }) => [r3(x), r3(y)])(p.grapplePoint()) : null,   // where a Vine is reeling them in

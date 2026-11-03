@@ -9,7 +9,6 @@ import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
 import { damageBale, inFire, shoveBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
-import { tryBlock } from './powers.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, r3 } from '../util/math.js'
 
@@ -50,7 +49,7 @@ export function handlePumpkinContacts(game) {
     if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
-      if (!p.type.unblockable && tryBlock(game, player, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
+      if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
@@ -139,7 +138,7 @@ export function updatePumpkins(game, dt) {
       continue
     }
     // a carried Big Gourd blocks it (not the thrower's own, if it missesThrower)
-    const blocks = pl => !(p.type.missesThrower && pl === p.owner) && tryBlock(game, pl, pos, p.radius, unit(p.body.getLinearVelocity()))
+    const blocks = pl => !(p.type.missesThrower && pl === p.owner) && pl.tryBlock(game, pos, p.radius, unit(p.body.getLinearVelocity()))
     if (!p.type.unblockable && game.players.some(blocks)) {
       breakPumpkin(game, p)
       continue

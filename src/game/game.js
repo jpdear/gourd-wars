@@ -75,9 +75,7 @@ export function removePlayer(game, slot) {
   game.joining = game.joining.filter(s => s !== slot)
   const p = playerInSlot(game, slot)
   if (!p) return
-  for (const part of p.parts) game.world.destroyBody(part.body)   // (takes the joints with it)
-  p.dead = p.removed = true
-  p.held = null
+  p.destroy()
   game.players = game.players.filter(q => q !== p)
   for (const pk of game.pumpkins) if (pk.owner === p) pk.owner = null
   const isMine = body => { const ud = body.getUserData(); return ud && ud.player === p }

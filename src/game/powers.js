@@ -4,7 +4,7 @@ import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
 import { breakBale, damageBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
-import { breakPumpkin, launch, popPumpkin, spawnPumpkin } from './pumpkins.js'
+import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -65,8 +65,7 @@ function yankToward(player, target, speed) {
   const c = player.torso.getPosition()
   const dx = target.x - c.x, dy = target.y - c.y
   const d = Math.hypot(dx, dy) || 1
-  const v = new Vec2(dx / d * speed, dy / d * speed + PUMPKIN_TYPES.vine.yankLift)
-  for (const part of player.parts) part.body.setLinearVelocity(v)
+  player.setVelocity(dx / d * speed, dy / d * speed + PUMPKIN_TYPES.vine.yankLift)
 }
 
 // Vine hits a player: they get yanked toward the thrower (and flop for a moment).
@@ -95,29 +94,6 @@ export function vineYankOwner(game, pk, body) {
   const p = pk.body.getPosition()
   owner.startGrapple(body, p)
   game.events.push({ type: 'yank', x: r3(p.x), y: r3(p.y) })
-}
-
-// A carried Big Gourd is a shield (not while ragdolled or frozen).
-function shieldOf(player) {
-  if (!player.held || player.held.typeName !== 'biggourd' || player.dead || player.stunned || player.frozenTimer > 0) return null
-  const h = player.handPosition()
-  return { x: h.x, y: h.y, r: PUMPKIN_TYPES.biggourd.radius }
-}
-
-// Something at `pos` (radius r, moving along dir) reaches `player`'s shield? The gourd takes the
-// hit: a small shove, and after a few blocks it cracks apart.
-export function tryBlock(game, player, pos, r, dir) {
-  const sh = shieldOf(player)
-  if (!sh || Math.hypot(pos.x - sh.x, pos.y - sh.y) > sh.r + r) return false
-  player.held.blocks = (player.held.blocks || 0) + 1
-  launch(player, player.torso, dir.x, dir.y, 2)
-  game.events.push({ type: 'block', x: r3(sh.x), y: r3(sh.y) })
-  if (player.held.blocks >= PUMPKIN_TYPES.biggourd.shieldBlocks) {
-    game.events.push({ type: 'splat', x: r3(sh.x), y: r3(sh.y), typeName: 'biggourd', ripeness: player.held.ripeness, rot: 0 })
-    player.held = null
-    player.charging = false   // (it may have cracked mid-throw: nothing left to throw)
-  }
-  return true
 }
 
 // Black Hole: opens where the pumpkin broke and stays put. Its core grows, then collapses.
@@ -175,12 +151,8 @@ export function updateBlackHoles(game, dt) {
 function swallowPlayer(game, pl) {
   const c = pl.torso.getPosition()
   game.events.push({ type: 'swallow', x: r3(c.x), y: r3(c.y) })
-  const dy = CONFIG.killY - 5 - c.y
-  for (const part of pl.parts) {
-    const q = part.body.getPosition()
-    part.body.setTransform(new Vec2(q.x, q.y + dy), part.body.getAngle())
-    part.body.setLinearVelocity(new Vec2(0, 0))
-  }
+  pl.moveBy(0, CONFIG.killY - 5 - c.y)
+  pl.setVelocity(0, 0)
 }
 
 // Airstrike: a target where it broke. A direct hit on a player puts it on whatever's below them

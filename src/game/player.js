@@ -13,8 +13,7 @@ import { BODY, CONFIG } from '../config.js'
 import { emptyInput } from './input.js'
 import { baleAt, damageBale } from './level.js'
 import { canHarvest, emptyPatch, patchPower, patchPumpkin, patchRipeness } from './patches.js'
-import { tryBlock } from './powers.js'
-import { applyHit, spawnPumpkin } from './pumpkins.js'
+import { applyHit, launch, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES, throwSpeeds } from './pumpkinTypes.js'
 import { clamp, distToSegment, lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -23,8 +22,51 @@ const BODY_FRICTION = 0.3   // every body part (the legs change while crouched: 
 // how thick a body part is (around its center line), for touching it with a fist or a foot
 const partRadius = part => part.name === 'head' ? BODY.headR : part.name === 'torso' ? BODY.torsoHalfW : BODY.limbHalfW
 
+// Everything that starts over when a player (re)spawns: health, being hit, status effects, what
+// they're holding and doing. A field added here is reset by respawn() too.
+const freshLife = () => ({
+  dead: false,
+  ko: false,                  // knocked out: limp until the next round
+  health: CONFIG.player.maxHealth,
+  damageTaken: 0,             // total this round
+  reviveTimer: 0,             // practice: back up after a hazard KO
+  // getting hit
+  stunTimer: 0,               // > 0: ragdolled
+  sinceStun: 99,
+  staggerMeter: 0,            // recent damage; reaching CONFIG.damage.staggerAt knocks you down
+  shoveTimer: 0,              // got hit but not staggered: no walking control for a moment
+  tripTimer: 0,               // just tripped by a slide: can't be tripped again until this runs out
+  // status effects (see the getters: frozen, glued, floating)
+  frozenTimer: 0,             // Frost: stiff as a statue
+  gluedTimer: 0,              // Splat Pie: stuck to the floor
+  pendingGlue: 0,             // ...hit in the air: sticks when you land
+  floatTimer: 0,              // Balloon: floating helplessly upward
+  // hazards (kept up by level.js)
+  hopCooldown: 0,             // bonfire pop-out
+  spikeTimer: 0,              // just hurt by pitchforks: not again until this runs out
+  // hands
+  held: null,                 // { typeName, power, ripeness, ammo?, blocks? } while holding a pumpkin
+  charging: false,
+  punchTimer: 0,              // > 0 while a jab is out
+  harvestTarget: null,        // the patch we're pulling on
+  harvestProgress: 0,         // 0..1
+  // moving
+  grapple: null,              // Vine stuck in the level: { body, local, time, speed, from, best, stall } while reeling in
+  wall: null,                 // on a wall (in the air, holding toward it): { dir: -1 left / 1 right, body, x }
+  wallGrace: 0,               // can still kick off the wall this long after letting go...
+  wallJumpTimer: 0,           // just kicked off a wall: steering back toward it is weak until this runs out
+  crouching: false,           // holding down: soft, pressed down (sitting, on the ground)
+  lowTimer: 0,                // crouched just now: the ground check looks from higher up (we may be sitting on it)
+  sitTime: 0,                 // how long we've been sitting (crouched on the ground)
+  wasSitting: false,          // crouched on the ground last step (a slide starts as you sit down)
+  slide: null,                // power sliding (crouched while running): { dir: -1 left / 1 right, lead: 'L' / 'R', dustTimer }
+  slideBoostTimer: 0,         // the slide's starting boost is used up until this runs out
+  slideAir: false,            // jumped out of (or slid off the edge after) a slide: air control won't eat the extra speed
+})
+
 export class Player {
   constructor(world, opts) {
+    // who they are
     this.world = world
     this.index = opts.index
     this.name = opts.name
@@ -32,62 +74,33 @@ export class Player {
     this.color = opts.color
     this.spawn = opts.spawn
     this.group = -(opts.index + 1)   // same negative group = limbs never collide with each other
+
+    Object.assign(this, freshLife())
+
+    // carried across a respawn (all short timers, or kept up to date every step anyway)
     this.facing = 1
     this.aim = { x: this.spawn.x + 5, y: this.spawn.y + 1.5 }
-
-    this.stunTimer = 0
-    this.sinceStun = 99
+    this.prev = emptyInput()      // last step's input (to tell a new press from a held key)
     this.coyote = 0
     this.jumpBufferTimer = 0
-    this.jumpLock = 0
+    this.jumpLock = 0             // > 0: the hover spring is off (so it doesn't eat a jump or a hop)
     this.grounded = false
     this.groundDist = null
-    this.groundVel = null   // the moving platform's velocity while standing on one
+    this.groundVel = null         // the moving platform's velocity while standing on one
     this.walkPhase = 0
-    this.charging = false
     this.charge = 0
     this.throwCooldown = 0
-    this.punchTimer = 0           // > 0 while a jab is out
     this.punchCooldown = 0
     this.punchLanded = false      // each jab hits at most once
     this.punchDir = { x: 1, y: 0 }
     this.punchArm = 'L'           // alternates L / R each punch
-    this.staggerMeter = 0         // recent damage; reaching CONFIG.damage.staggerAt knocks you down
     this.sinceHit = 99
-    this.shoveTimer = 0           // got hit but not staggered: no walking control for a moment
-    this.damageTaken = 0          // total this round
-    this.health = CONFIG.player.maxHealth
-    this.ko = false               // knocked out: limp until the next round
-    this.held = null              // { typeName, power, ripeness, ammo?, blocks? } while holding a pumpkin
     this.sprayTimer = 0           // Seed Spitter: time until the next seed
-    this.frozenTimer = 0          // Frost: stiff as a statue
-    this.gluedTimer = 0           // Splat Pie: stuck to the floor
-    this.pendingGlue = 0          // ...hit in the air: sticks when you land
-    this.floatTimer = 0           // Balloon: floating helplessly upward
-    this.fireTimer = 0.2          // bonfire damage ticks
-    this.hopCooldown = 0          // bonfire pop-out
-    this.spikeTimer = 0           // just hurt by pitchforks: not again until this runs out
-    this.reviveTimer = 0          // practice: back up after a hazard KO
-    this.harvestTarget = null     // the patch we're pulling on
-    this.harvestProgress = 0      // 0..1
-    this.grapple = null           // Vine stuck in the level: { body, local, time, speed, from, best, stall } while reeling in
-    this.wall = null              // on a wall (in the air, holding toward it): { dir: -1 left / 1 right, body, x }
-    this.wallGrace = 0            // can still kick off the wall this long after letting go...
-    this.wallGraceDir = 0         // ...the wall's side
-    this.wallJumpTimer = 0        // just kicked off a wall: steering back toward it is weak until this runs out
+    this.fireTimer = 0.2          // bonfire damage ticks (kept up by level.js)
+    this.wallGraceDir = 0         // the side of the wall we can still kick off (see wallGrace)
     this.dustTimer = 0
-    this.crouching = false        // holding down: soft, pressed down (sitting, on the ground)
-    this.lowTimer = 0             // crouched just now: the ground check looks from higher up (we may be sitting on it)
-    this.sitTime = 0              // how long we've been sitting (crouched on the ground)
     this.slipperyLegs = false     // (crouched: see setLegFriction)
-    this.wasSitting = false       // crouched on the ground last step (a slide starts as you sit down)
-    this.slide = null             // power sliding (crouched while running): { dir: -1 left / 1 right, lead: 'L' / 'R', dustTimer }
-    this.slideBoostTimer = 0      // the slide's starting boost is used up until this runs out
-    this.slideAir = false         // jumped out of (or slid off the edge after) a slide: air control won't eat the extra speed
-    this.tripTimer = 0            // just tripped by a slide: can't be tripped again until this runs out
-    this.dead = false
     this.respawnTimer = 0
-    this.prev = emptyInput()
     this.debugRays = []
 
     this.build()
@@ -152,7 +165,13 @@ export class Player {
     this.mass = this.parts.reduce((m, p) => m + p.body.getMass(), 0)
   }
 
-  get stunned() { return this.stunTimer > 0 }
+  get stunned() { return this.stunTimer > 0 }   // ragdolled
+  get frozen() { return this.frozenTimer > 0 }
+  get glued() { return this.gluedTimer > 0 }
+  get floating() { return this.floatTimer > 0 }
+  get shoved() { return this.shoveTimer > 0 }
+  get helpless() { return this.stunned || this.frozen }   // can't do anything (ragdolled or frozen)
+  get canWalk() { return !this.helpless && !this.shoved && !this.glued }   // (also: slide, hold onto a wall)
   get out() { return this.ko || this.dead }   // out of the round
 
   // Ghost: passes through everything (while being carried across a map during a pan).
@@ -198,6 +217,10 @@ export class Player {
     this.punchTimer = 0
   }
 
+  endStun() {
+    this.stunTimer = 0
+  }
+
   freeze(seconds) {
     this.frozenTimer = Math.max(this.frozenTimer, seconds)
     this.charging = false
@@ -221,6 +244,67 @@ export class Player {
   handPosition() {
     const forearm = this.facing > 0 ? this.forearmR : this.forearmL
     return forearm.getWorldPoint(new Vec2(0, -BODY.armSeg / 2))
+  }
+
+  // Empty hands: nothing to throw anymore.
+  dropHeld() {
+    this.held = null
+    this.charging = false
+  }
+
+  // A held pumpkin whose type has shieldBlocks (a Big Gourd) is a shield, in the front hand: { x, y, r,
+  // blocks (how many hits it takes) }, or null. Not while ragdolled or frozen.
+  shield() {
+    const type = this.held && PUMPKIN_TYPES[this.held.typeName]
+    if (!type || !type.shieldBlocks || this.dead || this.helpless) return null
+    const h = this.handPosition()
+    return { x: h.x, y: h.y, r: type.radius, blocks: type.shieldBlocks }
+  }
+
+  // Something at `pos` (radius r, moving along dir) reaches our shield? The shield takes the hit: a
+  // small shove, and after its last block it cracks apart. Returns true if it blocked.
+  tryBlock(game, pos, r, dir) {
+    const sh = this.shield()
+    if (!sh || Math.hypot(pos.x - sh.x, pos.y - sh.y) > sh.r + r) return false
+    this.held.blocks = (this.held.blocks || 0) + 1
+    launch(this, this.torso, dir.x, dir.y, 2)
+    game.events.push({ type: 'block', x: r3(sh.x), y: r3(sh.y) })
+    if (this.held.blocks >= sh.blocks) {
+      game.events.push({ type: 'splat', x: r3(sh.x), y: r3(sh.y), typeName: this.held.typeName, ripeness: this.held.ripeness, rot: 0 })
+      this.dropHeld()   // (it may have cracked mid-throw: nothing left to throw)
+    }
+    return true
+  }
+
+  // --- moving the whole body (every part together) ---
+  setVelocity(vx, vy) {
+    const v = new Vec2(vx, vy)
+    for (const p of this.parts) p.body.setLinearVelocity(v)
+  }
+
+  // Pop up: every part goes up at vy (keeping its sideways speed), and the hover spring lets go for
+  // lockTime seconds so it doesn't eat the hop. (A jump, a bounce off pitchforks, a hop out of a bonfire.)
+  popUp(vy, lockTime) {
+    for (const p of this.parts) {
+      const v = p.body.getLinearVelocity()
+      p.body.setLinearVelocity(new Vec2(v.x, vy))
+    }
+    this.jumpLock = lockTime
+  }
+
+  // Shift the whole body by (dx, dy); every part keeps its angle and speed.
+  moveBy(dx, dy) {
+    for (const p of this.parts) {
+      const q = p.body.getPosition()
+      p.body.setTransform(new Vec2(q.x + dx, q.y + dy), p.body.getAngle())
+    }
+  }
+
+  // Gone for good (left the game): the body is taken out of the world.
+  destroy() {
+    for (const p of this.parts) this.world.destroyBody(p.body)   // (takes the joints with it)
+    this.dead = this.removed = true
+    this.dropHeld()
   }
 
   update(input, dt, game) {
@@ -250,11 +334,10 @@ export class Player {
       this.sinceStun += dt
     }
     if (input.ragdoll && !this.prev.ragdoll) this.stun(1.5)
-    const frozen = this.frozenTimer > 0
-    const stunned = this.stunned || frozen   // can't act
-    const control = stunned ? 0 : Math.min(1, this.sinceStun / C.recoverTime)
+    const canAct = !this.helpless
+    const control = !canAct ? 0 : Math.min(1, this.sinceStun / C.recoverTime)
     const carry = this.carry
-    this.crouching = !!input.crouch && !stunned
+    this.crouching = !!input.crouch && canAct
     this.lowTimer = this.crouching ? 0.5 : Math.max(0, this.lowTimer - dt)
     this.sitTime = this.crouching && this.grounded ? this.sitTime + dt : 0
     if (this.crouching !== this.slipperyLegs) this.setLegFriction(this.crouching)
@@ -272,8 +355,8 @@ export class Player {
     const W = C.wall
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
     this.wallJumpTimer = Math.max(0, this.wallJumpTimer - dt)
-    const canStick = dir && !stunned && !this.crouching && !this.grounded && this.shoveTimer <= 0 && this.gluedTimer <= 0 && this.floatTimer <= 0 &&
-      !this.grapple && this.wallJumpTimer <= 0 && carry.wallStick !== false
+    const canStick = dir && this.canWalk && !this.crouching && !this.grounded && !this.floating && !this.grapple && this.wallJumpTimer <= 0 &&
+      carry.wallStick !== false
     this.wall = canStick ? this.senseWall(dir) : null
     if (this.wall) { this.wallGrace = W.grace; this.wallGraceDir = dir }
     else this.wallGrace = Math.max(0, this.wallGrace - dt)
@@ -284,7 +367,7 @@ export class Player {
     const lean = this.slide ? this.slide.dir * C.slide.lean : this.crouching && this.grounded ? this.facing * C.crouch.lean : 0
 
     // --- 1. hover spring (crouched: off, so you drop and sit; sliding: on, holding you low) ---
-    if (!stunned && (!this.crouching || this.slide) && this.groundDist !== null && this.jumpLock <= 0) {
+    if (canAct && (!this.crouching || this.slide) && this.groundDist !== null && this.jumpLock <= 0) {
       // (sliding, we look for the ground from the middle of the leaned-back torso: work out the pelvis's height)
       const height = this.slide ? this.groundDist + BODY.torsoLen / 2 * (1 - Math.cos(angle)) : this.groundDist
       const err = (this.slide ? C.slide.height : C.hoverHeight) - height
@@ -300,7 +383,7 @@ export class Player {
     }
 
     // --- 2. stay upright ---
-    if (!stunned) {
+    if (canAct) {
       const torque = C.uprightInertia * (C.uprightK * (lean - angle) - C.uprightD * torso.getAngularVelocity())
       torso.applyTorque(clamp(torque, -C.uprightMaxTorque, C.uprightMaxTorque) * control, true)
     }
@@ -312,7 +395,7 @@ export class Player {
       const along = (this.bodyVx() - (this.groundVel ? this.groundVel.x : 0)) * s
       const decel = Math.min(dir === -s ? C.slide.brake : C.slide.friction, Math.max(0, along) / dt)
       torso.applyForceToCenter(new Vec2(-s * decel * this.mass, 0), true)
-    } else if (!stunned && this.shoveTimer <= 0 && this.gluedTimer <= 0) {
+    } else if (this.canWalk) {
       const maxAccel = this.grounded ? C.groundAccel : C.airAccel
       const crouchSpeed = this.crouching && this.grounded ? C.crouch.speed : 1
       let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) * crouchSpeed + (this.grounded && this.groundVel ? this.groundVel.x : 0)
@@ -335,7 +418,7 @@ export class Player {
     }
 
     // glued: held in place on the floor
-    if (this.gluedTimer > 0 && this.grounded) {
+    if (this.glued && this.grounded) {
       for (const p of this.parts) {
         const v = p.body.getLinearVelocity()
         p.body.setLinearVelocity(new Vec2(v.x * 0.5, v.y))
@@ -343,13 +426,13 @@ export class Player {
     }
 
     // floating (hit by a Balloon): drift helplessly upward
-    if (this.floatTimer > 0) {
+    if (this.floating) {
       const lift = CONFIG.gravity + (1.8 - vel.y) * 4
       for (const p of this.parts) p.body.applyForceToCenter(new Vec2(0, p.body.getMass() * lift), true)
     }
 
     // gliding (holding a Balloon): fall only about 3-4 m/s
-    if (carry.glide && !stunned && vel.y < -3) {
+    if (carry.glide && canAct && vel.y < -3) {
       torso.applyForceToCenter(new Vec2(0, this.mass * Math.min(1.5 * CONFIG.gravity, (-3 - vel.y) * 40)), true)
     }
 
@@ -368,23 +451,18 @@ export class Player {
     }
 
     // --- reeled in by a Vine (overrides walking and the hover spring) ---
-    this.updateGrapple(input, dt, game, stunned)
+    this.updateGrapple(input, dt, game, canAct)
 
     // --- jump ---
     if (input.jump && !this.prev.jump) this.jumpBufferTimer = C.jumpBuffer
-    if (!stunned && this.gluedTimer <= 0 && this.jumpBufferTimer > 0 && this.coyote > 0) {
-      for (const p of this.parts) {
-        const v = p.body.getLinearVelocity()
-        p.body.setLinearVelocity(new Vec2(v.x, C.jumpSpeed * (carry.jump ?? 1)))
-      }
+    if (canAct && !this.glued && this.jumpBufferTimer > 0 && this.coyote > 0) {
+      this.popUp(C.jumpSpeed * (carry.jump ?? 1), 0.2)
       this.coyote = 0
       this.jumpBufferTimer = 0
-      this.jumpLock = 0.2
       if (this.slide) { this.slide = null; this.slideAir = true }   // (slide-jump: keeps the slide's speed)
-    } else if (!stunned && this.jumpBufferTimer > 0 && this.wallGrace > 0 && carry.wallStick !== false) {
+    } else if (canAct && this.jumpBufferTimer > 0 && this.wallGrace > 0 && carry.wallStick !== false) {
       // kick off the wall: up and away from it
-      const out = new Vec2(-this.wallGraceDir * W.jumpAway, W.jumpUp)
-      for (const p of this.parts) p.body.setLinearVelocity(out)
+      this.setVelocity(-this.wallGraceDir * W.jumpAway, W.jumpUp)
       this.wall = null
       this.wallGrace = 0
       this.wallJumpTimer = W.steerLock
@@ -393,14 +471,14 @@ export class Player {
     }
 
     // --- harvesting ---
-    this.updateHarvest(input, dt, game, stunned)
+    this.updateHarvest(input, dt, game, canAct)
 
     // --- 3. pose the limbs ---
     this.poseLimbs(dt, vel, control)
     if (this.slide) this.updateSlideFoot(dt, game)
 
     // --- throwing (or punching with empty hands) ---
-    if (!stunned) {
+    if (canAct) {
       const clicked = input.throw && !this.prev.throw
       const heldType = this.held && PUMPKIN_TYPES[this.held.typeName]
       if (heldType && heldType.throwMode === 'spray') {
@@ -442,10 +520,10 @@ export class Player {
     const S = CONFIG.player.slide
     this.slideBoostTimer = Math.max(0, this.slideBoostTimer - dt)
     this.tripTimer = Math.max(0, this.tripTimer - dt)
-    if ((this.grounded && this.jumpLock <= 0) || this.stunned || this.frozenTimer > 0 || this.wall || this.grapple) this.slideAir = false
+    if ((this.grounded && this.jumpLock <= 0) || this.helpless || this.wall || this.grapple) this.slideAir = false
     const sitting = this.crouching && this.grounded
     const speed = this.bodyVx() - (this.groundVel ? this.groundVel.x : 0)
-    const able = sitting && this.shoveTimer <= 0 && this.gluedTimer <= 0 && !this.grapple && carry.slide !== false
+    const able = sitting && this.canWalk && !this.grapple && carry.slide !== false
     if (this.slide) {
       if (this.crouching && !this.grounded) this.slideAir = true   // slid off an edge: keep the speed in the air
       if (!able || speed * this.slide.dir < S.endSpeed) this.slide = null
@@ -527,7 +605,7 @@ export class Player {
 
   // Reel in along a straight line toward the spot. Lets go on arrival (see grapple.reach / stopAt),
   // when something's in the way, after grapple.maxTime, on a jump press, or when hit/stunned.
-  updateGrapple(input, dt, game, stunned) {
+  updateGrapple(input, dt, game, canAct) {
     const g = this.grapple
     if (!g) return
     const G = PUMPKIN_TYPES.vine.grapple
@@ -536,19 +614,17 @@ export class Player {
     g.time += dt
     if (d < g.best - 0.05) { g.best = d; g.stall = 0 } else g.stall += dt   // (not getting closer: blocked)
     const arrived = d <= Math.max(G.stopAt, g.from * (1 - G.reach))
-    if (stunned || game.transition) { this.grapple = null; return }
+    if (!canAct || game.transition) { this.grapple = null; return }
     if (arrived || g.stall > 0.15 || g.time >= G.maxTime || (input.jump && !this.prev.jump)) {
       this.grapple = null
       const v = this.torso.getLinearVelocity()
-      const out = new Vec2(v.x * G.keep, v.y * G.keep + G.hop)
-      for (const p of this.parts) p.body.setLinearVelocity(out)
+      this.setVelocity(v.x * G.keep, v.y * G.keep + G.hop)
       this.jumpLock = 0.2   // (so the hover spring doesn't eat the hop)
       return
     }
     g.speed = Math.min(G.speed, g.speed + G.accel * dt)
     const speed = Math.min(g.speed, d / dt)   // (never past the spot in one step)
-    const v = new Vec2(dx / d * speed, dy / d * speed)
-    for (const p of this.parts) p.body.setLinearVelocity(v)
+    this.setVelocity(dx / d * speed, dy / d * speed)
     this.jumpLock = Math.max(this.jumpLock, 0.1)   // hover spring off while reeling
   }
 
@@ -577,7 +653,7 @@ export class Player {
     for (const other of game.players) {
       if (other === this || other.dead) continue
       // a carried Big Gourd sits in front of the body, so it gets hit first
-      if (tryBlock(game, other, fist, P.reach, this.punchDir)) { this.punchLanded = true; return }
+      if (other.tryBlock(game, fist, P.reach, this.punchDir)) { this.punchLanded = true; return }
       for (const part of other.parts) {
         const a = part.body.getWorldPoint(new Vec2(0, part.halfLen))
         const b = part.body.getWorldPoint(new Vec2(0, -part.halfLen))
@@ -612,8 +688,7 @@ export class Player {
   knockOut() {
     this.ko = true
     this.stunTimer = Infinity   // limp for the rest of the round
-    this.held = null
-    this.charging = false
+    this.dropHeld()
     this.harvestTarget = null
     this.harvestProgress = 0
   }
@@ -626,8 +701,8 @@ export class Player {
   }
 
   // Hold harvest next to a patch with empty hands to pick its pumpkin.
-  updateHarvest(input, dt, game, stunned) {
-    const target = !stunned && input.harvest && !this.held && !this.charging ? this.findPatch(game) : null
+  updateHarvest(input, dt, game, canAct) {
+    const target = canAct && input.harvest && !this.held && !this.charging ? this.findPatch(game) : null
     if (target !== this.harvestTarget) this.harvestProgress = 0   // walked away, let go, or switched patch
     this.harvestTarget = target
     if (!target) return
@@ -813,7 +888,7 @@ export class Player {
   // Joint motor as a spring: spin toward the target angle, with limited strength.
   // While stunned, the motor just resists motion a little (floppy, not chaotic).
   drive(joint, target, torque) {
-    if (this.frozenTimer > 0) {   // frozen: every joint locks where it is (a stiff statue)
+    if (this.frozen) {   // every joint locks where it is (a stiff statue)
       joint.setMotorSpeed(0)
       joint.setMaxMotorTorque(400)
       return
@@ -838,8 +913,7 @@ export class Player {
     const tv = this.torso.getLinearVelocity()
     const pos = new Vec2(hand.x + dx * 0.15, hand.y + dy * 0.15)
     spawnPumpkin(game, this.held.typeName, pos, new Vec2(dx * speed + tv.x * 0.5, dy * speed + tv.y * 0.5), this, this.held)
-    this.held = null
-    this.charging = false
+    this.dropHeld()
     this.charge = 0
     this.throwCooldown = T.cooldown
   }
@@ -862,9 +936,8 @@ export class Player {
     if (!this.dead && this.torso.getPosition().y < CONFIG.killY) {
       this.dead = true
       this.respawnTimer = CONFIG.respawnTime
-      this.held = null
+      this.dropHeld()
       this.grapple = null
-      this.charging = false
       if (game.match) this.health = 0
     }
     if (this.reviveTimer > 0) {
@@ -885,38 +958,7 @@ export class Player {
       p.body.setAngularVelocity(0)
       p.body.setAwake(true)
     }
-    this.dead = false
-    this.stunTimer = 0
-    this.sinceStun = 99
-    this.staggerMeter = 0
-    this.shoveTimer = 0
-    this.health = CONFIG.player.maxHealth
-    this.ko = false
-    this.damageTaken = 0
-    this.charging = false
-    this.punchTimer = 0
-    this.held = null
-    this.frozenTimer = 0
-    this.gluedTimer = 0
-    this.pendingGlue = 0
-    this.floatTimer = 0
-    this.reviveTimer = 0
-    this.hopCooldown = 0
-    this.spikeTimer = 0
-    this.grapple = null
-    this.wall = null
-    this.wallGrace = 0
-    this.wallJumpTimer = 0
-    this.crouching = false
-    this.lowTimer = 0
-    this.sitTime = 0
-    this.wasSitting = false
-    this.slide = null
-    this.slideBoostTimer = 0
-    this.slideAir = false
-    this.tripTimer = 0
+    Object.assign(this, freshLife())
     if (this.slipperyLegs) this.setLegFriction(false)
-    this.harvestTarget = null
-    this.harvestProgress = 0
   }
 }

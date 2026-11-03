@@ -179,11 +179,7 @@ function spikePlayer(game, pl) {
   pl.spikeTimer = L.spikeCooldown
   pl.takeHit(game, L.spikeDamage, 0, pos)
   if (pl.out) return   // (that knocked them out)
-  for (const part of pl.parts) {
-    const v = part.body.getLinearVelocity()
-    part.body.setLinearVelocity(new Vec2(v.x, L.spikeBounce))
-  }
-  pl.jumpLock = 0.25
+  pl.popUp(L.spikeBounce, 0.25)
   game.events.push({ type: 'hit', x: r3(pos.x), y: r3(pos.y - 0.8) })
 }
 
@@ -226,11 +222,7 @@ export function updateHazards(game, dt) {
       game.events.push({ type: 'burn', x: r3(pos.x), y: r3(pos.y - 0.5), small: true })
     }
     if (pl.hopCooldown <= 0) {   // pop up out of the flames
-      for (const part of pl.parts) {
-        const v = part.body.getLinearVelocity()
-        part.body.setLinearVelocity(new Vec2(v.x, L.fireHop))
-      }
-      pl.jumpLock = 0.25
+      pl.popUp(L.fireHop, 0.25)
       pl.hopCooldown = 0.35
     }
   }
