@@ -1,13 +1,13 @@
 // Drawing the level pieces: hay bales, pitchforks, bonfires, scarecrows.
-// Hay bale: golden straw box with twine bands; gaps show up as it takes damage.
-// flags: 1 frozen (icy), 2 sticky (goo), 4 floating (a balloon on top)
+// Hay bale ({ x, y, angle, health 0..1, frozen, sticky, floating }, as in a snapshot): golden straw
+// box with twine bands; gaps show up as it takes damage. Frozen: icy; sticky: goo; floating: a balloon on top.
 
 import { BALE, TINE, pitchforkTines, scytheBladeShape } from '../game/level.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { drawPumpkin } from './pumpkins.js'
 
-export function drawBale(ctx, x, y, angle, hp, flags, X, Y, s) {
-  if (flags & 4) {   // the balloon carrying it, drawn upright above it
+export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floating }, X, Y, s) {
+  if (floating) {   // the balloon carrying it, drawn upright above it
     ctx.strokeStyle = '#6b6358'
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -43,14 +43,14 @@ export function drawBale(ctx, x, y, angle, hp, flags, X, Y, s) {
     if (hp < 0.34) { ctx.moveTo(0.4 * w, h / 2); ctx.lineTo(0.2 * w, 0.1 * h); ctx.lineTo(0.35 * w, -0.2 * h) }
     ctx.stroke()
   }
-  if (flags & 1) {   // frozen: icy coat
+  if (frozen) {   // icy coat
     ctx.fillStyle = 'rgba(190, 232, 250, 0.6)'
     ctx.fillRect(-w / 2, -h / 2, w, h)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
     ctx.lineWidth = Math.max(1.5, 0.04 * s)
     ctx.strokeRect(-w / 2, -h / 2, w, h)
   }
-  if (flags & 2) {   // sticky: goo drips
+  if (sticky) {   // goo drips
     ctx.fillStyle = PUMPKIN_TYPES.pie.color
     for (const [fx, fy, r] of [[-0.3, -0.5, 0.16], [0.05, -0.5, 0.2], [0.35, -0.5, 0.14], [-0.15, 0.5, 0.13], [0.3, 0.5, 0.15]]) {
       ctx.beginPath()

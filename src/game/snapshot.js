@@ -1,8 +1,9 @@
 // SNAPSHOT — a plain-data picture of the game. The host sends these to the
 // guest, and everyone draws from them, so both screens look the same.
+// (Over the network they go in a compact form: see packSnapshot in net/protocol.js.)
 
-import { PATCH_STATES, patchRot } from './patches.js'
-import { PUMPKIN_TYPES, PUMPKIN_TYPE_NAMES } from './pumpkinTypes.js'
+import { patchRot } from './patches.js'
+import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { mapDef } from '../maps/builtin.js'
 import { lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -37,24 +38,31 @@ export function makeSnapshot(game) {
         return [r3(pos.x), r3(pos.y), r3(wrapAngle(body.getAngle()))]
       }),
     })),
-    // [id, x, y, angle, typeName, ripeness, owner slot, radius, heading (a Homing gourd chasing someone, else null)]
+    // owner: the thrower's slot (-1: nobody); heading: the way a Homing gourd chasing someone is flying (else null)
     pumpkins: game.pumpkins.map(pk => {
       const pos = pk.body.getPosition()
-      return [pk.id, r3(pos.x), r3(pos.y), r3(wrapAngle(pk.body.getAngle())), pk.typeName, r3(pk.ripeness), pk.owner ? pk.owner.index : -1, r3(pk.radius), pk.target ? r3(pk.heading) : null]
+      return {
+        id: pk.id, x: r3(pos.x), y: r3(pos.y), angle: r3(wrapAngle(pk.body.getAngle())), typeName: pk.typeName, ripeness: r3(pk.ripeness),
+        owner: pk.owner ? pk.owner.index : -1, radius: r3(pk.radius), heading: pk.target ? r3(pk.heading) : null,
+      }
     }),
-    // [id, x, y, angle, health 0..1, flags: 1 frozen, 2 sticky, 4 floating]
+    // health: 0..1; frozen (icy), sticky (goo), floating (a Balloon carrying it off)
     bales: game.bales.map(b => {
       const pos = b.body.getPosition()
-      const flags = (b.frozenTimer > 0 ? 1 : 0) | (b.stickyTimer > 0 ? 2 : 0) | (b.floatTimer > 0 ? 4 : 0)
-      return [b.id, r3(pos.x), r3(pos.y), r3(wrapAngle(b.body.getAngle())), r3(Math.max(0, b.hp) / b.maxHp), flags]
+      return {
+        id: b.id, x: r3(pos.x), y: r3(pos.y), angle: r3(wrapAngle(b.body.getAngle())), health: r3(Math.max(0, b.hp) / b.maxHp),
+        frozen: b.frozenTimer > 0, sticky: b.stickyTimer > 0, floating: b.floatTimer > 0,
+      }
     }),
-    holes: game.holes.map(h => [h.id, r3(h.x), r3(h.y), r3(h.r)]),   // [id, x, y, core radius]
-    // [id, x, y, t (0 → 1 when the airdrop is due), the airdrop's radius]
-    strikes: game.strikes.map(st => [st.id, r3(st.x), r3(st.y), r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r3(PUMPKIN_TYPES.airdrop.radius * st.power)]),
-    scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),
-    movers: game.movers.map(m => { const pos = m.body.getPosition(); return [r3(pos.x), r3(pos.y)] }),
-    // [stateCode, growth, rot, typeCode, superRare 0/1] per patch, in the map's patch order
-    patches: game.patches.map(p => [PATCH_STATES.indexOf(p.state), r3(p.growth), r3(patchRot(p)), PUMPKIN_TYPE_NAMES.indexOf(p.typeName), p.superRare ? 1 : 0]),
+    holes: game.holes.map(h => ({ id: h.id, x: r3(h.x), y: r3(h.y), r: r3(h.r) })),   // r: the core's radius
+    // t: 0 → 1 when the airdrop is due; r: the airdrop's radius
+    strikes: game.strikes.map(st => ({
+      id: st.id, x: r3(st.x), y: r3(st.y), t: r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r: r3(PUMPKIN_TYPES.airdrop.radius * st.power),
+    })),
+    scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),   // their angles, in the map's order
+    movers: game.movers.map(m => { const pos = m.body.getPosition(); return { x: r3(pos.x), y: r3(pos.y) } }),   // (in the map's order)
+    // in the map's patch order (where each one is comes from the map: see patchView)
+    patches: game.patches.map(p => ({ state: p.state, growth: r3(p.growth), rot: r3(patchRot(p)), typeName: p.typeName, superRare: p.superRare })),
     timeScale: game.timeScale,
     sights: game.sights,   // (the host's setting: show each player their own sight)
     transition: game.transition && { from: game.transition.from, t: r3(Math.min(1, game.transition.elapsed / game.transition.duration)) },
@@ -73,16 +81,18 @@ export function makeSnapshot(game) {
 
 export const snapPlayer = (snap, slot) => snap.players.find(p => p.slot === slot)
 
-// A patch from a snapshot, in the same shape the patch helpers expect.
+// A patch from a snapshot, with where it is (from the map), in the same shape the patch helpers expect.
 export function patchView(snap, i) {
-  const [code, growth, rot, type, superRare] = snap.patches[i]
   const def = mapDef(snap.map).patches[i]
-  return { x: def.x, y: def.y, state: PATCH_STATES[code], growth, rot, typeName: PUMPKIN_TYPE_NAMES[type], superRare: !!superRare }
+  return { x: def.x, y: def.y, ...snap.patches[i] }
 }
 
 // Blend two snapshots: t = 0 gives a, t = 1 gives b.
 export function interpolateSnapshots(a, b, t) {
   const lerpPart = (pa, pb) => [lerp(pa[0], pb[0], t), lerp(pa[1], pb[1], t), pa[2] + wrapAngle(pb[2] - pa[2]) * t]
+  // things that come and go, matched up by id: blend(from a, from b) for the ones in both
+  const byId = (listA, listB, blend) => listB.map(q => { const r = listA.find(x => x.id === q.id); return r ? blend(r, q) : q })
+  const moved = (r, q) => ({ ...q, x: lerp(r.x, q.x, t), y: lerp(r.y, q.y, t), angle: r.angle + wrapAngle(q.angle - r.angle) * t })
   return {
     time: lerp(a.time, b.time, t),
     players: b.players.map(pb => {
@@ -91,18 +101,12 @@ export function interpolateSnapshots(a, b, t) {
       if (!pa || pa.dead !== pb.dead || Math.hypot(pa.parts[0][0] - pb.parts[0][0], pa.parts[0][1] - pb.parts[0][1]) > 3) return pb
       return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)) }
     }),
-    pumpkins: b.pumpkins.map(q => {
-      const r = a.pumpkins.find(x => x[0] === q[0])
-      return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), ...q.slice(4)] : q
-    }),
-    bales: b.bales.map(q => {
-      const r = a.bales.find(x => x[0] === q[0])
-      return r ? [q[0], ...lerpPart(r.slice(1, 4), q.slice(1, 4)), q[4], q[5]] : q
-    }),
-    holes: b.holes.map(q => { const r = a.holes.find(x => x[0] === q[0]); return r ? [q[0], q[1], q[2], lerp(r[3], q[3], t)] : q }),
-    strikes: b.strikes.map(q => { const r = a.strikes.find(x => x[0] === q[0]); return r ? [q[0], q[1], q[2], lerp(r[3], q[3], t), q[4]] : q }),
+    pumpkins: byId(a.pumpkins, b.pumpkins, moved),
+    bales: byId(a.bales, b.bales, moved),
+    holes: byId(a.holes, b.holes, (r, q) => ({ ...q, r: lerp(r.r, q.r, t) })),
+    strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
     scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
-    movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? [lerp(a.movers[i][0], q[0], t), lerp(a.movers[i][1], q[1], t)] : q)),
+    movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? { x: lerp(a.movers[i].x, q.x, t), y: lerp(a.movers[i].y, q.y, t) } : q)),
     map: b.map,
     timeScale: b.timeScale,
     sights: b.sights,

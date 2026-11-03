@@ -1,6 +1,6 @@
 // Plays a scripted 3-minute, 4-player match on every map (plus 30 s of practice) with fixed
 // randomness, and checks it plays out exactly the same as the recorded run in
-// __snapshots__/replay.json.
+// __snapshots__/replay.json. (It checks each second's snapshot as it's sent to guests.)
 //
 // It fails whenever anything changes how the game plays, on purpose or not. If you meant to
 // change it (new tuning, a new pumpkin, ...), re-record with:  npx vitest run -u
@@ -16,6 +16,7 @@ import { defaultMatchSettings, startMatch } from '../src/game/match.js'
 import { PUMPKIN_TYPE_NAMES, defaultSpawnSettings } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
 import { mapIds } from '../src/maps/builtin.js'
+import { packSnapshot } from '../src/net/protocol.js'
 import { mulberry32, runReplay } from './replay.js'
 
 it.skipIf(process.env.CI)('plays exactly like the recorded run', async () => {   // (CI: set on GitHub's build machines)
@@ -23,7 +24,7 @@ it.skipIf(process.env.CI)('plays exactly like the recorded run', async () => {  
   Math.random = mulberry32(42)   // (the game's own randomness: patch timers, pumpkin types, maps)
   try {
     const out = runReplay({
-      createGame, stepGame, makeSnapshot, addPlayer, setDummies, startMatch, defaultMatchSettings,
+      createGame, stepGame, makeSnapshot: game => packSnapshot(makeSnapshot(game)), addPlayer, setDummies, startMatch, defaultMatchSettings,
       defaultSpawnSettings, mapIds, dummyInput, pumpkinTypeNames: () => PUMPKIN_TYPE_NAMES,
     })
     await expect(JSON.stringify(out, null, 1)).toMatchFileSnapshot('./__snapshots__/replay.json')

@@ -60,8 +60,8 @@ function launchOf(type, charge) {
 function sightObstacles(map, snap) {
   const box = (x, y, w, h) => ({ x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 })
   const boxes = map.platforms.map(p => box(p.x, p.y, p.w, p.h))
-  map.movers.forEach((m, i) => { const [x, y] = (snap.movers && snap.movers[i]) || [m.x, m.y]; boxes.push(box(x, y, m.w, m.h)) })
-  for (const [, x, y] of snap.bales) boxes.push(box(x, y, BALE.w, BALE.h))
+  map.movers.forEach((m, i) => { const { x, y } = (snap.movers && snap.movers[i]) || m; boxes.push(box(x, y, m.w, m.h)) })
+  for (const { x, y } of snap.bales) boxes.push(box(x, y, BALE.w, BALE.h))
   for (const sp of map.spikes) boxes.push({ x0: sp.x - sp.w / 2, x1: sp.x + sp.w / 2, y0: sp.y, y1: sp.y + TINE.tip })
   return boxes
 }

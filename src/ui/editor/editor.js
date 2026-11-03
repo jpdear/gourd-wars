@@ -3,8 +3,7 @@
 
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../../config.js'
 import { BALE, SCYTHE_START } from '../../game/level.js'
-import { PATCH_STATES } from '../../game/patches.js'
-import { PUMPKIN_TYPES, PUMPKIN_TYPE_NAMES, SPAWNABLE_TYPES } from '../../game/pumpkinTypes.js'
+import { PUMPKIN_TYPES, SPAWNABLE_TYPES } from '../../game/pumpkinTypes.js'
 import { MAPS } from '../../maps/builtin.js'
 import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
 import { THEMES } from '../../maps/themes.js'
@@ -547,7 +546,7 @@ export function createEditor(canvas, view, hooks) {
         ctx.globalAlpha = 0.5
         if (kind === 'spawns') drawSpawnMarker(ctx, ghost, Number(tool.slice(5)), X, Y, s)
         else if (kind === 'patches') drawPumpkin(ctx, X(ghost.x), Y(ghost.y + 0.32), 0.3 * s, 0, PUMPKIN_TYPES.classic)
-        else if (kind === 'bales') drawBale(ctx, ghost.x, ghost.y + BALE.h / 2, 0, 1, 0, X, Y, s)
+        else if (kind === 'bales') drawBale(ctx, { x: ghost.x, y: ghost.y + BALE.h / 2, angle: 0, health: 1 }, X, Y, s)
         else if (kind === 'fires') { drawBonfire(ctx, ghost, X, Y, s, false); drawBonfire(ctx, ghost, X, Y, s, true) }
         else if (kind === 'scythes') { const g = groundAt(ghost.x, ghost.y - 0.3); ghost.pole = g !== null ? ghost.y - g : 2.6; drawScarecrow(ctx, ghost, SCYTHE_START, X, Y, s) }
         ctx.globalAlpha = 1
@@ -596,9 +595,9 @@ export function createEditor(canvas, view, hooks) {
     // what render() draws: the map with its bales and ripe patches, no players
     snapshot() {
       return {
-        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], strikes: [], scythes: [], movers: def.movers.map(m => [m.x, m.y]),
-        bales: def.bales.map((b, i) => [i, b.x, b.y + BALE.h / 2, 0, 1, 0]),
-        patches: def.patches.map(p => [PATCH_STATES.indexOf('ripe'), 1, 0, PUMPKIN_TYPE_NAMES.indexOf(p.only || 'classic')]),
+        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], strikes: [], scythes: [], movers: def.movers.map(m => ({ x: m.x, y: m.y })),
+        bales: def.bales.map((b, i) => ({ id: i, x: b.x, y: b.y + BALE.h / 2, angle: 0, health: 1, frozen: false, sticky: false, floating: false })),
+        patches: def.patches.map(p => ({ state: 'ripe', growth: 1, rot: 0, typeName: p.only || 'classic', superRare: false })),
         timeScale: 1, transition: null, match: null,
       }
     },

@@ -2,8 +2,8 @@
 
 import { MAX_PLAYERS } from '../config.js'
 import { emptyInput } from '../game/input.js'
-import { interpolateSnapshots, makeSnapshot } from '../game/snapshot.js'
-import { NET, packInput, unpackInput } from './protocol.js'
+import { interpolateSnapshots } from '../game/snapshot.js'
+import { NET, packInput, packSnapshot, unpackInput, unpackSnapshot } from './protocol.js'
 import { GAME_VERSION } from '../version.js'
 
 class Link {
@@ -81,8 +81,8 @@ export class HostLink extends Link {
     return input
   }
 
-  sendSnapshot(game, snap = makeSnapshot(game)) {   // (the host makes one snapshot for everyone)
-    this.send({ t: 'snap', seq: ++this.snapSeq, ...snap, events: this.pendingEvents })
+  sendSnapshot(snap) {   // (the host makes one snapshot for everyone)
+    this.send({ t: 'snap', seq: ++this.snapSeq, ...packSnapshot(snap), events: this.pendingEvents })
     this.pendingEvents = []
   }
 }
@@ -104,8 +104,9 @@ export class GuestLink extends Link {
     if (msg.t === 'welcome') { if (msg.slot >= 1 && msg.slot < MAX_PLAYERS) this.handlers.onWelcome?.(msg.slot); return }
     if (msg.t !== 'snap' || msg.seq <= this.snapSeq) return
     this.snapSeq = msg.seq
-    this.snaps.push(msg)
-    for (const ev of msg.events || []) this.events.push({ time: msg.time, ev })
+    const { t, seq, events, ...packed } = msg
+    this.snaps.push(unpackSnapshot(packed))
+    for (const ev of events || []) this.events.push({ time: msg.time, ev })
     // keep our clock close to the host's
     if (this.clock === null || Math.abs(msg.time - this.clock) > 0.25) this.clock = msg.time
     else this.clock += (msg.time - this.clock) * 0.1

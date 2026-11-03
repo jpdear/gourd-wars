@@ -37,7 +37,7 @@ export function render(ctx, view, snap, effects, ui) {
   // the world shakes while a Black Hole is open (harder as it grows) and when an airdrop lands;
   // the HUD and text stay put
   const H = PUMPKIN_TYPES.blackhole.hole
-  const holeShake = snap ? H.shake * Math.min(1, Math.max(0, ...snap.holes.map(q => q[3])) / H.maxRadius) : 0
+  const holeShake = snap ? H.shake * Math.min(1, Math.max(0, ...snap.holes.map(h => h.r)) / H.maxRadius) : 0
   const shake = Math.max(holeShake, effects.shake ? effects.shake.amount * (1 - effects.shake.age / effects.shake.life) : 0)
   ctx.save()
   if (shake) ctx.translate((Math.random() * 2 - 1) * shake * s, (Math.random() * 2 - 1) * shake * s)
@@ -53,17 +53,15 @@ export function render(ctx, view, snap, effects, ui) {
   drawMapBase(ctx, map, X, Y, s, snap && snap.movers)
 
   if (snap) {
-    for (const [, x, y, angle, hp, flags] of snap.bales) drawBale(ctx, x, y, angle, hp, flags, X, Y, s)
+    for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s)
     drawPatches(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
-    for (const [, x, y, t, r] of snap.strikes) drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s)   // (under the airdrop)
-    for (const [, x, y, angle, typeName, ripeness, owner, radius, heading] of snap.pumpkins) {
-      drawFlyingPumpkin(ctx, { x, y, angle, typeName, ripeness, owner, radius, heading }, snap, X, Y, s)
-    }
+    for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
+    for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), X, Y, s)
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
-    for (const [, x, y, r] of snap.holes) drawBlackHole(ctx, x, y, r, X, Y, s)   // (over whatever it's swallowing)
+    for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
     if (me && me.held && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)
     map.scythes.forEach((sc, i) => drawScarecrow(ctx, sc, snap.scythes[i] ?? Math.PI / 2, X, Y, s))

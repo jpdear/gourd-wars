@@ -1,6 +1,6 @@
 // Drawing the map itself: sky and scenery, platforms, moving-platform rails, wheat.
 // A map's backdrop and fixed pieces: sky, scenery, platforms, moving platforms (at moverPos
-// [[x, y], ...], or their starting spots), pitchforks, bonfire logs.
+// [{ x, y }, ...], a snapshot's movers, or their starting spots), pitchforks, bonfire logs.
 
 import { CONFIG } from '../config.js'
 import { drawBonfire, drawPitchforks } from './level.js'
@@ -13,7 +13,7 @@ export function drawMapBase(ctx, map, X, Y, s, moverPos) {
   map.movers.forEach((m, i) => {
     drawMoverTrack(ctx, theme, m, X, Y, s)
     const at = moverPos && moverPos[i]
-    drawPlatform(ctx, theme, at ? { ...m, x: at[0], y: at[1] } : m, X, Y, s)
+    drawPlatform(ctx, theme, at ? { ...m, x: at.x, y: at.y } : m, X, Y, s)
   })
   for (const sp of map.spikes) drawPitchforks(ctx, sp, X, Y, s)
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, false)

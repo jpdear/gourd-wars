@@ -109,7 +109,7 @@ function update(ms) {
         for (const l of links.values()) l.pendingEvents.push(...events)
         if (++steps % NET.snapshotEvery === 0) {
           const shared = makeSnapshot(game)
-          for (const l of links.values()) l.sendSnapshot(game, shared)
+          for (const l of links.values()) l.sendSnapshot(shared)
         }
       }
       acc -= CONFIG.dt
