@@ -128,18 +128,21 @@ export function clearControls() {
   tapped.clear()
 }
 
-// Call after each physics step: quick taps have been seen.
-export function clearTaps() {
-  tapped.clear()
-}
-
 // Where the mouse points, in arena meters.
 export function aimPoint() {
   const { view } = app
   return { x: (mouse.x - view.ox) / view.s, y: CONFIG.view.h - (mouse.y - view.oy) / view.s }
 }
 
-export function localInput() {
+// Your input for one physics step. Keys tapped since the last step count as pressed, and are used
+// up by this (so a quick tap between two steps isn't missed, and counts once).
+export function takeInput() {
+  const input = readInput()
+  tapped.clear()
+  return input
+}
+
+function readInput() {
   const { x: aimX, y: aimY } = aimPoint()
   if (app.menu.open) return { ...emptyInput(), aimX, aimY }   // no controls while the menu is up
   return {

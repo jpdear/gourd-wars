@@ -1,14 +1,13 @@
 // What the menu buttons do (ui/menu.js reports each click as an action name), and the menus
 // whose contents depend on what's going on: the Esc menu and Settings.
-import { PLAYER_COLOR_NAMES } from '../config.js'
 import { resetRound } from '../game/game.js'
-import { describeSettings, startMatch } from '../game/match.js'
-import { mapDef, mapIds } from '../maps/builtin.js'
+import { startMatch } from '../game/match.js'
+import { mapIds } from '../maps/builtin.js'
 import { GAME_URL } from '../version.js'
 import {
   copyExportCode, duplicateBuiltin, importMapCode, myMapAction, newMap, openEditor, playtestId, showMyMaps,
 } from './customMaps.js'
-import { friendNames, hostCode, joinGame, leaveSession, links, mode, playingAlone, startHosting } from './session.js'
+import { describeSession, friendCount, hostCode, joinGame, leaveSession, mode, playingAlone, startHosting } from './session.js'
 import { captureBind } from './controls.js'
 import { binds, resetBinds, setBind } from './keybinds.js'
 import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
@@ -56,7 +55,7 @@ const ACTIONS = {
   'dummies-down': () => changeDummies(dummyCount - 1),
   'dummies-up': () => changeDummies(dummyCount + 1),
   restart: () => {
-    if (mode !== 'host' || !links.size) return
+    if (mode !== 'host' || !friendCount()) return
     startMatch(app.game, matchSettings)
     app.menu.hide()
   },
@@ -98,15 +97,6 @@ export function onMenuAction(act) {
   else if (import.meta.env.DEV) console.warn(`No menu action called "${name}" (data-act="${act}")`)
 }
 
-// One line about what's going on, for the Esc menu.
-function describeSession() {
-  const { snap, ui } = app
-  if (mode === 'guest') return `Playing online as ${PLAYER_COLOR_NAMES[ui.localIndex] || '…'}.${snap && snap.match ? ` Match: ${describeSettings(snap.match)}.` : ''}${snap ? ` Map: ${mapDef(snap.map).name}.` : ''}`
-  if (mode === 'host') return links.size ? `Hosting as Blue with ${friendNames()} (code ${hostCode}).` : `Hosting with code ${hostCode || '…'}. Waiting for friends.`
-  if (playtestId) return `Play testing "${mapDef(playtestId).name}".`
-  return 'Practice mode.'
-}
-
 export function openPauseMenu() {
   const { menu } = app
   menu.show('paused')
@@ -124,7 +114,7 @@ function openSettings() {
   menu.setShown('rotation', mode === 'host')
   menu.setShown('practice-map', playingAlone() && !playtestId)
   menu.setShown('dummies', playingAlone() && !playtestId)
-  menu.setShown('restart', mode === 'host' && links.size > 0)
+  menu.setShown('restart', mode === 'host' && friendCount() > 0)
 }
 
 export const closePumpkinSettings = () => (pumpkinsReturnTo === 'match' ? openSettings() : app.menu.show(pumpkinsReturnTo))

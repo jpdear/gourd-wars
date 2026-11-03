@@ -1,29 +1,108 @@
 // Playing alone or online: practice, hosting (friends join with a code) or joining a friend's
 // game. Only the host runs the game; a guest sends its input and draws the host's snapshots.
+// Everything about which of these we're doing is in here: each frame the app just calls
+// advanceSession() for what to draw, and sessionStatus() for what to say about it.
 import { Peer } from 'peerjs'
-import { MAX_PLAYERS, PLAYER_COLOR_NAMES } from '../config.js'
-import { addPlayer, queuePlayer, removePlayer, resetRound, setDummies } from '../game/game.js'
-import { startMatch } from '../game/match.js'
+import { CONFIG, MAX_PLAYERS, PLAYER_COLOR_NAMES } from '../config.js'
+import { addPlayer, queuePlayer, removePlayer, resetRound, setDummies, stepGame } from '../game/game.js'
+import { dummyInput } from '../game/input.js'
+import { describeSettings, startMatch } from '../game/match.js'
+import { makeSnapshot, snapPlayer } from '../game/snapshot.js'
 import { startTransition } from '../game/transition.js'
-import { MAPS } from '../maps/builtin.js'
+import { MAPS, mapDef } from '../maps/builtin.js'
 import { registerMap, sanitizeMap, unregisterMap } from '../maps/mapData.js'
 import { GuestLink, HostLink } from '../net/links.js'
 import { NET, describePeerError, makeCode } from '../net/protocol.js'
 import { GAME_VERSION, compareVersions } from '../version.js'
-import { customMaps, endPlaytest } from './customMaps.js'
+import { customMaps, endPlaytest, playtestId } from './customMaps.js'
 import { dummyCount, matchSettings, practiceMap } from './settings.js'
 import { app, now, showMessage } from './state.js'
 
 export let mode = 'practice'      // 'practice' | 'host' | 'guest'
-export let link = null            // guest: the GuestLink while connected
-export const links = new Map()    // host: slot → HostLink, one per friend
 export let hostCode = null
+let link = null                   // guest: the GuestLink while connected
+const links = new Map()           // host: slot → HostLink, one per friend
 let peer = null
 let joinTimer = null
 let sessionMapIds = []            // guest: the host's custom maps, only for this session
+let acc = 0                       // real time not yet run as physics steps (practice and host)
+let steps = 0                     // physics steps run while friends are here (they get a snapshot every few)
 
+export const friendCount = () => links.size
 export const friendNames = () => [...links.keys()].sort().map(slot => PLAYER_COLOR_NAMES[slot]).join(', ')
 export const playingAlone = () => mode === 'practice' || (mode === 'host' && !links.size)
+// The game this computer runs (practice and the host), or null (a guest only draws the host's).
+export const localGame = () => (mode === 'guest' ? null : app.game)
+
+// Run the session for `elapsed` seconds of real time and return the snapshot to draw (null while a
+// guest waits for the first one). Practice and the host run the physics in fixed steps (with your
+// friends' input, and sending them snapshots); a guest sends its input and blends the host's snapshots.
+//   local: this computer's side: takeInput() → your input for one step; show(events) → put on screen
+//   what just happened (splats, KOs...)
+export function advanceSession(elapsed, local) {
+  const { game } = app
+  acc += elapsed
+  let snap
+  if (mode === 'guest' && link) {
+    while (acc >= CONFIG.dt) {
+      link.sendInput(local.takeInput())
+      acc -= CONFIG.dt
+    }
+    const out = link.advance(elapsed)
+    local.show(out.events)
+    snap = out.snap
+  } else {
+    while (acc >= CONFIG.dt) {
+      const inputs = [local.takeInput()]   // by slot: you, your friends, the dummies
+      for (const [slot, l] of links) inputs[slot] = l.takeInput()
+      for (const p of game.players) if (p.isDummy) inputs[p.index] = dummyInput(game, p)
+      stepGame(game, inputs)
+      const events = game.events.splice(0)
+      local.show(events)
+      if (links.size) {
+        for (const l of links.values()) l.pendingEvents.push(...events)
+        if (++steps % NET.snapshotEvery === 0) {
+          const shared = makeSnapshot(game)
+          for (const l of links.values()) l.sendSnapshot(shared)
+        }
+      }
+      acc -= CONFIG.dt
+    }
+    snap = makeSnapshot(game)
+  }
+  if (link) link.tick(now())
+  for (const l of links.values()) l.tick(now())
+  return snap
+}
+
+// The game holds still (the map editor is open): time that passes now isn't made up for later.
+export function holdStill() {
+  acc = 0
+}
+
+// What to say about the session this frame (snap: the one being drawn; localIndex: which player we are):
+//   hud      the line shown outside a match
+//   wait     the message in the middle of the screen while a guest can't play yet (else '')
+//   debug    [the mode and ping, the guest's snapshot buffer] for the debug overlay
+export function sessionStatus(snap, localIndex) {
+  const pings = [link, ...links.values()].filter(l => l && l.ping !== null).map(l => l.ping)
+  const pingText = pings.length ? ` · ping ${Math.round(Math.max(...pings) * 1000)} ms` : ''
+  const myColor = PLAYER_COLOR_NAMES[localIndex] || '…'
+  const hud = mode === 'host' && !links.size ? `Waiting for friends · code ${hostCode || '…'}` : playtestId ? 'Play test' : 'Practice'
+  let wait = ''
+  if (mode === 'guest' && !snap) wait = 'Waiting for the host…'
+  else if (mode === 'guest' && localIndex > 0 && !snapPlayer(snap, localIndex)) wait = `You'll jump in next round as ${myColor}!`
+  return { hud, wait, debug: [`mode ${mode}${pingText}`, `snapshots buffered ${link ? link.snaps.length : 0}`] }
+}
+
+// One line about what's going on, for the Esc menu.
+export function describeSession() {
+  const { snap, ui } = app
+  if (mode === 'guest') return `Playing online as ${PLAYER_COLOR_NAMES[ui.localIndex] || '…'}.${snap && snap.match ? ` Match: ${describeSettings(snap.match)}.` : ''}${snap ? ` Map: ${mapDef(snap.map).name}.` : ''}`
+  if (mode === 'host') return links.size ? `Hosting as Blue with ${friendNames()} (code ${hostCode}).` : `Hosting with code ${hostCode || '…'}. Waiting for friends.`
+  if (playtestId) return `Play testing "${mapDef(playtestId).name}".`
+  return 'Practice mode.'
+}
 
 // The host's custom maps, on the guest: only for this session (cleaned up like any other map).
 function addSessionMaps(maps) {

@@ -6,11 +6,11 @@ import {
   MAP_CODE_PREFIX, decodeMapCode, duplicateMap, encodeMapCode, loadCustomMaps, registerMap, sanitizeMap, saveCustomMaps, unregisterMap,
 } from '../maps/mapData.js'
 import { createEditor } from '../ui/editor/editor.js'
-import { resize } from './app.js'
 import { clearControls } from './controls.js'
 import { leaveSession } from './session.js'
 import { changeSettings, chooseMap, matchSettings, practiceMap } from './settings.js'
 import { app, showMessage } from './state.js'
+import { resize } from './view.js'
 
 export let customMaps = []
 export let playtestId = null   // playing a map from the editor (the Esc menu's Exit goes back to the editor)
