@@ -19,7 +19,7 @@ import { BODY, COLLIDE, CONFIG } from '../config.js'
 import { currentMap } from './game.js'
 import { inFire, skyCeiling } from './level.js'
 import { pickWeaponType } from './weaponTypes.js'
-import { dropWeapon } from './weapons.js'
+import { dropWeapon } from './looseWeapons.js'
 import { r3 } from '../util/math.js'
 
 const FLYING = { categoryBits: COLLIDE.crow, maskBits: COLLIDE.pumpkin | COLLIDE.weapon }   // (only pumpkins and weapons hit it)

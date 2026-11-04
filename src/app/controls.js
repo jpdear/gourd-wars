@@ -10,7 +10,7 @@
 import { CONFIG } from '../config.js'
 import { emptyInput } from '../game/input.js'
 import { sendCrow } from '../game/crows.js'
-import { dropFromSky } from '../game/weapons.js'
+import { dropFromSky } from '../game/looseWeapons.js'
 import { RESERVED_KEYS, binds } from './keybinds.js'
 import { closeControls, closeListSettings, closeMatchSettings, openPauseMenu } from './menus.js'
 import { localGame } from './session.js'
@@ -165,6 +165,7 @@ function readInput() {
     crouch: held(binds.crouch),
     throw: held(binds.throw),
     harvest: held(binds.harvest),
+    toss: held(binds.toss),
     ragdoll: held(binds.ragdoll),
     aimX, aimY,
   }

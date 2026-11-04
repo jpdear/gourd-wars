@@ -6,7 +6,8 @@ import { createGame, resetRound, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { defaultWeaponSettings } from '../src/game/weaponTypes.js'
-import { HeldWeapon, dropWeapon } from '../src/game/weapons.js'
+import { dropWeapon } from '../src/game/looseWeapons.js'
+import { HeldWeapon } from '../src/game/weapons.js'
 
 // Practice on The Patch: you (x 11) and a dummy, on the main platform (top at y 4.4).
 function setup(map) {

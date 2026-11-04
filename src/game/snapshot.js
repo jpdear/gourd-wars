@@ -22,7 +22,7 @@ export function makeSnapshot(game) {
       ko: p.ko,
       health: Math.ceil(p.health),
       held: p.held && !p.dead ? p.held.typeName : null,
-      weapon: p.weapon && !p.dead ? p.weapon.view() : null,   // [type, grip x, grip y, angle] (see HeldWeapon.view)
+      weapon: p.weapon && !p.dead ? p.weapon.view() : null,   // [type, grip x, grip y, angle, throw charge] (see HeldWeapon.view)
       heldRipeness: p.held ? r3(p.held.ripeness) : 0,
       heldCracks: p.held ? p.held.blocks || 0 : 0,
       frozen: p.frozen,
@@ -112,7 +112,7 @@ export function interpolateSnapshots(a, b, t) {
       // don't blend across a respawn (it would slide across the screen)
       if (!pa || pa.dead !== pb.dead || Math.hypot(pa.parts[0][0] - pb.parts[0][0], pa.parts[0][1] - pb.parts[0][1]) > 3) return pb
       const wa = pa.weapon, wb = pb.weapon
-      const weapon = wa && wb && wa[0] === wb[0] ? [wb[0], lerp(wa[1], wb[1], t), lerp(wa[2], wb[2], t), wa[3] + wrapAngle(wb[3] - wa[3]) * t] : wb
+      const weapon = wa && wb && wa[0] === wb[0] ? [wb[0], lerp(wa[1], wb[1], t), lerp(wa[2], wb[2], t), wa[3] + wrapAngle(wb[3] - wa[3]) * t, wb[4]] : wb
       return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)), weapon }
     }),
     pumpkins: byId(a.pumpkins, b.pumpkins, moved),

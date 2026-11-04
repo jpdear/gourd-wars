@@ -1,5 +1,6 @@
-// Every melee weapon (farm tools that drop from the sky). How a weapon is used is in weapons.js;
-// this is just each one's numbers. Like a pumpkin, a weapon takes your hands.
+// Every melee weapon (farm tools that drop from the sky): each one's numbers, and its shape (shared by
+// one in someone's hands, weapons.js, and one lying loose or thrown, looseWeapons.js). Like a pumpkin,
+// a weapon takes your hands.
 //   name, colors              how it looks (its shape is in render/weapons.js)
 //   uses                      how many times it can connect (a hit, a bale, a pumpkin, a wall...)
 //                             before it snaps. A swing uses at most one, however much it hits.
@@ -30,7 +31,18 @@
 //       time                  ...carried for at most this long (s; a click flings them sooner)
 //       carrySpeed            ...slowing you down this much (× your speed)
 //       fling                 { speed, damage, stun }: then flung off it toward the aim
+//   throw                     Throw Weapon (hold, let go): it flies point first (see looseWeapons.js)
+//     chargeTime              how long to hold for a full-power throw (s)
+//     speed                   [a tap, a full charge] (m/s)
+//     gravityScale            how much gravity pulls on it in flight (low: nearly straight)
+//     damage, stun, cost      hitting someone (damage at full power: less on a weaker throw); the uses
+//                             a throw that hits anything costs (a miss is free)
+//     impale                  the one it hits is carried along on it: { carrySlow (it keeps this share
+//                             of its speed), pin (s: stuck in a wall with them on it, pinned there this long) }
+//     peg                     stuck in the side of something, it's a solid peg to stand on (until pulled out)
 
+import * as planck from 'planck'
+import { Vec2 } from 'planck'
 import { SPAWN_RATES } from './pumpkinTypes.js'
 
 export const WEAPON_TYPES = {
@@ -39,15 +51,41 @@ export const WEAPON_TYPES = {
     carry: {},
     length: 1.6, grip: 0.15, handGap: 0.38, hold: -0.05, blade: 0.4, headWidth: 0.24, bladeRadius: 0.1,   // (the tines reach ~1–1.4 m out; a thrust: ~2.8 m from where you started)
     heft: { mass: 0.4, force: 80, torque: 60, snap: 0.3 },   // (a slight weight: ~0.1 s to swing round to a new aim, overshooting a little)
-    tap: { motion: 'thrust', time: 0.3, cooldown: 0.25, reach: 0.3, lunge: { speed: 7, time: 0.2 }, damage: 12, knockback: 7, stun: 0.8 },
+    tap: { motion: 'thrust', time: 0.3, cooldown: 0.25, reach: 0.3, lunge: { speed: 9, time: 0.2 }, damage: 12, knockback: 7, stun: 0.8 },
     charge: {   // Skewer: hoisted overhead on the tines, then flung
       motion: 'thrust', chargeTime: 0.7, time: 0.35, cooldown: 0.3, reach: 0.3, lunge: { speed: 10, time: 0.22 }, cost: 2,
       damage: 5, knockback: 7, stun: 0.8,
-      grab: { time: 1, carrySpeed: 0.6, fling: { speed: 18, damage: 15, stun: 1 } },
+      grab: { time: 0.75, carrySpeed: 0.6, fling: { speed: 18, damage: 10, stun: 1 } },
+    },
+    throw: {   // Javelin
+      chargeTime: 0.6, speed: [16, 25], gravityScale: 0.35, damage: 20, stun: 1, cost: 2,
+      impale: { carrySlow: 0.75, pin: 1 }, peg: true,
     },
   },
 }
 export const WEAPON_TYPE_NAMES = Object.keys(WEAPON_TYPES)   // index = type code in snapshots
+
+// ---------------------------------------------------------------------
+// A WEAPON'S SHAPE — along the tool from its grip (where the back hand holds it): +x toward the head.
+// ---------------------------------------------------------------------
+
+const SHAFT = 0.03   // half the handle's thickness (m)
+
+// A point `along` m up the tool from its grip at `grip`, the tool pointing along `angle` (negative: toward the butt end).
+export function alongTool(grip, angle, along) {
+  return { x: grip.x + Math.cos(angle) * along, y: grip.y + Math.sin(angle) * along }
+}
+export const tipOf = (type, grip, angle) => alongTool(grip, angle, type.length - type.grip)
+
+// Give `body` (its origin at the grip, its +x up the tool) the weapon's shape: the shaft, from the butt
+// to the neck, and the head on from there, `mass` kg between them. Returns the head's fixture (the blade).
+export function addWeaponFixtures(body, type, mass, def) {
+  const neck = type.length - type.grip - type.blade
+  const area = (neck + type.grip) * 2 * SHAFT + type.blade * type.headWidth
+  const fixture = { density: mass / area, friction: 0.4, ...def }
+  body.createFixture(new planck.Box((neck + type.grip) / 2, SHAFT, new Vec2((neck - type.grip) / 2, 0), 0), fixture)
+  return body.createFixture(new planck.Box(type.blade / 2, type.headWidth / 2, new Vec2(neck + type.blade / 2, 0), 0), fixture)
+}
 
 // Which weapons crows bring, and how often: the host's choice (also used in practice; see app/settings.js).
 //   drops   how often a crow comes: one of DROP_RATES (the times are CONFIG.crow.every)

@@ -6,12 +6,13 @@ import { openBlackHole } from '../src/game/powers.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
-import { HeldWeapon, dropWeapon } from '../src/game/weapons.js'
+import { dropWeapon } from '../src/game/looseWeapons.js'
+import { HeldWeapon } from '../src/game/weapons.js'
 import { knockDownCrow, peck, sendCrow } from '../src/game/crows.js'
 import { makeCode, packInput, packSnapshot, unpackInput, unpackSnapshot } from '../src/net/protocol.js'
 
 it('sends input compactly and gets the same input back', () => {
-  const input = { ...emptyInput(), left: true, crouch: true, throw: true, ragdoll: true, aimX: 12.3456, aimY: 7.891 }
+  const input = { ...emptyInput(), left: true, crouch: true, throw: true, toss: true, ragdoll: true, aimX: 12.3456, aimY: 7.891 }
   expect(unpackInput(packInput(input))).toEqual({ ...input, aimX: 12.35, aimY: 7.89 })
   expect(unpackInput({})).toEqual(emptyInput())   // (garbage in: nothing pressed)
 })

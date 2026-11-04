@@ -12,7 +12,7 @@ import { Vec2 } from 'planck'
 import { BODY, CONFIG } from '../config.js'
 import { crowPickups } from './crows.js'
 import { patchPickups } from './patches.js'
-import { weaponPickups } from './weapons.js'
+import { weaponPickups } from './looseWeapons.js'
 
 const SOURCES = [patchPickups, weaponPickups, crowPickups]
 

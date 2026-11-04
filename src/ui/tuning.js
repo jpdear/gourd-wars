@@ -239,6 +239,12 @@ const TUNABLES = [
       [W_ + 'pitchfork.charge.grab.time', 0.2, 3, 0.05, 'skewer hold'],
       [W_ + 'pitchfork.charge.grab.fling.speed', 0, 40, 0.5, 'fling speed'],
       [W_ + 'pitchfork.charge.grab.fling.damage', 0, 60, 1, 'fling dmg'],
+      [W_ + 'pitchfork.throw.chargeTime', 0.1, 2, 0.05, 'javelin charge'],
+      [W_ + 'pitchfork.throw.speed.0', 2, 60, 1, 'javelin tap speed'],
+      [W_ + 'pitchfork.throw.speed.1', 2, 60, 1, 'javelin full speed'],
+      [W_ + 'pitchfork.throw.gravityScale', 0, 1, 0.05, 'javelin gravity'],
+      [W_ + 'pitchfork.throw.damage', 0, 60, 1, 'javelin dmg'],
+      [W_ + 'pitchfork.throw.impale.pin', 0, 3, 0.1, 'javelin pin (s)'],
     ]],
   ]],
 ]

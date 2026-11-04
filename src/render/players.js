@@ -5,6 +5,7 @@ import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
+import { WEAPON_TYPES } from '../game/weaponTypes.js'
 import { drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawHeldWeapon } from './weapons.js'
@@ -48,13 +49,32 @@ export function drawGrappleVine(ctx, p, X, Y, s) {
   ctx.lineCap = 'butt'
 }
 
-// How the held gourd leaves the hand right now: { speed, gravity, life (s), radius } (a Seed
-// Spitter's sight is its seeds')
-function launchOf(type, charge) {
-  const flying = type.throwMode === 'spray' ? PUMPKIN_TYPES.seed : type
-  const [lo, hi] = throwSpeeds(type)
-  const speed = lerp(lo, hi, charge)
-  return { speed, gravity: CONFIG.gravity * (flying.gravityScale ?? 1), life: flying.lifetime || Infinity, radius: flying.radius }
+// What a player (from the snapshot) would throw right now, and how it'd fly: { x0, y0 (where it
+// starts), dx, dy (which way), speed, gravity, life (s), radius, color, splitAge?, curve? }, or null.
+//   a pumpkin   from the hand (a Seed Spitter's: its seeds')
+//   a weapon    while they hold Throw Weapon: from its tip, point first
+function flightOf(p, aim) {
+  const [sx, sy] = partEnds(p.parts[PART_NAMES.indexOf('torso')], PART_HALF_LEN.torso)   // (the shoulders: aimed from there)
+  if (p.held) {
+    const type = PUMPKIN_TYPES[p.held], flying = type.throwMode === 'spray' ? PUMPKIN_TYPES.seed : type
+    const [lo, hi] = throwSpeeds(type), [hx, hy] = handOf(p)
+    const d = Math.hypot(aim.x - sx, aim.y - sy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - sy) / d
+    return {
+      x0: hx + dx * 0.15, y0: hy + dy * 0.15, dx, dy, speed: lerp(lo, hi, p.charge), gravity: CONFIG.gravity * (flying.gravityScale ?? 1),
+      life: flying.lifetime || Infinity, radius: flying.radius, color: type.color, splitAge: type.splitAge, curve: type.curve,
+    }
+  }
+  if (p.weapon && p.weapon[4] >= 0) {
+    const [typeName, gx, gy, , charge] = p.weapon, type = WEAPON_TYPES[typeName], T = type.throw
+    const cy = sy - 0.26   // (aimed from the chest, where it's carried: see weapons.js)
+    const d = Math.hypot(aim.x - sx, aim.y - cy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - cy) / d
+    const out = type.length - type.grip
+    return {
+      x0: gx + dx * out, y0: gy + dy * out, dx, dy, speed: lerp(T.speed[0], T.speed[1], charge),
+      gravity: CONFIG.gravity * T.gravityScale, life: Infinity, radius: type.headWidth / 2, color: type.metal,
+    }
+  }
+  return null
 }
 
 // What a thrown gourd would stop at: boxes { x0, x1, y0, y1 } for platforms and walls, moving
@@ -68,20 +88,17 @@ function sightObstacles(map, snap) {
   return boxes
 }
 
-// Your sight (only you see it, when the host has sights on): dots in your gourd's colour, with a
-// dark edge so they show up on any map, along where your gourd would fly if thrown now (so it
-// grows while you charge), fading a little toward the far end, up to the first thing it
-// would hit, where it would fizzle (Vine) or split (Gourd Cluster), or off screen (a Boomerang: once
-// it's done curving, since it can come back on).
+// Your sight (only you see it, when the host has sights on): dots in the colour of what you're
+// throwing (a gourd, or a weapon while you hold Throw Weapon), with a dark edge so they show up on any
+// map, along where it would fly if thrown now (so it grows while you charge), fading a little toward
+// the far end, up to the first thing it would hit, where it would fizzle (Vine) or split (Gourd
+// Cluster), or off screen (a Boomerang: once it's done curving, since it can come back on).
 export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
-  const type = PUMPKIN_TYPES[p.held]
-  const { speed, gravity, life, radius } = launchOf(type, p.charge)
-  const [hx, hy] = handOf(p)
-  const [sx, sy] = partEnds(p.parts[PART_NAMES.indexOf('torso')], PART_HALF_LEN.torso)   // (the shoulders: aimed from there)
-  const d = Math.hypot(aim.x - sx, aim.y - sy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - sy) / d
-  const x0 = hx + dx * 0.15, y0 = hy + dy * 0.15   // (where it leaves the hand)
+  const flight = flightOf(p, aim)
+  if (!flight) return
+  const { x0, y0, dx, dy, speed, gravity, life, radius } = flight
   let end = Math.min(life, 4)
-  if (type.splitAge) end = Math.min(end, Math.max(type.splitAge, dy * speed / gravity))   // (the top of its arc)
+  if (flight.splitAge) end = Math.min(end, Math.max(flight.splitAge, dy * speed / gravity))   // (the top of its arc)
   const boxes = sightObstacles(map, snap)
   const hits = (x, y) => boxes.some(b => x > b.x0 - radius && x < b.x1 + radius && y > b.y0 - radius && y < b.y1 + radius)
 
@@ -89,7 +106,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   const dots = [], dt = 0.05 / Math.max(speed, 1), launch = { x: dx * speed, y: dy * speed }
   let travelled = 0, nextDot = 0.45, x = x0, y = y0, vx = launch.x, vy = launch.y
   for (let t = dt; t <= end; t += dt) {
-    const pull = type.curve ? boomerangPull(type.curve, launch, t) : null
+    const pull = flight.curve ? boomerangPull(flight.curve, launch, t) : null
     vx += (pull ? pull.x : 0) * dt
     vy += (pull ? pull.y : -gravity) * dt   // (a Boomerang's spin holds it up while it curves)
     const px = x, py = y
@@ -102,7 +119,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
     if (travelled >= nextDot && !offScreen) dots.push([x, y])
     if (travelled >= nextDot) nextDot += 0.45
   }
-  ctx.fillStyle = type.color
+  ctx.fillStyle = flight.color
   ctx.strokeStyle = 'rgba(30, 24, 20, 0.85)'
   ctx.lineWidth = Math.max(1.5, 0.025 * s)
   dots.forEach(([x, y], i) => {

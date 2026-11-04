@@ -6,7 +6,8 @@ import { emptyInput } from '../src/game/input.js'
 import { patchPumpkin } from '../src/game/patches.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { WEAPON_TYPES } from '../src/game/weaponTypes.js'
-import { HeldWeapon, dropFromSky, dropWeapon } from '../src/game/weapons.js'
+import { dropFromSky, dropWeapon } from '../src/game/looseWeapons.js'
+import { HeldWeapon } from '../src/game/weapons.js'
 
 // Practice on The Patch: you (x 11) and a dummy, standing on the main platform (top at y 4.4).
 function setup() {
@@ -188,6 +189,7 @@ it('under a roof, things from the sky come in under it instead of landing on it'
 function chargeAndRelease(game, me, dummy, n, dx) {
   const aim = { ...emptyInput(), aimX: 30, aimY: me.shoulder().y }
   steps(game, n, { ...aim, throw: true })
+  expect(me.weapon.swing).toBeNull()   // (holding it only charges: no swing until letting go)
   const a = me.torso.getPosition(), b = dummy.torso.getPosition()
   dummy.moveBy(a.x + dx - b.x, a.y - b.y)
   steps(game, 1, aim)   // (let go)
@@ -213,7 +215,7 @@ it('hold to charge, let go: a Skewer hoists them overhead on the tines, then fli
   expect(dummy.torso.getLinearVelocity().x).toBeGreaterThan(5)
 })
 
-it('a click flings them off early; getting knocked down drops them; letting go too soon does nothing more', () => {
+it('a click flings them off early; getting knocked down drops them; letting go too soon is just the tap', () => {
   const { game, me, dummy } = setup()
   hold(game, me)
   const aim = chargeAndRelease(game, me, dummy, Math.ceil(skewer.chargeTime * 60) + 2, 2)
@@ -279,7 +281,7 @@ it('the hands hold it spread along the handle, and a thrust pushes it out from t
   const out = () => me.weapon.pose.at.x - me.shoulder().x
   const idle = out()
   steps(game, 1, { ...emptyInput(), aimX: 30, aimY: me.shoulder().y, throw: true })
-  steps(game, 7, { ...emptyInput(), aimX: 30, aimY: me.shoulder().y })
+  steps(game, 8, { ...emptyInput(), aimX: 30, aimY: me.shoulder().y })   // (a click: it thrusts on letting go)
   expect(out()).toBeGreaterThan(idle + 0.2)
 })
 
@@ -296,4 +298,28 @@ it('an attack knocks a pumpkin growing on its patch off the vine (a use)', () =>
   expect(patch.state).toBe('empty')
   expect(game.events.some(e => e.type === 'splat')).toBe(true)
   expect(me.weapon.uses).toBe(WEAPON_TYPES.pitchfork.uses - 1)
+})
+
+it('a weapon caught on something never drags its holder: it slips free and comes back to their hands', () => {
+  // Walk into the Hay Loft's left wall with it jammed against the wall, then walk away (still aiming
+  // into the wall): the same steps with and without it in hand end in the same place.
+  const walk = withWeapon => {
+    const game = createGame()
+    game.mapChoice = 'hayloft'
+    resetRound(game)
+    const me = game.players[0]
+    steps(game, 30)
+    const c = me.torso.getPosition()
+    me.moveBy(3 - c.x, 0)
+    if (withWeapon) me.holdWeapon(pitchfork())
+    const atWall = () => ({ ...emptyInput(), aimX: me.shoulder().x - 5, aimY: me.shoulder().y - 0.5 })
+    for (let i = 0; i < 60; i++) steps(game, 1, { ...atWall(), left: true })
+    for (let i = 0; i < 40; i++) steps(game, 1, { ...atWall(), right: true })
+    return me
+  }
+  const me = walk(true), alone = walk(false)
+  expect(Math.abs(me.torso.getPosition().x - alone.torso.getPosition().x)).toBeLessThan(0.1)
+  const grip = me.weapon.pose.at, sh = me.shoulder()
+  expect(Math.hypot(grip.x - sh.x, grip.y - sh.y)).toBeLessThan(0.5)   // (back in hand)
+  expect(me.weapon.slipping).toBe(false)
 })
