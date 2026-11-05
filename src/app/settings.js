@@ -1,10 +1,11 @@
-// The player's saved choices (this browser): which pumpkins grow, the practice map, the match
+// The player's saved choices (this browser): which pumpkins grow, which weapons crows bring, the practice map, the match
 // settings, the practice dummies and your own On/Off preferences. Changing one saves it and updates the menus.
 import { MAX_PLAYERS } from '../config.js'
 import { setDummies } from '../game/game.js'
 import { MATCH_MODES, defaultMatchSettings, defaultRotation } from '../game/match.js'
 import { SPAWNABLE_TYPES, SPAWN_RATES, defaultSpawnSettings } from '../game/pumpkinTypes.js'
 import { startTransition } from '../game/transition.js'
+import { DROP_RATES, WEAPON_TYPE_NAMES, defaultWeaponSettings } from '../game/weaponTypes.js'
 import { MAPS } from '../maps/builtin.js'
 import { clamp } from '../util/math.js'
 import { STORAGE_KEYS, loadJSON, loadText, saveJSON, saveText } from '../util/storage.js'
@@ -13,6 +14,8 @@ import { app } from './state.js'
 
 // which pumpkins grow and how often: the host's choice (also used in practice)
 export const spawnSettings = defaultSpawnSettings()
+// which weapons crows bring and how often: the host's choice (also used in practice)
+export const weaponSettings = defaultWeaponSettings()
 // the practice map (practice and waiting for a friend); matches use the rotation instead
 export let practiceMap = 'patch'
 // the host's choice; game.match.settings points at this (filled in by loadSettings)
@@ -33,6 +36,14 @@ export function loadSettings(game) {
     if (spawns[k]) spawnSettings[k] = { on: !!spawns[k].on, rate: SPAWN_RATES[spawns[k].rate] ? spawns[k].rate : spawnSettings[k].rate }
   }
   game.spawnSettings = spawnSettings
+
+  const weapons = loadJSON(STORAGE_KEYS.weapons) || {}
+  if (DROP_RATES.includes(weapons.drops)) weaponSettings.drops = weapons.drops
+  for (const k of WEAPON_TYPE_NAMES) {
+    const st = weapons.types && weapons.types[k]
+    if (st) weaponSettings.types[k] = { on: !!st.on, rate: SPAWN_RATES[st.rate] ? st.rate : weaponSettings.types[k].rate }
+  }
+  game.weaponSettings = weaponSettings
 
   const map = loadText(STORAGE_KEYS.practiceMap)
   if (MAPS[map]) practiceMap = map
@@ -57,6 +68,7 @@ export function showSettings() {
   menu.showSettings(matchSettings)
   menu.showRotation(matchSettings.maps)
   menu.showSpawnSettings(spawnSettings)
+  menu.showWeaponSettings(weaponSettings)
   menu.showMap(practiceMap)
   for (const name in prefs) menu.showToggle(PREF_BUTTONS[name], prefs[name])
 }
@@ -65,6 +77,12 @@ export function changeSpawns(fn) {
   fn(spawnSettings)
   saveJSON(STORAGE_KEYS.spawns, spawnSettings)
   app.menu.showSpawnSettings(spawnSettings)
+}
+
+export function changeWeapons(fn) {
+  fn(weaponSettings)
+  saveJSON(STORAGE_KEYS.weapons, weaponSettings)
+  app.menu.showWeaponSettings(weaponSettings)
 }
 
 export function chooseMap(id) {

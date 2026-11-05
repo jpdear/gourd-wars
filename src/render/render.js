@@ -17,7 +17,10 @@ import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches } from './pumpkins.js'
+import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
+import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
+import { drawLooseWeapon } from './weapons.js'
 import { lerp } from '../util/math.js'
 
 export function render(ctx, view, snap, effects, ui) {
@@ -54,7 +57,10 @@ export function render(ctx, view, snap, effects, ui) {
 
   if (snap) {
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s)
-    drawPatches(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
+    drawPatches(ctx, snap, X, Y, s)
+    for (const w of snap.weapons) drawLooseWeapon(ctx, w, X, Y, s)
+    for (const c of snap.crows) drawCrow(ctx, c, X, Y, s)
+    drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
@@ -63,7 +69,7 @@ export function render(ctx, view, snap, effects, ui) {
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
     for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
-    if (me && me.held && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)
+    if (me && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)   // (if there's something to throw)
     map.scythes.forEach((sc, i) => drawScarecrow(ctx, sc, snap.scythes[i] ?? Math.PI / 2, X, Y, s))
   }
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players
@@ -75,6 +81,8 @@ export function render(ctx, view, snap, effects, ui) {
     ctx.arc(X(q.x), Y(q.y), q.r * s, 0, Math.PI * 2)
     ctx.fill()
   }
+  for (const b of effects.birds) drawFlyingOff(ctx, b, X, Y, s)
+  for (const f of effects.feathers) drawFeather(ctx, f, X, Y, s)
   for (const ring of effects.rings) {
     const t = ring.age / ring.life
     ctx.globalAlpha = 1 - t

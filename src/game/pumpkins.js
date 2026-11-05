@@ -6,7 +6,8 @@
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
-import { CONFIG } from '../config.js'
+import { COLLIDE, CONFIG } from '../config.js'
+import { knockDownCrow } from './crows.js'
 import { damageBale, inFire, shoveBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
@@ -17,7 +18,7 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
   const radius = type.radius * (quality?.size ?? 1)
   const body = game.world.createBody({ type: 'dynamic', position: pos, bullet: true, gravityScale: type.gravityScale ?? 1 })
   const fixture = body.createFixture(new planck.Circle(radius), {
-    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution,
+    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution, filterCategoryBits: COLLIDE.pumpkin,
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
@@ -45,8 +46,9 @@ export function handlePumpkinContacts(game) {
     const p = c.pumpkin
     if (p.broken) continue
     const ud = c.other.getUserData()
-    const hitPlayer = ud && ud.kind === 'player'
-    if (hitPlayer) {
+    const hitPlayer = ud && ud.kind === 'player', hitCrow = ud && ud.kind === 'crow'
+    if (hitCrow) knockDownCrow(game, ud.crow)   // (a crow flying over: it drops what it's carrying)
+    else if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
       if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
@@ -61,7 +63,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (hitPlayer || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
+    if (hitPlayer || hitCrow || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }
@@ -103,10 +105,36 @@ const unit = v => { const d = Math.hypot(v.x, v.y) || 1; return { x: v.x / d, y:
 
 export function breakPumpkin(game, p) {
   if (p.broken) return
-  p.broken = true
-  const pos = p.body.getPosition()
-  game.events.push({ type: 'splat', x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
+  splat(game, p)
   if (p.type.onBreak) p.type.onBreak(game, p)
+}
+
+// A weapon's blade cuts it in the air: it splats without its special effect going off (unless its
+// type says it still does: cutSetsOff).
+export function cutPumpkin(game, p) {
+  if (p.type.cutSetsOff) breakPumpkin(game, p)
+  else if (!p.broken) splat(game, p)
+}
+
+// Batted away (by a Shovel): off along dir (a unit vector) at least `speed` fast, and now it's the
+// batter's own throw (it can hit whoever threw it; a Boomerang comes back to the batter).
+export function batPumpkin(game, p, batter, dir, speed) {
+  if (p.broken) return
+  const v = p.body.getLinearVelocity(), s = Math.max(speed, Math.hypot(v.x, v.y))
+  const vel = new Vec2(dir.x * s, dir.y * s)
+  p.body.setLinearVelocity(vel)
+  p.owner = batter
+  p.age = 0
+  p.launch = { x: vel.x, y: vel.y }
+  p.fixture.setFilterGroupIndex(batter.group)   // (it doesn't hit its new thrower on the way out)
+  const pos = p.body.getPosition()
+  game.events.push({ type: 'clank', x: r3(pos.x), y: r3(pos.y) })
+}
+
+function splat(game, p) {
+  p.broken = true
+  const pos = p.body.getPosition(), type = p.type.breakEvent === undefined ? 'splat' : p.type.breakEvent
+  if (type) game.events.push({ type, x: r3(pos.x), y: r3(pos.y), typeName: p.typeName, ripeness: p.ripeness, rot: 0, ...(p.radius !== p.type.radius && { r: r3(p.radius) }) })
 }
 
 // Gone without a splat (a fizzled vine, a cluster that split): just a small puff.

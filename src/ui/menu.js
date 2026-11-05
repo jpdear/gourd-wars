@@ -2,6 +2,7 @@
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
+import { DROP_RATES, DROP_RATE_LABELS, WEAPON_TYPES, WEAPON_TYPE_NAMES } from '../game/weaponTypes.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
@@ -32,6 +33,15 @@ export function createMenu(onAction) {
       <span class="pk-name">${PUMPKIN_TYPES[k].name}</span>
       <button class="pk-on" data-act="pk-toggle:${k}">On</button>
       <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
+    </div>`).join('')
+  // weapon drop settings: how often crows come, then one row per weapon (like the pumpkins)
+  root.querySelector('.drop-rate').innerHTML = DROP_RATES.map(r => `<button data-act="drops:${r}">${DROP_RATE_LABELS[r]}</button>`).join('')
+  root.querySelector('.weapon-list').innerHTML = '<div class="pk-head"><span class="pk-name"></span><span>Enabled</span><span>Rarity</span></div>' + WEAPON_TYPE_NAMES.map(k => `
+    <div class="pk-row" data-weapon="${k}">
+      <span class="dot" style="background:${WEAPON_TYPES[k].color}"></span>
+      <span class="pk-name">${WEAPON_TYPES[k].name}</span>
+      <button class="pk-on" data-act="wp-toggle:${k}">On</button>
+      <div class="seg">${rates.map(r => `<button data-act="wp-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
     </div>`).join('')
   // keybinds: one row per action
   root.querySelector('.bind-list').innerHTML = BIND_ACTIONS.map(([action, label]) =>
@@ -135,14 +145,20 @@ export function createMenu(onAction) {
       for (const b of root.querySelectorAll('[data-act^="rot:"]')) b.classList.toggle('on', !!maps[b.dataset.act.slice(4)])
     },
     showSpawnSettings(settings) {
-      for (const row of root.querySelectorAll('.pk-row')) {
-        const st = settings[row.dataset.type]
-        row.classList.toggle('off', !st.on)
-        const toggle = row.querySelector('.pk-on')
-        toggle.classList.toggle('on', st.on)
-        toggle.textContent = st.on ? 'On' : 'Off'
-        for (const b of row.querySelectorAll('.seg button')) b.classList.toggle('on', b.dataset.act.endsWith(':' + st.rate))
-      }
+      for (const row of root.querySelectorAll('.pk-row[data-type]')) showRarityRow(row, settings[row.dataset.type])
+    },
+    showWeaponSettings(settings) {
+      for (const b of root.querySelectorAll('.drop-rate button')) b.classList.toggle('on', b.dataset.act === 'drops:' + settings.drops)
+      for (const row of root.querySelectorAll('.pk-row[data-weapon]')) showRarityRow(row, settings.types[row.dataset.weapon])
     },
   }
+}
+
+// One row of an Enabled / Rarity table (pumpkins, weapons): st = { on, rate }
+function showRarityRow(row, st) {
+  row.classList.toggle('off', !st.on)
+  const toggle = row.querySelector('.pk-on')
+  toggle.classList.toggle('on', st.on)
+  toggle.textContent = st.on ? 'On' : 'Off'
+  for (const b of row.querySelectorAll('.seg button')) b.classList.toggle('on', b.dataset.act.endsWith(':' + st.rate))
 }

@@ -9,8 +9,12 @@
 // panel is up. Esc lets go too (the browser's rule) and opens the pause menu.
 import { CONFIG } from '../config.js'
 import { emptyInput } from '../game/input.js'
+import { sendCrow } from '../game/crows.js'
+import { dropFromSky } from '../game/looseWeapons.js'
+import { WEAPON_TYPE_NAMES } from '../game/weaponTypes.js'
 import { RESERVED_KEYS, binds } from './keybinds.js'
-import { closeControls, closeMatchSettings, closePumpkinSettings, openPauseMenu } from './menus.js'
+import { closeControls, closeListSettings, closeMatchSettings, openPauseMenu } from './menus.js'
+import { localGame } from './session.js'
 import { prefs } from './settings.js'
 import { app } from './state.js'
 
@@ -31,10 +35,22 @@ function finishCapture(code) {
   done(code)
 }
 
+// Keys for testing, only in debug mode (` ), and only where this computer runs the game:
+//   T   a crow comes right away, bringing a weapon
+//   Y   a weapon drops in from the sky, over the mouse
+// (each press, the next kind of weapon in turn)
+let debugWeapon = -1
+const nextWeapon = () => WEAPON_TYPE_NAMES[debugWeapon = (debugWeapon + 1) % WEAPON_TYPE_NAMES.length]
+const DEBUG_KEYS = {
+  KeyT: game => sendCrow(game, nextWeapon()),
+  KeyY: game => dropFromSky(game, nextWeapon(), aimPoint().x),
+}
+
 // Esc in a menu: back out of it
 const ESC_FROM = {
   paused: () => app.menu.hide(),
-  pumpkins: closePumpkinSettings,
+  pumpkins: closeListSettings,
+  weapons: closeListSettings,
   match: closeMatchSettings,
   controls: closeControls,
 }
@@ -71,6 +87,7 @@ export function setupControls() {
       ui.debug = !ui.debug
       tuning.setVisible(ui.debug)
     }
+    if (ui.debug && DEBUG_KEYS[e.code] && localGame()) DEBUG_KEYS[e.code](localGame())
     if (e.code === 'Escape') {
       if (performance.now() - unlockedAt < 300) return   // (this Esc let go of the mouse: that already opened the pause menu)
       if (!menu.open) openPauseMenu()
@@ -152,6 +169,7 @@ function readInput() {
     crouch: held(binds.crouch),
     throw: held(binds.throw),
     harvest: held(binds.harvest),
+    toss: held(binds.toss),
     ragdoll: held(binds.ragdoll),
     aimX, aimY,
   }

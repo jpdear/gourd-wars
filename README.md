@@ -52,6 +52,10 @@ src/
     player.js           the active ragdoll stick figure
     pumpkinTypes.js     every pumpkin's numbers + spawn rates
     pumpkins.js         throwing, hits, knockback        powers.js   what the specials do
+    weaponTypes.js      every weapon's numbers and shape weapons.js  a weapon in hand: swings, hits, wear, throwing
+    looseWeapons.js     weapons nobody's holding: falling in, thrown (flying), stuck, pegs
+    crows.js            crows bringing weapons (and knocked down, thrown, pecking)
+    pickups.js          what the harvest key can pick up (pumpkins, weapons, crows)
     level.js            hay bales, pitchforks, scarecrows, bonfires, moving platforms
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
