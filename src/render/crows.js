@@ -8,6 +8,7 @@
 import { BODY, CONFIG } from '../config.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { drawWeapon } from './weapons.js'
+import { WEAPON_TYPES, fallAngle } from '../game/weaponTypes.js'
 
 const INK = '#1a191f', FAR = '#34313c', EDGE = '#2a2830'
 const time = () => Date.now() / 1000
@@ -202,7 +203,7 @@ export function drawCrow(ctx, c, X, Y, s) {
   const bob = flap * 0.03   // (rising a little on each downstroke)
   if (c.carry) {   // hanging from its feet, swinging a little
     const footX = c.x + 0.02 * c.dir, footY = c.y + bob - CONFIG.crow.talons
-    drawWeapon(ctx, c.carry, footX, footY, -Math.PI / 2 + Math.sin(time() * 3) * 0.1, X, Y, s)
+    drawWeapon(ctx, c.carry, footX, footY, fallAngle(WEAPON_TYPES[c.carry], c.dir) + Math.sin(time() * 3) * 0.1, c.dir, X, Y, s)   // (point down, as it'll fall)
     ctx.save()
     ctx.translate(X(footX), Y(footY))
     ctx.scale(c.dir, 1)
@@ -217,7 +218,7 @@ export function drawCrow(ctx, c, X, Y, s) {
 }
 
 // Little yellow stars circling over something dazed.
-function drawDizzyStars(ctx, x, y, s) {
+export function drawDizzyStars(ctx, x, y, s) {
   const t = time() * 3
   ctx.fillStyle = '#f7c531'
   ctx.strokeStyle = '#9a6b00'

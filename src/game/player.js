@@ -32,6 +32,7 @@ const freshLife = () => ({
   reviveTimer: 0,             // practice: back up after a hazard KO
   // getting hit
   stunTimer: 0,               // > 0: ragdolled
+  dazedTimer: 0,              // > 0: knocked limp by a bonk on the head (stars circling it)
   sinceStun: 99,
   staggerMeter: 0,            // recent damage; reaching CONFIG.damage.staggerAt knocks you down
   shoveTimer: 0,              // got hit but not staggered: no walking control for a moment
@@ -221,6 +222,13 @@ export class Player {
     this.punchTimer = 0
   }
 
+  // Bonked on the head: limp for `seconds`, seeing stars.
+  daze(seconds) {
+    this.stun(seconds)
+    this.dazedTimer = Math.max(this.dazedTimer, seconds)
+  }
+  get dazed() { return this.dazedTimer > 0 && this.stunned }
+
   endStun() {
     this.stunTimer = 0
   }
@@ -288,27 +296,34 @@ export class Player {
     return null
   }
 
-  // A held pumpkin whose type has shieldBlocks (a Big Gourd) is a shield, in the front hand: { x, y, r,
-  // blocks (how many hits it takes) }, or null. Not while ragdolled or frozen.
+  // Our shield, if we have one up: { x, y, r, take (it blocked something: what that costs it) }, or
+  // null. A held pumpkin whose type has shieldBlocks (a Big Gourd), in the front hand: it takes that
+  // many hits, then cracks apart. Or a weapon held up as one (see HeldWeapon.shield). Not while
+  // ragdolled or frozen.
   shield() {
+    if (this.dead || this.helpless) return null
+    if (this.weapon) return this.weapon.shield(this)
     const type = this.held && PUMPKIN_TYPES[this.held.typeName]
-    if (!type || !type.shieldBlocks || this.dead || this.helpless) return null
+    if (!type || !type.shieldBlocks) return null
     const h = this.handPosition()
-    return { x: h.x, y: h.y, r: type.radius, blocks: type.shieldBlocks }
+    return { x: h.x, y: h.y, r: type.radius, take: game => this.crackShield(game, h, type.shieldBlocks) }
+  }
+
+  crackShield(game, at, blocks) {
+    this.held.blocks = (this.held.blocks || 0) + 1
+    if (this.held.blocks < blocks) return
+    game.events.push({ type: 'splat', x: r3(at.x), y: r3(at.y), typeName: this.held.typeName, ripeness: this.held.ripeness, rot: 0 })
+    this.dropHeld()   // (it may have cracked mid-throw: nothing left to throw)
   }
 
   // Something at `pos` (radius r, moving along dir) reaches our shield? The shield takes the hit: a
-  // small shove, and after its last block it cracks apart. Returns true if it blocked.
+  // small shove, and whatever that costs the shield. Returns true if it blocked.
   tryBlock(game, pos, r, dir) {
     const sh = this.shield()
     if (!sh || Math.hypot(pos.x - sh.x, pos.y - sh.y) > sh.r + r) return false
-    this.held.blocks = (this.held.blocks || 0) + 1
     launch(this, this.torso, dir.x, dir.y, 2)
     game.events.push({ type: 'block', x: r3(sh.x), y: r3(sh.y) })
-    if (this.held.blocks >= sh.blocks) {
-      game.events.push({ type: 'splat', x: r3(sh.x), y: r3(sh.y), typeName: this.held.typeName, ripeness: this.held.ripeness, rot: 0 })
-      this.dropHeld()   // (it may have cracked mid-throw: nothing left to throw)
-    }
+    sh.take(game)
     return true
   }
 
@@ -364,6 +379,7 @@ export class Player {
     this.jumpLock = Math.max(0, this.jumpLock - dt)
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt)
     this.lungeTimer = Math.max(0, this.lungeTimer - dt)
+    this.dazedTimer = Math.max(0, this.dazedTimer - dt)
     if (this.stunTimer > 0) {
       this.stunTimer -= dt
       this.sinceStun = 0

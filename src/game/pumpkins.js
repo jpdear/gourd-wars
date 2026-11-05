@@ -116,6 +116,21 @@ export function cutPumpkin(game, p) {
   else if (!p.broken) splat(game, p)
 }
 
+// Batted away (by a Shovel): off along dir (a unit vector) at least `speed` fast, and now it's the
+// batter's own throw (it can hit whoever threw it; a Boomerang comes back to the batter).
+export function batPumpkin(game, p, batter, dir, speed) {
+  if (p.broken) return
+  const v = p.body.getLinearVelocity(), s = Math.max(speed, Math.hypot(v.x, v.y))
+  const vel = new Vec2(dir.x * s, dir.y * s)
+  p.body.setLinearVelocity(vel)
+  p.owner = batter
+  p.age = 0
+  p.launch = { x: vel.x, y: vel.y }
+  p.fixture.setFilterGroupIndex(batter.group)   // (it doesn't hit its new thrower on the way out)
+  const pos = p.body.getPosition()
+  game.events.push({ type: 'clank', x: r3(pos.x), y: r3(pos.y) })
+}
+
 function splat(game, p) {
   p.broken = true
   const pos = p.body.getPosition(), type = p.type.breakEvent === undefined ? 'splat' : p.type.breakEvent

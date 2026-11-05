@@ -52,8 +52,8 @@ const SNAPSHOT_LISTS = {
     unpack: ([id, x, y, angle, down, carry, dir]) => ({ id, x, y, angle, down: !!down, carry: WEAPON_TYPE_NAMES[carry] ?? null, dir }),
   },
   weapons: {   // (its type by number)
-    pack: w => [w.id, WEAPON_TYPE_NAMES.indexOf(w.typeName), w.x, w.y, w.angle],
-    unpack: ([id, type, x, y, angle]) => ({ id, typeName: WEAPON_TYPE_NAMES[type], x, y, angle }),
+    pack: w => [w.id, WEAPON_TYPE_NAMES.indexOf(w.typeName), w.x, w.y, w.angle, w.side],
+    unpack: ([id, type, x, y, angle, side]) => ({ id, typeName: WEAPON_TYPE_NAMES[type], x, y, angle, side }),
   },
   strikes: fields('id', 'x', 'y', 't', 'r'),
   movers: fields('x', 'y'),

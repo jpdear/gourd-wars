@@ -6,7 +6,7 @@ import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { WEAPON_TYPES } from '../game/weaponTypes.js'
-import { drawPeckingCrow } from './crows.js'
+import { drawDizzyStars, drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawHeldWeapon } from './weapons.js'
 import { mixHex } from '../util/color.js'
@@ -71,7 +71,7 @@ function flightOf(p, aim) {
     const out = type.length - type.grip
     return {
       x0: gx + dx * out, y0: gy + dy * out, dx, dy, speed: lerp(T.speed[0], T.speed[1], charge),
-      gravity: CONFIG.gravity * T.gravityScale, life: Infinity, radius: type.headWidth / 2, color: type.metal,
+      gravity: CONFIG.gravity * T.gravityScale, life: Infinity, radius: type.bladeRadius, color: type.metal,
     }
   }
   return null
@@ -194,6 +194,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
 
   if (crowned) drawCrown(ctx, p.parts[PART_NAMES.indexOf('head')], X, Y, s)
   if (p.pecked) drawPeckingCrow(ctx, p, X, Y, s)
+  if (p.dazed) drawDizzyStars(ctx, X(hx), Y(hy + 0.3), s)
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s)
   if (p.weapon) drawHeldWeapon(ctx, p, X, Y, s)

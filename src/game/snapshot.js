@@ -18,11 +18,12 @@ export function makeSnapshot(game) {
       color: p.color,
       facing: p.facing,
       stunned: p.stunned && !game.transition,   // (no X eyes while just being carried)
+      dazed: p.dazed && !game.transition,       // (stars circling their head)
       dead: p.dead,
       ko: p.ko,
       health: Math.ceil(p.health),
       held: p.held && !p.dead ? p.held.typeName : null,
-      weapon: p.weapon && !p.dead ? p.weapon.view() : null,   // [type, grip x, grip y, angle, throw charge] (see HeldWeapon.view)
+      weapon: p.weapon && !p.dead ? p.weapon.view() : null,   // [type, grip x, grip y, angle, throw charge, side] (see HeldWeapon.view)
       heldRipeness: p.held ? r3(p.held.ripeness) : 0,
       heldCracks: p.held ? p.held.blocks || 0 : 0,
       frozen: p.frozen,
@@ -64,7 +65,7 @@ export function makeSnapshot(game) {
       const p = c.body.getPosition()
       return { id: c.id, x: r3(p.x), y: r3(p.y), angle: r3(wrapAngle(c.body.getAngle())), down: c.state === 'down', carry: c.carrying, dir: c.dir }
     }),
-    weapons: game.looseWeapons.map(w => ({ id: w.id, typeName: w.typeName, x: r3(w.x), y: r3(w.y), angle: r3(wrapAngle(w.angle)) })),   // (x, y: the grip)
+    weapons: game.looseWeapons.map(w => ({ id: w.id, typeName: w.typeName, x: r3(w.x), y: r3(w.y), angle: r3(wrapAngle(w.angle)), side: w.side })),   // (x, y: the grip)
     // t: 0 → 1 when the airdrop is due; r: the airdrop's radius
     strikes: game.strikes.map(st => ({
       id: st.id, x: r3(st.x), y: r3(st.y), t: r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r: r3(PUMPKIN_TYPES.airdrop.radius * st.power),
@@ -112,7 +113,7 @@ export function interpolateSnapshots(a, b, t) {
       // don't blend across a respawn (it would slide across the screen)
       if (!pa || pa.dead !== pb.dead || Math.hypot(pa.parts[0][0] - pb.parts[0][0], pa.parts[0][1] - pb.parts[0][1]) > 3) return pb
       const wa = pa.weapon, wb = pb.weapon
-      const weapon = wa && wb && wa[0] === wb[0] ? [wb[0], lerp(wa[1], wb[1], t), lerp(wa[2], wb[2], t), wa[3] + wrapAngle(wb[3] - wa[3]) * t, wb[4]] : wb
+      const weapon = wa && wb && wa[0] === wb[0] && wa[5] === wb[5] ? [wb[0], lerp(wa[1], wb[1], t), lerp(wa[2], wb[2], t), wa[3] + wrapAngle(wb[3] - wa[3]) * t, wb[4], wb[5]] : wb
       return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)), weapon }
     }),
     pumpkins: byId(a.pumpkins, b.pumpkins, moved),

@@ -115,6 +115,6 @@ it('crows come on the host\'s schedule: not in a round\'s first seconds, never w
   expect(firstCrow({ ...normal, drops: 'off' })).toBeNull()
   expect(firstCrow(normal, game => { for (let i = 0; i < CONFIG.crow.maxLoose; i++) dropWeapon(game, 'pitchfork', 9 + i, 6) })).toBeNull()
   const allOff = defaultWeaponSettings()
-  allOff.types.pitchfork.on = false
+  for (const k in allOff.types) allOff.types[k].on = false
   expect(firstCrow(allOff)).toBeNull()
 })
