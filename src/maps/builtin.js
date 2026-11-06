@@ -10,6 +10,7 @@
 //              blade is deadly), pole = how far the pole reaches down, turnTime = seconds per turn
 //   movers     moving platforms {x, y, w, h, x2, y2, speed, pause}: slide from (x, y) to (x2, y2)
 //              and back at about speed m/s, waiting pause seconds at each end (optional)
+//   cannons    gourd cannons {x, y, face, aim, speed, every, delay}: see game/cannons.js (optional)
 //   theme      one of THEMES
 
 import { THEMES } from './themes.js'
@@ -132,9 +133,13 @@ export const MAPS = {
     fires: [{ x: 28.2, y: 4.4, w: 1.4 }],
     scythes: [{ x: 16, y: 12.4, length: 2.6, pole: 2.6 }],
     movers: [{ x: 13.5, y: 4.15, w: 3, h: 0.5, x2: 18.5, y2: 4.15, speed: 2.5, pause: 1 }],   // a ferry over the pit
+    cannons: [   // gourds at the left ground (where you start), one every 2 s: a lob from the high ledge, a flat shot from under the top middle
+      { x: 3.5, y: 8.75, face: 'top', aim: 49, speed: 6, every: 4, delay: 2 },
+      { x: 13.6, y: 9.2, face: 'bottom', aim: -169, speed: 16, every: 4, delay: 4 },
+    ],
   },
 }
-for (const map of Object.values(MAPS)) map.movers = map.movers || []
+for (const map of Object.values(MAPS)) { map.movers = map.movers || []; map.cannons = map.cannons || [] }
 export const BUILTIN_MAP_IDS = Object.keys(MAPS)
 export const mapIds = () => Object.keys(MAPS).filter(id => !id.startsWith('__'))   // (built-ins + custom maps)
 export const mapDef = id => MAPS[id] || MAPS.patch   // (fallback if a map is missing, e.g. a deleted custom map)

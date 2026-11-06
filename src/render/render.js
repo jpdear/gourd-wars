@@ -14,7 +14,7 @@ import { snapPlayer } from '../game/snapshot.js'
 import { MAP_SHIFT, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
-import { drawBale, drawBonfire, drawScarecrow } from './level.js'
+import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
@@ -51,9 +51,12 @@ export function render(ctx, view, snap, effects, ui) {
     const old = mapDef(tr.from), XO = x => X(x - MAP_SHIFT)
     drawMapBase(ctx, old, XO, Y, s, null)
     old.scythes.forEach(sc => drawScarecrow(ctx, sc, SCYTHE_START, XO, Y, s))
+    for (const c of old.cannons || []) drawCannon(ctx, c, null, XO, Y, s)
     for (const f of old.fires) drawBonfire(ctx, f, XO, Y, s, true)
   }
   drawMapBase(ctx, map, X, Y, s, snap && snap.movers)
+  const cannons = map.cannons || []
+  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s)   // (timer: seconds to its next shot)
 
   if (snap) {
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s)

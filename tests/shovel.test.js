@@ -5,7 +5,7 @@ import { emptyInput } from '../src/game/input.js'
 import { throwWeapon } from '../src/game/looseWeapons.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
-import { WEAPON_TYPES } from '../src/game/weaponTypes.js'
+import { WEAPON_TYPES, pointOf, toWorld } from '../src/game/weaponTypes.js'
 import { HeldWeapon } from '../src/game/weapons.js'
 
 const S = WEAPON_TYPES.shovel
@@ -54,6 +54,33 @@ it('it bats a thrown pumpkin along your aim instead of breaking it, and it\'s yo
   const v = pk.body.getLinearVelocity()
   expect(v.x).toBeGreaterThan(S.bats.speed * 0.6)   // (back the way it came: along my aim)
   expect(me.damageTaken).toBe(0)
+})
+
+it('any of it bats, the handle too (not just the blade)', () => {
+  const { game, me, dummy, aim } = setup()
+  steps(game, 1, { ...aim, throw: true })
+  steps(game, 1, aim)
+  for (let i = 0; i < 30 && !me.weapon.striking; i++) steps(game, 1, aim)
+  const { at, angle } = me.weapon.pose, h = toWorld(at, angle, me.weapon.side, [0.25, 0])   // (on the handle, by the hands)
+  const pk = spawnPumpkin(game, 'classic', new Vec2(h.x, h.y), new Vec2(2, 0), dummy)
+  steps(game, 2, aim)
+  expect(pk.owner).toBe(me)
+  expect(pk.broken).toBe(false)
+})
+
+it('a swing a moment too soon still bats: it keeps batting for bats.grace s after it goes past (but no longer)', () => {
+  for (const wait of [0, Math.ceil(S.bats.grace * 60) + 4]) {
+    const { game, me, dummy, aim } = setup()
+    steps(game, 1, { ...aim, throw: true })
+    steps(game, 1, aim)
+    for (let i = 0; i < 30 && !me.weapon.striking; i++) steps(game, 1, aim)
+    for (let i = 0; i < 30 && me.weapon.striking; i++) steps(game, 1, aim)   // (it's gone past)
+    steps(game, wait, aim)
+    const { at, angle } = me.weapon.pose, tip = pointOf(S, at, angle, me.weapon.side)
+    const pk = spawnPumpkin(game, 'classic', new Vec2(tip.x, tip.y), new Vec2(2, 0), dummy)
+    steps(game, 2, aim)
+    expect(pk.owner).toBe(wait ? dummy : me)
+  }
 })
 
 it('charging the Home Run holds it up as a shield: a pumpkin at it is blocked (a use); let go: a huge launch', () => {

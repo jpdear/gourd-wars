@@ -1,7 +1,8 @@
-// Drawing the level pieces: hay bales, pitchforks, bonfires, scarecrows.
+// Drawing the level pieces: hay bales, pitchforks, bonfires, scarecrows, gourd cannons.
 // Hay bale ({ x, y, angle, health 0..1, frozen, sticky, floating }, as in a snapshot): golden straw
 // box with twine bands; gaps show up as it takes damage. Frozen: icy; sticky: goo; floating: a balloon on top.
 
+import { CANNON, cannonParts } from '../game/cannons.js'
 import { BALE, TINE, pitchforkTines, scytheBladeShape } from '../game/level.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { drawPumpkin } from './pumpkins.js'
@@ -159,4 +160,65 @@ export function drawScarecrow(ctx, sc, angle, X, Y, s) {
   ctx.beginPath()
   ctx.arc(X(sc.x), Y(sc.y), 0.08 * s, 0, Math.PI * 2)
   ctx.fill()
+}
+
+// A gourd cannon (see game/cannons.js): its mount on the surface and an iron barrel along its aim.
+// timer: seconds until it fires (the fuse sparks just before; the barrel kicks back just after), or
+// null (not counting down: the editor, a map being left).
+export function drawCannon(ctx, c, timer, X, Y, s) {
+  const { base, angle, pivot, aim } = cannonParts(c), B = CANNON.base
+  // the mount: a wooden block on the surface, an iron strap across it
+  ctx.save()
+  ctx.translate(X(base.x), Y(base.y))
+  ctx.rotate(-angle)
+  ctx.fillStyle = '#6b4a2b'
+  ctx.beginPath()
+  ctx.moveTo(-B.w / 2 * s, B.h / 2 * s)
+  ctx.lineTo(B.w / 2 * s, B.h / 2 * s)
+  ctx.lineTo(B.w * 0.32 * s, -B.h / 2 * s)
+  ctx.lineTo(-B.w * 0.32 * s, -B.h / 2 * s)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#3c3f44'
+  ctx.fillRect(-B.w * 0.42 * s, 0.02 * s, B.w * 0.84 * s, 0.07 * s)
+  ctx.restore()
+  // the barrel, from its pivot (kicked back a little right after a shot)
+  const every = Math.max(0.5, c.every ?? 3), since = timer === null ? 9 : every - timer
+  const kick = since >= 0 && since < 0.2 ? 0.14 * (1 - since / 0.2) : 0
+  const L = CANNON.barrel
+  ctx.save()
+  ctx.translate(X(pivot.x), Y(pivot.y))
+  ctx.rotate(-aim)
+  ctx.translate(-kick * s, 0)
+  ctx.fillStyle = '#2f3338'
+  ctx.beginPath()
+  ctx.moveTo(-0.22 * s, -0.15 * s)
+  ctx.lineTo(L * s, -0.11 * s)
+  ctx.lineTo(L * s, 0.11 * s)
+  ctx.lineTo(-0.22 * s, 0.15 * s)
+  ctx.arc(-0.22 * s, 0, 0.15 * s, Math.PI / 2, -Math.PI / 2)
+  ctx.fill()
+  ctx.fillStyle = '#4a4f55'   // bands
+  ctx.fillRect(0.1 * s, -0.14 * s, 0.07 * s, 0.28 * s)
+  ctx.fillStyle = '#f28c28'   // a pumpkin-orange ring round the muzzle
+  ctx.fillRect((L - 0.08) * s, -0.13 * s, 0.08 * s, 0.26 * s)
+  ctx.restore()
+  // the pivot pin
+  ctx.fillStyle = '#4a4f55'
+  ctx.beginPath()
+  ctx.arc(X(pivot.x), Y(pivot.y), 0.06 * s, 0, Math.PI * 2)
+  ctx.fill()
+  // the fuse sparking at the back, just before it fires
+  if (timer !== null && timer < 0.6) {
+    const back = { x: pivot.x - Math.cos(aim) * 0.36, y: pivot.y - Math.sin(aim) * 0.36 }
+    const flick = 0.05 + 0.03 * Math.sin(Date.now() / 25)
+    ctx.fillStyle = '#ffd23f'
+    ctx.beginPath()
+    ctx.arc(X(back.x), Y(back.y), flick * s, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#ff8a1f'
+    ctx.beginPath()
+    ctx.arc(X(back.x), Y(back.y), flick * 0.5 * s, 0, Math.PI * 2)
+    ctx.fill()
+  }
 }

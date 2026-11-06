@@ -16,8 +16,10 @@
 //                             things first: falling, it's lowest) }: in the tool's frame (see A WEAPON'S SHAPE)
 //   bladeRadius               how close a pumpkin or a shield has to be to the edge to count (m)
 //   handleHits                an attack hits with all of it (the handle too), not just the head
-//   bats                      { speed }: instead of cutting a thrown pumpkin, an attack bats it along your aim
-//                             (at least this fast, m/s), and it's yours now
+//   bats                      { speed, reach, grace }: instead of cutting a thrown pumpkin, an attack bats it
+//                             along your aim (at least `speed` m/s), and it's yours now. Any of the tool bats
+//                             (the handle too), from `reach` m further off than bladeRadius, and for `grace`
+//                             s after the swing's gone past
 //   heft                      held, it's a real body pulled along with you (see weapons.js):
 //     mass                    its mass (kg; a player is about 2.2)
 //     force, torque           how hard it can be pulled (N) and turned (N·m) toward where it should be:
@@ -29,8 +31,9 @@
 //     motion                  how it moves (see MOTIONS in weapons.js), and its numbers:
 //       reach                 (thrust) how far the arms push the tool out along the aim (m; with handGap and
 //                             hold, the front hand mustn't end up past arm's length: ~0.65 m out from the chest)
-//       raise, windup, follow (reap) raised up above your head (straight up, tipped `raise` rad back) in the
-//                             first `windup` of the swing, then brought down to the aim and `follow` past it
+//       arc, windup, follow   (reap) the same swing every time, wherever you aim: raised to `arc` degrees
+//                             back from the aim in the first `windup` of the swing, then brought down
+//                             to the aim and `follow` rad past it
 //       turns                 (whirl) how many times it goes all the way round you
 //     time, cooldown          how long the swing takes, and the wait after it before the next (s)
 //     lunge                   { speed, time }: you lunge along the aim (sideways) at this speed (m/s) for this long (s)
@@ -41,10 +44,10 @@
 //     cost                    uses it costs if it touches anything (default 1)
 //   charge                    keep holding after the tap, and let go once fully charged: the same as a tap, plus
 //     chargeTime              how long to hold (from the press) until it's fully charged (s)
-//     guard                   { angle, extend, r }: while charging it's held up in front, `angle` (rad) above
-//                             the way you face, its grip `extend` m along it from where it's usually held
-//                             (negative: lower), its head a shield there (r m round it; see Player.shield):
-//                             it blocks like a Big Gourd, each block costing a use
+//     guard                   { angle, out, up, r }: while charging it's held up out in front, `angle` (rad)
+//                             above the way you face, its grip `out` m forward and `up` m up from the chest,
+//                             its head a shield there (r m round it; see Player.shield): it blocks like a Big
+//                             Gourd, each block costing a use
 //     grab                    the first one it hits is caught on the blade, helpless:
 //       time                  ...carried for at most this long (s; a click flings them sooner)
 //       carrySpeed            ...slowing you down this much (× your speed)
@@ -96,12 +99,12 @@ export const WEAPON_TYPES = {
     },
     heft: { mass: 0.4, force: 80, swingForce: 300, torque: 300, snap: 0.3 },   // (swung, strong enough to whip it right round with its grip staying in your hands)
     tap: {   // Reap: raised up above your head, then brought down at the aim; it hooks whoever it catches toward you
-      motion: 'reap', time: 0.5, cooldown: 0.35, raise: 0.25, windup: 0.45, follow: 0.35,
-      damage: 16, knockback: 6, stun: 0.8, knock: 'toward',
+      motion: 'reap', time: 0.5, cooldown: 0.35, arc: 100, windup: 0.45, follow: 0.35,
+      damage: 15, knockback: 6, stun: 0.8, knock: 'toward',
     },
-    charge: {   // Whirl: two full turns round you (through the floor and walls), flinging everyone it catches away
-      motion: 'whirl', chargeTime: 0.9, time: 0.85, cooldown: 0.4, turns: 2, ghost: true, cost: 2,
-      damage: 22, knockback: 12, stun: 1, knock: 'away',
+    charge: {   // Whirl: one full turn round you (through the floor and walls), flinging everyone it catches away
+      motion: 'whirl', chargeTime: 0.9, time: 0.5, cooldown: 0.4, turns: 1, ghost: true, cost: 2,
+      damage: 21, knockback: 6, stun: 1, knock: 'away',
     },
     throw: {   // Buzzsaw: flat and spinning, through everyone in its way, until it buries itself in the level
       chargeTime: 0.6, speed: [12, 20], gravityScale: 0.3, spin: 22, damage: 20, stun: 0.8, knockback: 8, cost: 2,
@@ -112,15 +115,15 @@ export const WEAPON_TYPES = {
     name: 'Shovel', color: '#8f6a43', metal: '#7d868f', uses: 7,
     carry: { speed: 0.95 },
     length: 1.4, grip: 0.08, handGap: 0.42, hold: -0.05, blade: 0.34, headWidth: 0.26, bladeRadius: 0.15,
-    bats: { speed: 20 },   // (it doesn't cut pumpkins: it bats them)
+    bats: { speed: 20, reach: 0.15, grace: 0.1 },   // (it doesn't cut pumpkins: it bats them)
     heft: { mass: 0.5, force: 80, swingForce: 250, torque: 250, snap: 0.3 },
     tap: {   // Smack: raised up over your head and brought down flat on them, launching them along your aim
-      motion: 'reap', time: 0.4, cooldown: 0.3, raise: 0.15, windup: 0.45, follow: 0.35,
-      damage: 10, knockback: 14, stun: 0.8, knock: 'aim', fullLaunch: true,
+      motion: 'reap', time: 0.4, cooldown: 0.3, arc: 110, windup: 0.45, follow: 0.35,
+      damage: 10, knockback: 7.5, stun: 0.8, knock: 'aim', fullLaunch: true,
     },
     charge: {   // Home Run: held up in front as a shield while you wind up; then a huge smack
-      motion: 'reap', chargeTime: 0.8, guard: { angle: 1.25, extend: -0.55, r: 0.4 }, time: 0.45, cooldown: 0.45, raise: 0.5, windup: 0.4, follow: 0.35, cost: 2,
-      damage: 20, knockback: 26, stun: 1.2, knock: 'aim', fullLaunch: true,
+      motion: 'reap', chargeTime: 0.8, guard: { angle: 1.22, out: 0.35, up: -0.3, r: 0.4 }, time: 0.45, cooldown: 0.45, arc: 140, windup: 0.4, follow: 0.35, cost: 2,
+      damage: 20, knockback: 15, stun: 1.2, knock: 'aim', fullLaunch: true,
     },
     throw: {   // Bonk: end over end; whoever it hits is knocked limp, and it bounces off them
       chargeTime: 0.6, speed: [12, 20], gravityScale: 0.6, spin: 16, damage: 18, stun: 1.2, daze: 1.2, cost: 2,

@@ -25,7 +25,7 @@ function setup(map) {
   return { game, me, dummy, aim, put }
 }
 
-it('a click reaps: raised up above your head (not round behind you), then brought down, hitting whoever\'s under it (one use)', () => {
+it('a click reaps: raised `arc` back from the aim (aiming ahead: overhead), then brought down, hitting whoever\'s under it (one use)', () => {
   for (const dx of [1.6, 1, -1.6]) {   // (facing right; and left)
     const { game, me, dummy, put } = setup()
     const aim = { ...emptyInput(), aimX: dx > 0 ? 30 : 0, aimY: me.shoulder().y }
@@ -36,10 +36,22 @@ it('a click reaps: raised up above your head (not round behind you), then brough
     const raised = () => me.facing > 0 ? me.weapon.body.getAngle() : Math.PI - me.weapon.body.getAngle()
     for (let i = 0; i < 6; i++) { steps(game, 1, aim); put(dx) }   // (they step in while it's raised)
     for (let i = 0; i < 40; i++) { steps(game, 1, aim); highest = Math.max(highest, raised()) }
-    expect(highest).toBeGreaterThan(Math.PI / 2)                   // (up over your head...)
-    expect(highest).toBeLessThan(Math.PI / 2 + S.tap.raise + 0.3)   // (...and no further back)
+    expect(highest).toBeCloseTo(S.tap.arc * Math.PI / 180, 0)   // (up over your head, and no further back)
     expect(dummy.damageTaken).toBe(S.tap.damage)
     expect(me.weapon.uses).toBe(S.uses - 1)
+  }
+})
+
+it('the reap is the same size of swing wherever you aim: only where it starts changes', () => {
+  for (const a of [-0.7, 0, 0.7, 1.2]) {   // (down ahead, ahead, up ahead, nearly straight up)
+    const { game, me } = setup()
+    const sh = me.shoulder(), aim = { ...emptyInput(), aimX: sh.x + 6 * Math.cos(a), aimY: sh.y + 6 * Math.sin(a) }
+    steps(game, 30, aim)
+    steps(game, 1, { ...aim, throw: true })
+    steps(game, 1, aim)
+    let highest = -Infinity
+    for (let i = 0; i < 20; i++) { steps(game, 1, aim); highest = Math.max(highest, me.weapon.body.getAngle()) }
+    expect(highest - a).toBeCloseTo(S.tap.arc * Math.PI / 180, 0)
   }
 })
 

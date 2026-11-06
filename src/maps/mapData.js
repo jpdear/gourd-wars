@@ -2,6 +2,7 @@
 // A custom map uses the same format as the built-in MAPS (theme by name).
 
 import { CONFIG, MAX_PLAYERS } from '../config.js'
+import { CANNON, CANNON_FACES, clampAim, mountPoint } from '../game/cannons.js'
 import { BALE } from '../game/level.js'
 import { SPAWNABLE_TYPES } from '../game/pumpkinTypes.js'
 import { MAPS } from './builtin.js'
@@ -10,7 +11,7 @@ import { clamp, r3 } from '../util/math.js'
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
 export const MAP_CODE_PREFIX = 'PFMAP1:'
-export const MAP_LIMITS = { platforms: 80, patches: 12, bales: 30, spikes: 20, fires: 10, scythes: 6, movers: 12 }
+export const MAP_LIMITS = { platforms: 80, patches: 12, bales: 30, spikes: 20, fires: 10, scythes: 6, movers: 12, cannons: 8 }
 const newMapId = () => 'c_' + Math.random().toString(36).slice(2, 10)
 
 // Clean up a map from anywhere (storage, an imported code, a host): known fields only,
@@ -42,6 +43,13 @@ export function sanitizeMap(raw) {
       return {
         ...a, w: num(o.w, 0.5, W, 3), h: num(o.h, 0.25, 4, 0.5), x2: num(o.x2, 0, W, a.x), y2: num(o.y2, 0, H, a.y),
         speed: num(o.speed, 0.5, 12, 3), pause: num(o.pause, 0, 5, 1),
+      }
+    }),
+    cannons: list(raw.cannons, MAP_LIMITS.cannons).map(o => {
+      const face = CANNON_FACES[o.face] !== undefined ? o.face : 'top', D = CANNON.defaults
+      return {
+        ...pt(o), face, aim: clampAim(face, num(o.aim, -180, 180, CANNON_FACES[face])),
+        speed: num(o.speed, 4, 30, D.speed), every: num(o.every, 0.5, 20, D.every), delay: num(o.delay, 0, 20, D.delay),
       }
     }),
   }
@@ -177,6 +185,11 @@ export function checkMap(def) {
     const c = { x: b.x, y: b.y + BALE.h / 2 }
     if (def.platforms.some(p => insideOf(c, p))) warnings.push({ msg: `Hay bale ${i + 1} is stuck inside a platform.`, kind: 'bales', index: i })
   })
+  const cannons = def.cannons || []
+  for (let i = 0; i < cannons.length; i++) {   // (the platform it was on moved or went)
+    const c = cannons[i], m = mountPoint(def.platforms, c.x, c.y, 0.05)
+    if (!m || m.face !== c.face) warnings.push({ msg: `Gourd cannon ${i + 1} isn't on a floor, wall or ceiling.`, kind: 'cannons', index: i })
+  }
 
   const { nodes, seen } = mapReach(def)
   if (seen.size) {

@@ -60,6 +60,10 @@ const EFFECTS = {
     fx.birds.push({ x: ev.x, y: ev.y, vx: dir * 5, vy: 4, dir, age: 0, life: 2 })
   },
   clank: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#fff6c8', '#ffd23f', '#b9bfc6'], [3, 8], [0.1, 0.25], [0.02, 0.04]),   // a blade off something hard
+  cannon: (fx, ev) => {   // a gourd cannon firing: a flash and a puff of smoke out of the muzzle
+    burst(fx, ev.x, ev.y, 8, ['#ffd23f', '#ff8a1f'], [2, 6], [0.08, 0.18], [0.03, 0.06])
+    burst(fx, ev.x, ev.y, 14, ['#d8d4cc', '#b9b4aa', '#8f8a80'], [0.5, 2.5], [0.4, 0.9], [0.08, 0.16], 1)
+  },
   weaponBreak: (fx, ev) => {   // a weapon snapping: splinters of its handle and bits of metal
     const t = WEAPON_TYPES[ev.typeName]
     burst(fx, ev.x, ev.y, 18, [t.color, t.color, t.metal], [2, 6], [0.4, 0.8], [0.03, 0.07], 2)

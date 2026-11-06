@@ -6,6 +6,7 @@ import { Vec2 } from 'planck'
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
 import { emptyInput } from './input.js'
 import { SCYTHE_START, buildMover, buildPitchforks, buildScythe, recordHazardContact, resetBales, updateBales, updateHazards, updateMovers } from './level.js'
+import { buildCannon, resetCannons, updateCannons } from './cannons.js'
 import { updateMatch } from './match.js'
 import { createPatches, resetPatches, updatePatches } from './patches.js'
 import { Player } from './player.js'
@@ -27,6 +28,7 @@ export function createGame() {
   // map: the loaded map; mapChoice: the one to load at the next round reset (set from the menu)
   // roundTime: seconds since the round started (scarecrows spin with it)
   // movers: moving platforms { def, body }; moverTime: how far along their trips they are
+  // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
   // looseWeapons: weapons nobody's holding (weaponHits: what thrown ones ran into this step) (see looseWeapons.js); crows: bringing them, or knocked down (pecks:
   // thrown ones on someone's head; crowTimer: until the next one) (see crows.js)
@@ -35,7 +37,7 @@ export function createGame() {
     world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], looseWeapons: [], weaponHits: [], crows: [], pecks: [], contacts: [], events: [],
     nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextWeaponId: 1, nextCrowId: 1, crowTimer: 0,
     weaponSettings: defaultWeaponSettings(), match: null, spawnSettings: defaultSpawnSettings(), sights: false,
-    map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], moverTime: 0, hazardHits: [], roundTime: 0,
+    map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
     joining: [],        // slots waiting to jump in at the start of the next round
     transition: null,   // the pan to a new map: { from, elapsed, duration, starts }
@@ -123,6 +125,9 @@ export function loadMap(game, id) {
   game.mapBodies.push(...game.scythes.map(sc => sc.body))
   game.movers = map.movers.map(def => ({ def, body: buildMover(game, def) }))
   game.mapBodies.push(...game.movers.map(m => m.body))
+  const cannons = map.cannons || []
+  game.cannons = cannons.map(def => ({ def, timer: def.delay }))
+  game.mapBodies.push(...cannons.map(def => buildCannon(game, def)))
   game.map = id
   game.patches = createPatches(map)
   for (const p of game.players) p.spawn = spawnFor(map, p.index)
@@ -145,6 +150,7 @@ export function resetRound(game) {
   for (const sc of game.scythes) sc.body.setTransform(new Vec2(sc.def.x, sc.def.y), SCYTHE_START)
   game.moverTime = 0
   for (const m of game.movers) { m.body.setTransform(new Vec2(m.def.x, m.def.y), 0); m.body.setLinearVelocity(new Vec2(0, 0)) }
+  resetCannons(game)
   for (const p of game.players) p.respawn()
   resetPatches(game)
 }
@@ -159,6 +165,7 @@ export function stepGame(game, inputs) {
   updateTransition(game, CONFIG.dt)
   for (const sc of game.scythes) sc.body.setAngularVelocity(-2 * Math.PI / (sc.def.turnTime || CONFIG.level.scytheTurnTime))   // clockwise
   updateMovers(game, dt)
+  updateCannons(game, dt)
   updateBlackHoles(game, dt)
   updateAirstrikes(game, dt)
   game.world.step(dt, 10, 8)
