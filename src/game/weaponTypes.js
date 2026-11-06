@@ -15,18 +15,15 @@
 //   head                      { shape (a convex outline), edge (points along what cuts), point (what goes into
 //                             things first: falling, it's lowest) }: in the tool's frame (see A WEAPON'S SHAPE)
 //   bladeRadius               how close a pumpkin or a shield has to be to the edge to count (m)
-//   handleHits                an attack hits with all of it (the handle too), not just the head
 //   bats                      { speed, reach, grace }: instead of cutting a thrown pumpkin, an attack bats it
 //                             along your aim (at least `speed` m/s), and it's yours now. Any of the tool bats
 //                             (the handle too), from `reach` m further off than bladeRadius, and for `grace`
 //                             s after the swing's gone past
-//   heft                      held, it's a real body pulled along with you (see weapons.js):
-//     mass                    its mass (kg; a player is about 2.2)
-//     force, torque           how hard it can be pulled (N) and turned (N·m) toward where it should be:
-//                             lower = heavier (it lags and swings with momentum), and easier to stop.
-//                             (Resting on someone, it pushes them this hard.)
-//     swingForce              ...pulled this hard instead during a swing (default: force)
-//     snap                    how much of the way there it tries to get each step (0..1)
+//   heft                      its weight:
+//     mass                    lying loose or thrown, its mass (kg; a player is about 2.2)
+//     turn                    held, how quickly it eases round to a new aim (a spring's rate, 1/s: it's most
+//                             of the way there in 3/turn s; lower feels heavier).
+//                             (In a swing it goes exactly where the swing takes it: see weapons.js)
 //   tap                       a quick click:
 //     motion                  how it moves (see MOTIONS in weapons.js), and its numbers:
 //       reach                 (thrust) how far the arms push the tool out along the aim (m; with handGap and
@@ -69,6 +66,7 @@
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
+import { BODY } from '../config.js'
 import { SPAWN_RATES } from './pumpkinTypes.js'
 
 export const WEAPON_TYPES = {
@@ -76,7 +74,7 @@ export const WEAPON_TYPES = {
     name: 'Pitchfork', color: '#9a6a3a', metal: '#8d949c', uses: 8,
     carry: {},
     length: 1.6, grip: 0.15, handGap: 0.38, hold: -0.05, blade: 0.4, headWidth: 0.24, bladeRadius: 0.1,   // (the tines reach ~1–1.4 m out; a thrust: ~2.8 m from where you started)
-    heft: { mass: 0.4, force: 80, torque: 60, snap: 0.3 },   // (a slight weight: ~0.1 s to swing round to a new aim, overshooting a little)
+    heft: { mass: 0.4, turn: 35 },   // (light: quick to come round to a new aim)
     tap: { motion: 'thrust', time: 0.3, cooldown: 0.25, reach: 0.3, lunge: { speed: 9, time: 0.2 }, damage: 12, knockback: 7, stun: 0.8 },
     charge: {   // Skewer: hoisted overhead on the tines, then flung
       motion: 'thrust', chargeTime: 0.7, time: 0.35, cooldown: 0.3, reach: 0.3, lunge: { speed: 10, time: 0.22 }, cost: 2,
@@ -91,13 +89,13 @@ export const WEAPON_TYPES = {
   scythe: {
     name: 'Scythe', color: '#8a6238', metal: '#9aa3ab', uses: 6,
     carry: { speed: 0.85, jump: 0.9, wallStick: false },   // (heavy: no holding onto walls)
-    length: 1.75, grip: 0.1, handGap: 0.5, hold: -0.05, bladeRadius: 0.12, handleHits: true,   // (a reap catches everyone under it)
+    length: 1.75, grip: 0.1, handGap: 0.5, hold: -0.05, bladeRadius: 0.12,
     head: {   // the blade: off the end of the snath, hanging down (facing right) and curving back toward you
       shape: [[1.69, 0.03], [1.69, -0.11], [1.38, -0.74], [1.29, -0.67]],
       edge: [[1.62, -0.12], [1.53, -0.34], [1.44, -0.55], [1.35, -0.72]],
       point: [1.33, -0.74],
     },
-    heft: { mass: 0.4, force: 80, swingForce: 300, torque: 300, snap: 0.3 },   // (swung, strong enough to whip it right round with its grip staying in your hands)
+    heft: { mass: 0.4, turn: 20 },   // (heavy: slow to come round to a new aim)
     tap: {   // Reap: raised up above your head, then brought down at the aim; it hooks whoever it catches toward you
       motion: 'reap', time: 0.5, cooldown: 0.35, arc: 100, windup: 0.45, follow: 0.35,
       damage: 15, knockback: 6, stun: 0.8, knock: 'toward',
@@ -116,7 +114,7 @@ export const WEAPON_TYPES = {
     carry: { speed: 0.95 },
     length: 1.4, grip: 0.08, handGap: 0.42, hold: -0.05, blade: 0.34, headWidth: 0.26, bladeRadius: 0.15,
     bats: { speed: 20, reach: 0.15, grace: 0.1 },   // (it doesn't cut pumpkins: it bats them)
-    heft: { mass: 0.5, force: 80, swingForce: 250, torque: 250, snap: 0.3 },
+    heft: { mass: 0.5, turn: 26 },
     tap: {   // Smack: raised up over your head and brought down flat on them, launching them along your aim
       motion: 'reap', time: 0.4, cooldown: 0.3, arc: 110, windup: 0.45, follow: 0.35,
       damage: 10, knockback: 7.5, stun: 0.8, knock: 'aim', fullLaunch: true,
@@ -194,6 +192,35 @@ export function addWeaponFixtures(body, type, mass, def, side = 1) {
   const fixture = { density: mass / area, friction: 0.4, ...def }
   body.createFixture(new planck.Box(shaft / 2, SHAFT, new Vec2((head.neck - type.grip) / 2, 0), 0), fixture)
   return body.createFixture(new planck.Polygon(outline), fixture)
+}
+
+// ---------------------------------------------------------------------
+// IN SOMEONE'S HANDS — the back hand at the grip, the front one handGap further up the handle. Both
+// the game (posing the arms) and the drawing (drawing them) use these, so they agree.
+// ---------------------------------------------------------------------
+
+const REACH = 2 * BODY.armSeg * 0.98   // (a hand can be this far from its shoulder: the arm just short of straight)
+
+// Where the hands go on a tool with its grip at `grip`, pointing along `angle`, held by someone whose
+// shoulder is at `shoulder`: { back, front }. Each slides along the handle as far as it has to to stay in
+// arm's reach, so the hands never come off it.
+export function heldHands(type, grip, angle, shoulder) {
+  const wx = grip.x - shoulder.x, wy = grip.y - shoulder.y
+  const b = wx * Math.cos(angle) + wy * Math.sin(angle), disc = b * b - (wx * wx + wy * wy - REACH * REACH)
+  const lo = disc >= 0 ? -b - Math.sqrt(disc) : -b, hi = disc >= 0 ? -b + Math.sqrt(disc) : -b   // (the stretch of handle in reach)
+  const on = t => alongTool(grip, angle, Math.min(hi, Math.max(lo, t)))
+  return { back: on(0), front: on(type.handGap) }
+}
+
+// An arm from `shoulder` reaching for `hand` (out of reach: as near as it gets), for someone facing f
+// (1 right, -1 left): { elbow, hand }. The elbow bends below the line to the hand when it's out ahead,
+// and sticks out behind when it's in by the chest.
+export function armTo(shoulder, hand, f) {
+  const dx = hand.x - shoulder.x, dy = hand.y - shoulder.y, seg = BODY.armSeg
+  const toHand = Math.atan2(dy, dx), lift = Math.acos(Math.min(1, Math.hypot(dx, dy) / (2 * seg)))
+  const upper = toHand - f * lift, fore = toHand + f * lift
+  const elbow = { x: shoulder.x + Math.cos(upper) * seg, y: shoulder.y + Math.sin(upper) * seg }
+  return { elbow, hand: { x: elbow.x + Math.cos(fore) * seg, y: elbow.y + Math.sin(fore) * seg } }
 }
 
 function polygonArea(ps) {

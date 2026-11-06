@@ -32,7 +32,7 @@ it('a click smacks: raised over your head, brought down on them, launching them 
   for (let i = 0; i < 6; i++) { steps(game, 1, aim); put(1.3) }
   for (let i = 0; i < 30; i++) {
     steps(game, 1, aim)
-    highest = Math.max(highest, me.weapon.body.getAngle())
+    highest = Math.max(highest, me.weapon.pose.angle)
     launched = Math.max(launched, dummy.torso.getLinearVelocity().x)
   }
   expect(highest).toBeGreaterThan(Math.PI / 2)
@@ -117,4 +117,22 @@ it('thrown, it bonks whoever it hits: knocked limp, seeing stars, and it bounces
   expect(makeSnapshot(game).players[1].dazed).toBe(true)
   steps(game, Math.ceil(S.throw.daze * 60) + 2)
   expect(dummy.dazed).toBe(false)
+})
+
+it('when a swing ends it eases back round to the aim: no jerk (its turning speed never jumps)', () => {
+  const { game, me, aim } = setup()
+  steps(game, 1, { ...aim, throw: true })
+  const angles = []
+  let ended = -1
+  for (let i = 0; i < 60; i++) {
+    steps(game, 1, aim)
+    angles.push(me.weapon.pose.angle)
+    if (ended < 0 && !me.weapon.swing && i > 2) ended = angles.length - 1
+  }
+  expect(ended).toBeGreaterThan(0)
+  const speed = i => angles[i] - angles[i - 1]   // (rad a step)
+  let jump = 0
+  for (let i = ended + 1; i < angles.length; i++) jump = Math.max(jump, Math.abs(speed(i) - speed(i - 1)))
+  expect(jump).toBeLessThan(0.06)
+  expect(me.weapon.pose.angle).toBeCloseTo(Math.atan2(aim.aimY - (me.shoulder().y - 0.22), aim.aimX - me.shoulder().x), 1)   // (back on the aim)
 })

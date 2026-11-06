@@ -117,7 +117,7 @@ export class Player {
     const pelvisY = y + CONFIG.player.hoverHeight
     const neckY = pelvisY + B.torsoLen
     const shoulderY = neckY - 0.04
-    this.shoulderLocalY = B.torsoLen / 2 - 0.04
+    this.shoulderLocalY = B.torsoLen / 2 - B.shoulderDrop
     this.parts = []
 
     const addPart = (name, body, halfLen) => {

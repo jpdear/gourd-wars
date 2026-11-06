@@ -108,8 +108,10 @@ export const CONFIG = {
   },
   weapon: {
     yankTime: 0.25,          // hold the harvest key this long to pull one out of the ground
-    armStrength: 3,          // holding one, the arms are this many times as strong (so the hands keep up with a swing)
-    limp: 0.1,               // ragdolled holding one, it's pulled along this much as hard as usual (it flops)
+    armStrength: 1.5,        // holding one, the arms are this many times as strong (they're drawn on its handle anyway)
+    give: { tilt: 45, back: 0.4, ease: 0.5 },   // held, running into the level it tilts away (up to `tilt` degrees),
+                             // then slides back along its handle (up to `back` m), else passes through (see giveWay.js);
+                             // `ease`: the share of a change in that it makes each step (so it doesn't pop)
     baleMultiplier: 2,       // weapons do this many times their damage to hay bales
     clankPush: 2,            // the blade bounced off something hard: you're pushed back this fast (m/s)
   },
@@ -146,6 +148,7 @@ export const COLLIDE = { pumpkin: 0x0002, crow: 0x0004, weapon: 0x0008 }
 export const BODY = {
   legSeg: 0.45, armSeg: 0.34, torsoLen: 0.62, headR: 0.17,
   limbHalfW: 0.055, torsoHalfW: 0.09, density: 4,
+  shoulderDrop: 0.04,   // the shoulders: this far down from the top of the torso
 }
 
 // Up to 4 players, each in a slot (0 = the host). The slot picks the color, spawn and score.

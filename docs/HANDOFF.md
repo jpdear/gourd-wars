@@ -7,7 +7,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 - **Stack:** Planck.js (physics), PeerJS (networking), Vite, vitest.
 - **Repo:** `/Users/jdearing/Documents/Personal/p2p_game`, branch **`melee-weapons`**.
 - **Commands:**
-  - `npx vitest run` runs the tests (76 passing).
+  - `npx vitest run` runs the tests (80 passing).
   - `npm run build` builds the game.
   - `npx vitest run -u` re-records `tests/__snapshots__/replay.json`. Only do this after confirming gameplay you didn't mean to change is unchanged.
 - **Git:** **The user commits themselves.** Never commit or push, because pushing to main deploys. The work below is **uncommitted**.
@@ -36,16 +36,16 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
   - Shape helpers: `headOf`, `toWorld`, `pointOf`, `fallAngle`, `addWeaponFixtures`.
   - Lopsided heads (like the Scythe's blade) are mirrored by `side`.
 - **`src/game/weapons.js`**: `HeldWeapon`, a weapon in someone's hands.
-  - **Driving it:** a **MotorJoint** pulls the weapon from a kinematic anchor body that follows the torso, so the weapon never tugs its holder around. `perStep(snap, dt)` keeps the snap consistent in slow motion.
-    - In a swing, the angle target is fed forward by `want.turn` so the swing doesn't lag behind.
-    - Swings use the continuous angle, so they can wind more than half a turn.
-    - It **slips** (passes through everything but players) if its grip gets out of arm's reach (`SNAG`).
+  - **Posed, not simulated** (reworked 2026-11-06): no physics body. `update()` (before the physics step) reads buttons; `place()` (after it, called from `stepGame`) poses it from the chest, sweeps hits, advances the swing.
+    - Held, it eases to the aim on a critically damped spring (`turnToward`, rate `heft.turn`; `spin` carries a swing's speed into it, so the end of a swing doesn't jerk). Big turns go over the top. In a swing it follows the motion exactly; swings use the continuous angle (`heading`).
+    - **Giving way** (`src/game/giveWay.js`): if its outline (chest → grip → handle → head) hits the level, it tilts (≤ `CONFIG.weapon.give.tilt`°), else slides back (≤ `give.back` m), else passes through. Eased by `give.ease`. Never affects the holder.
+    - Knocked down: clutched at its angle to the torso (`limp`).
+  - **Hands:** `heldHands()` and `armTo()` in `weaponTypes.js`, shared by `player.js` (physics arms) and `render/players.js` (`drawWeaponArms` draws the arms on the handle).
   - **Swing motions** are in the `MOTIONS` map (`thrust`, `snap`, `reap`, `whirl`); each returns `{angle, extend, live}`.
-  - **What hits:** only the `live` part of a swing hits. The rest bumps (clanks into the level, ignoring what it was already resting on at swing start) and passes through people.
+  - **What hits:** only the `live` part of a swing hits. The rest gives way to the level like holding it. People, gourds, bales and crows always pass through a held weapon.
     - **Ghost** moves (the Whirl) pass through the level.
-    - A held weapon that isn't swinging passes through gourds.
   - **Strikes:**
-    - A strike = a sweep along the blade's edge points (shields, then pumpkins, then patches), then physics contacts (the `TOUCH` map).
+    - A strike = a sweep along the blade's edge points (shields, then pumpkins, then patches), then `hitBodies`: all of the tool (`hitPoints`: shaft + head, every weapon) against people (`partAt`), bales (`baleAt`) and flying crows. Then a **clank** if the live pose ran into the level and wasn't already giving way (`reach` returns it).
     - Knock direction comes from the `KNOCK` map: `along`, `aim`, `toward`, `away`.
     - `fullLaunch` always launches at full knockback.
   - **Batting (Shovel):**
@@ -86,10 +86,18 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 | Weapon | Tap | Charged | Thrown | Notes |
 |---|---|---|---|---|
 | **Pitchfork** | thrust + lunge | **Skewer**: catch on the tines, carry, click to fling | **Javelin**: point first, sticks | |
-| **Scythe** | **Reap**: `reap` motion, hooks people toward you, the whole tool hits (`handleHits`) | **Whirl**: 2 full turns, ghost move, flings away | **Buzzsaw**: spinning, passes `through` people and bales | heavy carry, no holding onto walls |
+| **Scythe** | **Reap**: `reap` motion, hooks people toward you, the whole tool hits (every weapon does now) | **Whirl**: 1 full turn (0.5 s), ghost move, flings away | **Buzzsaw**: spinning, passes `through` people and bales | heavy carry, no holding onto walls |
 | **Shovel** | **Smack**: `reap` motion, full launch along your aim, **bats gourds** | **Home Run**: guard held up in front (a shield) while charging, then a big smack | **Bonk**: spinning, dazes (stars), rebounds off them | |
 
-## Most recent change (the Shovel batting feedback; the user hasn't tried it yet)
+## Most recent change: held-weapon rework (the user hasn't tried it yet)
+- **Why:** the user found holding janky: the weapon lagged behind, hands slipped off, it got stuck in/dragged people, glitched into the floor, and point-blank attacks stuck in bodies.
+- **Decided with the user:** animated & crisp (no physics); into the level → tilt, then slide back, then pass through, never blocking the holder; held → passes through people; point-blank attacks always hit; a wind-up hitting a low ceiling gives way instead of clanking.
+- **Side effects:** every weapon's handle now hits during an attack (was Scythe only; `handleHits` removed). `heft` is now `{ mass (loose), turn }`. Batting a gourd drops its same-step contacts (`batPumpkin`), since batting now happens after the physics step.
+- **Tests:** rewrote the old physics-rule tests; added: never trails when running/jumping, point-blank hit, never holds you back jumping past a ledge, rests on the floor aimed down. 80 pass; replay unchanged.
+- **Follow-up (user feedback: a jerk at the end of every attack):** held turning was constant-speed, so coming back from a stopped swing started at full speed. Now a spring (see above). Test: `tests/shovel.test.js` ("no jerk").
+- **Also applied:** the user's Scythe/Shovel tuning values (Whirl is now 1 turn in 0.5 s).
+
+## Earlier change (the Shovel batting feedback; the user hasn't tried it yet)
 - **The problem:** the user found gourds too hard to hit. The changes:
   1. Any part of the shovel bats, handle included (gourds only).
   2. Grace for gourds: `bats.reach` 0.15 m extra radius and `bats.grace` 0.1 s late window.

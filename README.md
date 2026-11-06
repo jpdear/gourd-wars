@@ -53,6 +53,7 @@ src/
     pumpkinTypes.js     every pumpkin's numbers + spawn rates
     pumpkins.js         throwing, hits, knockback        powers.js   what the specials do
     weaponTypes.js      every weapon's numbers and shape weapons.js  a weapon in hand: swings, hits, wear, throwing
+    giveWay.js          a weapon in hand keeping out of the level (tilt, slide back, pass through)
     looseWeapons.js     weapons nobody's holding: falling in, thrown (flying), stuck, pegs
     crows.js            crows bringing weapons (and knocked down, thrown, pecking)
     pickups.js          what the harvest key can pick up (pumpkins, weapons, crows)

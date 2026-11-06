@@ -83,7 +83,8 @@ it('a weapon\'s attack knocks a crow down', () => {
   const sh = me.shoulder()
   const crow = crowAt(game, sh.x + 1.6, sh.y - 0.22)
   steps(game, 1, { ...aim, throw: true })
-  expect(until(game, () => crow.state === 'down', 20)).toBe(true)
+  for (let i = 0; i < 20 && crow.state !== 'down'; i++) steps(game, 1, aim)   // (let go: a thrust at it)
+  expect(crow.state).toBe('down')
 })
 
 it('left lying there, a knocked-down crow comes to and flies off', () => {

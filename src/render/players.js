@@ -5,7 +5,7 @@ import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
-import { WEAPON_TYPES } from '../game/weaponTypes.js'
+import { WEAPON_TYPES, armTo, heldHands } from '../game/weaponTypes.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawHeldWeapon } from './weapons.js'
@@ -139,7 +139,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   ctx.lineCap = 'round'
   p.parts.forEach((part, i) => {
     const name = PART_NAMES[i]
-    if (name === 'head') return
+    if (name === 'head' || (p.weapon && ARMS.has(name))) return   // (holding a weapon: see drawWeaponArms)
     const [x1, y1, x2, y2] = partEnds(part, PART_HALF_LEN[name])
     ctx.lineWidth = (name === 'torso' ? 0.16 : 0.11) * s
     ctx.beginPath()
@@ -147,6 +147,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
     ctx.lineTo(X(x2), Y(y2))
     ctx.stroke()
   })
+  if (p.weapon) drawWeaponArms(ctx, p, X, Y, s)
 
   const [hx, hy] = p.parts[PART_NAMES.indexOf('head')]
   ctx.beginPath()
@@ -198,6 +199,28 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s)
   if (p.weapon) drawHeldWeapon(ctx, p, X, Y, s)
+}
+
+const ARMS = new Set(['armL', 'armR', 'forearmL', 'forearmR'])
+
+// Holding a weapon, the arms are drawn reaching for its handle, just as the game poses them (see
+// heldHands and armTo), so the hands are always on it.
+function drawWeaponArms(ctx, p, X, Y, s) {
+  const [typeName, gx, gy, angle] = p.weapon
+  const [tx, ty, ta] = p.parts[PART_NAMES.indexOf('torso')], up = BODY.torsoLen / 2 - BODY.shoulderDrop
+  const shoulder = { x: tx - Math.sin(ta) * up, y: ty + Math.cos(ta) * up }
+  const hands = heldHands(WEAPON_TYPES[typeName], { x: gx, y: gy }, angle, shoulder)
+  ctx.lineWidth = 0.11 * s
+  ctx.lineJoin = 'round'
+  for (const hand of [hands.back, hands.front]) {
+    const arm = armTo(shoulder, hand, p.facing)
+    ctx.beginPath()
+    ctx.moveTo(X(shoulder.x), Y(shoulder.y))
+    ctx.lineTo(X(arm.elbow.x), Y(arm.elbow.y))
+    ctx.lineTo(X(arm.hand.x), Y(arm.hand.y))
+    ctx.stroke()
+  }
+  ctx.lineJoin = 'miter'
 }
 
 // A little gold crown sitting on a head ([x, y, angle]), tilting with it.

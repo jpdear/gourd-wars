@@ -127,6 +127,7 @@ export function batPumpkin(game, p, batter, dir, speed) {
   p.age = 0
   p.launch = { x: vel.x, y: vel.y }
   p.fixture.setFilterGroupIndex(batter.group)   // (it doesn't hit its new thrower on the way out)
+  game.contacts = game.contacts.filter(c => c.pumpkin !== p)   // (batted first: whatever it ran into this step, it didn't)
   const pos = p.body.getPosition()
   game.events.push({ type: 'clank', x: r3(pos.x), y: r3(pos.y) })
 }

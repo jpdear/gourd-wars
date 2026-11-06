@@ -17,7 +17,6 @@ import { updateTransition } from './transition.js'
 import { clearCrows, updateCrows } from './crows.js'
 import { defaultWeaponSettings } from './weaponTypes.js'
 import { clearLooseWeapons, looseContactEnabled, recordThrownContact, updateLooseWeapons } from './looseWeapons.js'
-import { weaponContactEnabled } from './weapons.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
 export function createGame() {
@@ -56,13 +55,13 @@ export function createGame() {
   })
   // Pumpkins don't physically shove players; the knockback comes only from applyHit(),
   // so it follows our numbers (damage, stagger, ripeness) instead of raw collision physics.
-  // (And someone stuck on a weapon's blade doesn't bump against it; a thrown weapon passes through
-  // people and crows, whom it hits by its own rules; see looseWeapons.js.)
+  // (And a thrown weapon passes through people and crows, whom it hits by its own rules; see
+  // looseWeapons.js. A weapon in someone's hands isn't a physics body at all: see weapons.js.)
   world.on('pre-solve', contact => {
     const a = contact.getFixtureA().getBody().getUserData(), b = contact.getFixtureB().getBody().getUserData()
     const pk = a && a.kind === 'pumpkin' ? a.pumpkin : b && b.kind === 'pumpkin' ? b.pumpkin : null
     const other = pk && (a.kind === 'pumpkin' ? b : a)
-    if ((pk && other && other.kind === 'player') || !weaponContactEnabled(a, b) || !looseContactEnabled(a, b)) contact.setEnabled(false)
+    if ((pk && other && other.kind === 'player') || !looseContactEnabled(a, b)) contact.setEnabled(false)
   })
   resetRound(game)
   return game
@@ -169,6 +168,7 @@ export function stepGame(game, inputs) {
   updateBlackHoles(game, dt)
   updateAirstrikes(game, dt)
   game.world.step(dt, 10, 8)
+  for (const p of game.players) if (p.weapon) p.weapon.place(game, p, dt)   // (where everyone is now: see weapons.js)
   handlePumpkinContacts(game)
   updatePumpkins(game, dt)
   updateHazards(game, dt)

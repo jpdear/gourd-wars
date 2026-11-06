@@ -5,7 +5,7 @@ import { createGame, resetRound, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { patchPumpkin } from '../src/game/patches.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
-import { WEAPON_TYPES } from '../src/game/weaponTypes.js'
+import { WEAPON_TYPES, toWorld } from '../src/game/weaponTypes.js'
 import { dropFromSky, dropWeapon } from '../src/game/looseWeapons.js'
 import { HeldWeapon } from '../src/game/weapons.js'
 
@@ -241,7 +241,7 @@ it('a click flings them off early; getting knocked down drops them; letting go t
   expect(me.weapon.uses).toBe(uses)
 })
 
-it('a held weapon is solid: brought down onto someone it shoves them, but only attacks hurt', () => {
+it('a held weapon passes right through people: brought down onto someone it doesn\'t shove them, and only attacks hurt', () => {
   const { game, me, dummy } = setup()
   hold(game, me)
   placeDummy(game, me, dummy, 1.1)
@@ -252,21 +252,24 @@ it('a held weapon is solid: brought down onto someone it shoves them, but only a
     steps(game, 1, { ...emptyInput(), aimX: sh.x + 1.5, aimY: sh.y - 0.8 })   // (brought down onto them)
     for (const p of dummy.parts) shoved = Math.max(shoved, Math.hypot(p.body.getLinearVelocity().x, p.body.getLinearVelocity().y))
   }
-  expect(shoved).toBeGreaterThan(1)
+  expect(shoved).toBeLessThan(0.5)
   expect(dummy.damageTaken).toBe(0)
   expect(me.weapon.uses).toBe(WEAPON_TYPES.pitchfork.uses)
 })
 
-it('a held weapon can\'t go through the floor, and flying pumpkins pass right through it', () => {
+it('aimed down into the floor, a held weapon rests on it (tilted up off the aim), and flying pumpkins pass right through it', () => {
   const { game, me } = setup()
   hold(game, me)
   const c = me.torso.getPosition()
   steps(game, 30, { ...emptyInput(), aimX: c.x + 1, aimY: 0 })   // (pointing down into the floor, top at y 4.4)
   const { at, angle } = me.weapon.pose, tip = WEAPON_TYPES.pitchfork.length - WEAPON_TYPES.pitchfork.grip
-  expect(at.y + Math.sin(angle) * tip).toBeGreaterThan(4.4 - 0.15)
+  const aimed = Math.atan2(0 - (me.shoulder().y - 0.22), 1)
+  expect(at.y + Math.sin(angle) * tip).toBeGreaterThan(4.4 - 0.05)   // (its tip on the floor, not in it)
+  expect(angle).toBeGreaterThan(aimed + 0.1)                         // (tilted up)
+  expect(me.weapon.give.through).toBe(false)
 
   steps(game, 20, { ...emptyInput(), aimX: 30, aimY: me.shoulder().y })
-  const mid = me.weapon.body.getWorldPoint(new Vec2(0.85, 0))   // (on the shaft, clear of the front hand)
+  const mid = toWorld(me.weapon.pose.at, me.weapon.pose.angle, 1, [0.85, 0])   // (on the shaft, clear of the front hand)
   const pk = spawnPumpkin(game, 'classic', new Vec2(mid.x, mid.y + 0.4), new Vec2(0, -6), null)
   steps(game, 6)
   expect(pk.broken).toBe(false)
@@ -300,8 +303,8 @@ it('an attack knocks a pumpkin growing on its patch off the vine (a use)', () =>
   expect(me.weapon.uses).toBe(WEAPON_TYPES.pitchfork.uses - 1)
 })
 
-it('a weapon caught on something never drags its holder: it slips free and comes back to their hands', () => {
-  // Walk into the Hay Loft's left wall with it jammed against the wall, then walk away (still aiming
+it('a weapon never gets in its holder\'s way: walking into a wall with it aimed there, they end up where they would without it', () => {
+  // Walk into the Hay Loft's left wall with it pointed into the wall, then walk away (still aiming
   // into the wall): the same steps with and without it in hand end in the same place.
   const walk = withWeapon => {
     const game = createGame()
@@ -320,6 +323,46 @@ it('a weapon caught on something never drags its holder: it slips free and comes
   const me = walk(true), alone = walk(false)
   expect(Math.abs(me.torso.getPosition().x - alone.torso.getPosition().x)).toBeLessThan(0.1)
   const grip = me.weapon.pose.at, sh = me.shoulder()
-  expect(Math.hypot(grip.x - sh.x, grip.y - sh.y)).toBeLessThan(0.5)   // (back in hand)
-  expect(me.weapon.slipping).toBe(false)
+  expect(Math.hypot(grip.x - sh.x, grip.y - sh.y)).toBeLessThan(0.5)   // (in hand)
+})
+
+it('it\'s always right in your hands: running and jumping, it never trails behind', () => {
+  const { game, me } = setup()
+  hold(game, me)
+  let worst = 0
+  const run = { ...emptyInput(), aimX: 30, aimY: 6, right: true }
+  for (let i = 0; i < 50; i++) {
+    steps(game, 1, i === 10 ? { ...run, jump: true } : run)
+    const grip = me.weapon.pose.at, sh = me.shoulder()
+    worst = Math.max(worst, Math.hypot(grip.x - sh.x, grip.y - (sh.y - 0.22)))
+  }
+  expect(worst).toBeLessThan(0.15)   // (the grip stays at the chest)
+})
+
+it('right up against someone, an attack still hits them (people never stop a swing)', () => {
+  const { game, me, dummy } = setup()
+  hold(game, me)
+  placeDummy(game, me, dummy, 0.45)   // (the tines already past them)
+  swingAt(game, 30, me.shoulder().y)
+  expect(dummy.damageTaken).toBe(WEAPON_TYPES.pitchfork.tap.damage)
+})
+
+it('jumping up past a ledge with it aimed into the ledge, it never holds you back', () => {
+  // Under the end of the Hay Loft's left shelf (x 9–12, underside 5.1), aiming up into it, jump and
+  // drift out past its end: you go as high as you would without it.
+  const peak = withWeapon => {
+    const game = createGame()
+    game.mapChoice = 'hayloft'
+    resetRound(game)
+    const me = game.players[0]
+    steps(game, 30)
+    me.moveBy(11.6 - me.torso.getPosition().x, 0)
+    if (withWeapon) me.holdWeapon(pitchfork())
+    const up = () => ({ ...emptyInput(), aimX: me.shoulder().x - 1, aimY: me.shoulder().y + 3 })
+    steps(game, 20, up())
+    let top = 0
+    for (let i = 0; i < 50; i++) { steps(game, 1, { ...up(), right: true, jump: i < 12 }); top = Math.max(top, me.torso.getPosition().y) }
+    return top
+  }
+  expect(peak(true)).toBeCloseTo(peak(false), 1)
 })

@@ -33,7 +33,7 @@ it('a click reaps: raised `arc` back from the aim (aiming ahead: overhead), then
     steps(game, 1, { ...aim, throw: true })
     steps(game, 1, aim)   // (let go: it swings)
     let highest = -Infinity   // (how far it's raised: up from pointing the way they face, toward their back)
-    const raised = () => me.facing > 0 ? me.weapon.body.getAngle() : Math.PI - me.weapon.body.getAngle()
+    const raised = () => me.facing > 0 ? me.weapon.pose.angle : Math.PI - me.weapon.pose.angle
     for (let i = 0; i < 6; i++) { steps(game, 1, aim); put(dx) }   // (they step in while it's raised)
     for (let i = 0; i < 40; i++) { steps(game, 1, aim); highest = Math.max(highest, raised()) }
     expect(highest).toBeCloseTo(S.tap.arc * Math.PI / 180, 0)   // (up over your head, and no further back)
@@ -50,12 +50,12 @@ it('the reap is the same size of swing wherever you aim: only where it starts ch
     steps(game, 1, { ...aim, throw: true })
     steps(game, 1, aim)
     let highest = -Infinity
-    for (let i = 0; i < 20; i++) { steps(game, 1, aim); highest = Math.max(highest, me.weapon.body.getAngle()) }
+    for (let i = 0; i < 20; i++) { steps(game, 1, aim); highest = Math.max(highest, me.weapon.pose.angle) }
     expect(highest - a).toBeCloseTo(S.tap.arc * Math.PI / 180, 0)
   }
 })
 
-it('hold for the Whirl: twice all the way round you (through the floor: no clank), flinging whoever it catches away from you', () => {
+it('hold for the Whirl: all the way round you (turns times) (through the floor: no clank), flinging whoever it catches away from you', () => {
   for (const dx of [1.2, -1.2]) {
     const { game, me, dummy, aim, put } = setup()
     steps(game, Math.ceil(S.charge.chargeTime * 60) + 2, { ...aim, throw: true })
@@ -68,7 +68,7 @@ it('hold for the Whirl: twice all the way round you (through the floor: no clank
     }
     expect(dummy.damageTaken).toBe(S.charge.damage)
     expect(Math.sign(flung)).toBe(Math.sign(dx))   // (away from you)
-    expect(me.weapon.body.getAngle()).toBeCloseTo(-2 * S.charge.turns * Math.PI, 0)   // (all the way round, twice)
+    expect(me.weapon.pose.angle).toBeCloseTo(-2 * S.charge.turns * Math.PI, 0)   // (all the way round, `turns` times)
     expect(game.events.some(e => e.type === 'clank')).toBe(false)
     expect(me.weapon.uses).toBe(S.uses - S.charge.cost)
   }
@@ -129,16 +129,17 @@ it('a crow\'s scythe falls in point first and sticks, to be pulled out', () => {
   expect(me.weapon.typeName).toBe('scythe')
 })
 
-it('under a low ceiling, raising it back for a reap clanks into it: the swing stops (a use)', () => {
-  const { game, me, aim } = setup('hayloft')   // (the left shelf: x 9–12, its underside at 5.1; the floor's top at 2.6)
-  me.moveBy(8.6 - me.torso.getPosition().x, 0)
+it('under a low ceiling, raising it back for a reap gives way to the ceiling: the swing still comes out and hits', () => {
+  const { game, me, dummy, aim } = setup('hayloft')   // (the left shelf: x 9–12, its underside at 5.1; the floor's top at 2.6)
+  me.moveBy(10 - me.torso.getPosition().x, 0)
   steps(game, 30, aim)
+  const p = me.torso.getPosition(), q = dummy.torso.getPosition()
+  dummy.moveBy(p.x + 1.4 - q.x, p.y - q.y)
   game.events.length = 0
   steps(game, 1, { ...aim, throw: true })
-  steps(game, 30, aim)
-  expect(game.events.some(e => e.type === 'clank')).toBe(true)
-  expect(me.weapon.swing).toBeNull()
-  expect(me.weapon.uses).toBe(S.uses - 1)
+  steps(game, 40, aim)
+  expect(game.events.some(e => e.type === 'clank' && e.y > 4.5)).toBe(false)   // (not on the ceiling)
+  expect(dummy.damageTaken).toBe(S.tap.damage)
 })
 
 it('reaping with it resting on the floor (aiming down) doesn\'t clank on the floor it starts on', () => {
