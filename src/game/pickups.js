@@ -1,4 +1,4 @@
-// PICKUPS — what you can pick up with the harvest key (with empty hands): a pumpkin from its patch,
+// PICKUPS — what you can pick up with the harvest key (with empty hands; or the other of a pair): a pumpkin from its patch,
 // a weapon stuck in the ground, a crow lying dazed. Hold the key next to one for its `time` and it's in your hands.
 //
 // Each source lists what could be picked up right now, as pickups:
@@ -23,7 +23,7 @@ export function findPickup(game, player) {
   for (const source of SOURCES) {
     for (const pk of source(game)) {
       const dx = Math.abs(pelvis.x - pk.x), dy = pelvis.y - pk.y
-      if (dx < bestDx && dy > 0 && dy < CONFIG.pickup.height) { best = pk; bestDx = dx }
+      if (dx < bestDx && dy > 0 && dy < CONFIG.pickup.height && player.canPick(pk)) { best = pk; bestDx = dx }
     }
   }
   return best

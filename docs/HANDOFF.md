@@ -7,7 +7,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 - **Stack:** Planck.js (physics), PeerJS (networking), Vite, vitest.
 - **Repo:** `/Users/jdearing/Documents/Personal/p2p_game`, branch **`melee-weapons`**.
 - **Commands:**
-  - `npx vitest run` runs the tests (80 passing).
+  - `npx vitest run` runs the tests (101 passing).
   - `npm run build` builds the game.
   - `npx vitest run -u` re-records `tests/__snapshots__/replay.json`. Only do this after confirming gameplay you didn't mean to change is unchanged.
 - **Git:** **The user commits themselves.** Never commit or push, because pushing to main deploys. The work below is **uncommitted**.
@@ -27,7 +27,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 - [x] 8.1 Pitchfork end to end
 - [x] 8.2 crows dropping weapons, plus the Weapons settings screen
 - [x] 8.3 charged specials (hold to charge), the Throw Weapon key (F), thrown weapons
-- [ ] 8.4 Scythe ✅, Shovel ✅ (in feedback), **Rake**, **Sickle**, one at a time
+- [x] 8.4 Scythe ✅, Shovel ✅, Rake ✅, Sickle ✅ (built 2026-11-07, the user hasn't tried it yet)
 - [ ] 8.5 parries: two swings that meet clang (both stop, both are pushed back, both lose a use)
 - [ ] 8.6 tuning panel tab, tests, version bump
 
@@ -88,6 +88,8 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 | **Pitchfork** | thrust + lunge | **Skewer**: catch on the tines, carry, click to fling | **Javelin**: point first, sticks | |
 | **Scythe** | **Reap**: `reap` motion, hooks people toward you, the whole tool hits (every weapon does now) | **Whirl**: 1 full turn (0.5 s), ghost move, flings away | **Buzzsaw**: spinning, passes `through` people and bales | heavy carry, no holding onto walls |
 | **Shovel** | **Smack**: `reap` motion, full launch along your aim, **bats gourds** | **Home Run**: guard held up in front (a shield) while charging, then a big smack | **Bonk**: spinning, dazes (stars), rebounds off them | |
+| **Rake** | **Rake**: `rake` motion, trips and drags in the first it catches (`effect: 'trip'`) | **Long Pull**: lunge, hooks a player/bale/loose weapon and hauls it in (`effect: 'haul'`) | **Trap**: lobbed, armed if it rests tines up (`flight: 'trap'`) | |
+| **Sickles** | **Slash**: `slash` motion, hand after hand, alternating, every 3rd an uppercut (`combo`) | **Flurry**: 6 slashes following your aim (`tracks`), hand after hand | **Ricochet**: one per press, off the first wall, then sticks (`flight: 'ricochet'`) | a `pair`, 7 uses each |
 
 ## Most recent change: held-weapon rework (the user hasn't tried it yet)
 - **Why:** the user found holding janky: the weapon lagged behind, hands slipped off, it got stuck in/dragged people, glitched into the floor, and point-blank attacks stuck in bodies.
@@ -110,22 +112,27 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
   - `tests/shovel.test.js` checks that the handle bats and that the grace window works and then ends.
 - **Next:** wait for the user's feedback on how batting feels. Not checked in the browser yet.
 
-## Planned: Rake (next weapon, ask its questions first)
-- **From the design table:**
-  - **Feel:** trip and drag. **Uses:** 7. **Carrying it:** normal speed.
-  - **Tap:** a low sweep along the floor trips them (like a slide tackle), 6 dmg, and pulls them about 1 m in.
-  - **Charged, Long Pull:** hooks the first player, bale or loose weapon about 3.5 m out and hauls it all the way in.
-  - **Thrown, Trap:** lands tines up. Stepping on it makes the handle smack you: 15 dmg, stagger, knocked back.
-- **Already decided:** the trap triggers on **anyone, the thrower included**.
-- **Still to ask:** the rest of its questions. Earlier weapons asked about things like the swing's shape, what a hit does, how it looks when held, charging and throwing poses, and its art.
+## Rake (built 2026-11-07; the user hasn't tried it yet)
+- **Decided with the user:** reach out & drag back tap; Long Pull = lunge + full reach; pulled-in player left tripped at your feet; trap one-shot then a normal rake (picking it up armed disarms it); garden (bow) rake art; lobbed throw that tumbles to rest naturally and is **armed only if it rests tines up** (changed after the user found the snap-to-floor wonky; on flat floor 84/84 test throws rested tines up); trap set off by **any part of any player** (the thrower too); a hooked loose weapon ends up at your feet.
+- **Code:**
+  - `MOTIONS.rake` (weapons.js): hands down `low`, out `reach`, dragged back to `back`; `live` on the way out (`hookOut`) or dragging back; `drags` (let go of what's hooked when the drag ends).
+  - Hit effects are now a map, **`EFFECTS`** (`knock`, `launch`, `grab`, `trip`, `haul`), picked by `move.effect` (replaced `fullLaunch` and the `grab` check). `trip` and `haul` both **hook** the first thing (`HAULED` map: player, bale, weapon) and drag it with the teeth.
+  - `scrape: true`: a live swing gives way to the level instead of clanking.
+  - `throw.flight` is now explicit (`point`, `spinning`, `trap`); `FLIGHT` entries have `sticks`, `lands`, `rests`. `restsAsTrap`, `checkTrap`, `swingSmack`, `hookWeapon`/`haulWeapon`/`letGoWeapon`, `looseWeaponAt` in looseWeapons.js; a `STATES` map steps each loose weapon.
+  - `Player.tripped(dir, stun)` (factored out of the slide tackle).
+- **Tests:** `tests/rake.test.js` (8). The replay was re-recorded: hiding the Rake first proved the replay unchanged (crows now also pick Rakes).
+- **Tuning to watch:** the trap smack's knockback (9) sent Red ~4 m in the browser.
 
-## Planned: Sickle (after the Rake)
-- **From the design table:**
-  - **Feel:** quick. **Uses:** 14. **Carrying it:** light, 110% speed.
-  - **Tap:** very fast slashes (5 dmg) that alternate direction. Every 3rd slash in a row is an uppercut (pops them up, 8 dmg).
-  - **Charged, Flurry:** a burst of rapid slashes.
-  - **Thrown:** a fast, flat spin, 14 dmg, bounces once off a wall.
-- **Already decided:** it's **one-handed** (`handGap` / hand posing will need a one-hand mode).
+## Sickles (built 2026-11-07, reworked into a pair the same day; the user hasn't tried the pair yet)
+- **Decided with the user:** crossing arcs at the aim (down, up, then a big rising uppercut); combo window 0.4 s after a slash; the uppercut pops only them; Flurry = 6 × 4 dmg, following your aim while you **move freely, no lunge**; thrown: ricochet off the first wall, then sticks; classic crescent art.
+  - **Then (user feedback): a pair**, one in each hand, taking turns like punches, held **down by your sides**. **F throws one per press** (fight on one-handed). **Each has its own uses** (7). Defaults taken: crows/sky drop two loose sickles; holding one, you can pick up the other.
+- **Code:**
+  - **Blades** (weapons.js): a `HeldWeapon` has `blades` (one; a `pair` type two, hands 'R'/'L'), each with its own pose, heading/spin, shift, give, last and uses. `this.active` is the one swinging (or about to be thrown); accessors (`pose`, `last`, `heading`, `uses`, `give`) point at it, so most code is unchanged. `reach(game, player, b, ...)` poses one blade; idle pair blades get `atSide()`. `next()`/`used` alternate hands (taps, each Flurry slash, throws). `loseBlade()` when one snaps or is thrown. `takes(key)`/`addBlade()` for picking up the other (`Player.canPick`, `pickups.js`). `dropNew()` (looseWeapons.js) drops a new pair as two.
+  - `view()` for a pair adds `[hand, other x, y, angle, hand]`; `snapshot.js` `lerpWeapon` interpolates both; `render/weapons.js` `heldBlades(p)` + `render/players.js` draw both blades and each holding arm.
+  - `Player.poseLimbs`: each arm holds its grip or relaxes (`relaxedArms`).
+  - `oneHanded`: `heldHands` gives one hand at the grip.
+  - `MOTIONS.slash` / `MOTIONS.flurry`, `tap.combo` + `HeldWeapon.tap()` + `this.run`, `tap.buffer`, `tracks`, `hitOf`/`finish`, `KNOCK.up`, `FLIGHT.ricochet` (`whole`) as before.
+- **Tests:** `tests/sickle.test.js` (13). Replay re-recorded after proving the blades refactor changes nothing (with crows dropping a single sickle, the replay matched).
 
 ## Then
 - **8.5 parries:** two live swings that meet clang. Both stop, both are pushed back, and both lose a use.

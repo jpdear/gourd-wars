@@ -19,7 +19,7 @@ import { BODY, COLLIDE, CONFIG } from '../config.js'
 import { currentMap } from './game.js'
 import { inFire, skyCeiling } from './level.js'
 import { pickWeaponType } from './weaponTypes.js'
-import { dropWeapon } from './looseWeapons.js'
+import { dropNew } from './looseWeapons.js'
 import { r3 } from '../util/math.js'
 
 const FLYING = { categoryBits: COLLIDE.crow, maskBits: COLLIDE.pumpkin | COLLIDE.weapon }   // (only pumpkins and weapons hit it)
@@ -79,7 +79,7 @@ function pickDropSpot(game, y) {
 export function knockDownCrow(game, crow) {
   if (crow.state !== 'flying') return
   const p = crow.body.getPosition()
-  if (crow.carrying) dropWeapon(game, crow.carrying, p.x, p.y - CONFIG.crow.talons, undefined, crow.dir)
+  if (crow.carrying) dropNew(game, crow.carrying, p.x, p.y - CONFIG.crow.talons, crow.dir)
   crow.carrying = null
   crow.state = 'down'
   crow.downTime = 0
@@ -121,7 +121,7 @@ export function updateCrows(game, dt) {
     const p = c.body.getPosition()
     if (c.state === 'flying') {
       if (c.carrying && (p.x - c.dropX) * c.dir >= 0) {   // over the spot: let go
-        dropWeapon(game, c.carrying, p.x, p.y - CONFIG.crow.talons, undefined, c.dir)
+        dropNew(game, c.carrying, p.x, p.y - CONFIG.crow.talons, c.dir)
         c.carrying = null
       }
       if (p.x < -2 || p.x > CONFIG.view.w + 2) c.gone = true   // (flown off)

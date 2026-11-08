@@ -114,7 +114,7 @@ export function interpolateSnapshots(a, b, t) {
       // don't blend across a respawn (it would slide across the screen)
       if (!pa || pa.dead !== pb.dead || Math.hypot(pa.parts[0][0] - pb.parts[0][0], pa.parts[0][1] - pb.parts[0][1]) > 3) return pb
       const wa = pa.weapon, wb = pb.weapon
-      const weapon = wa && wb && wa[0] === wb[0] && wa[5] === wb[5] ? [wb[0], lerp(wa[1], wb[1], t), lerp(wa[2], wb[2], t), wa[3] + wrapAngle(wb[3] - wa[3]) * t, wb[4], wb[5]] : wb
+      const weapon = wa && wb && wa[0] === wb[0] && wa[5] === wb[5] && wa[6] === wb[6] && wa.length === wb.length ? lerpWeapon(wa, wb, t) : wb
       return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)), weapon }
     }),
     pumpkins: byId(a.pumpkins, b.pumpkins, moved),
@@ -133,4 +133,12 @@ export function interpolateSnapshots(a, b, t) {
     patches: b.patches,
     match: b.match,
   }
+}
+
+// A held weapon's view between two snapshots (see HeldWeapon.view): its grip and angle (a pair's, both).
+function lerpWeapon(wa, wb, t) {
+  const w = [...wb]
+  for (const i of [1, 2, 7, 8]) if (i < w.length) w[i] = lerp(wa[i], wb[i], t)
+  for (const i of [3, 9]) if (i < w.length) w[i] = wa[i] + wrapAngle(wb[i] - wa[i]) * t
+  return w
 }

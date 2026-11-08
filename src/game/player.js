@@ -250,6 +250,8 @@ export class Player {
   }
 
   get handsFull() { return !!(this.held || this.weapon) }
+  // We can pick this up (pickups.js): with empty hands; or holding one of a pair, the other.
+  canPick(pk) { return !this.handsFull || !!this.weapon?.takes(pk.key) }
 
   // What we're holding changes how we move (a Big Gourd is heavy, a Balloon makes you floaty...).
   get carry() {
@@ -630,19 +632,26 @@ export class Player {
   // Slide tackle: no damage, but their legs get swept out our way, they pop up and go limp for a moment.
   // We lose a bit of speed.
   trip(game, other, at) {
-    const S = CONFIG.player.slide, s = this.slide.dir
-    other.stun(S.tripStun)
-    other.tripTimer = S.tripImmune
-    for (const p of other.parts) {
-      const v = p.body.getLinearVelocity()
-      const sweep = p.name.startsWith('thigh') || p.name.startsWith('shin') ? s * S.tripSweep : 0
-      p.body.setLinearVelocity(new Vec2(v.x + sweep, Math.max(v.y, S.tripPop)))
-    }
+    const S = CONFIG.player.slide
+    other.tripped(this.slide.dir, S.tripStun)
     for (const p of this.parts) {
       const v = p.body.getLinearVelocity()
       p.body.setLinearVelocity(new Vec2(v.x * S.tripKeep, v.y))
     }
     game.events.push({ type: 'hit', x: r3(at.x), y: r3(at.y) })
+  }
+
+  // Our legs swept out from under us along dir (1 right, -1 left): we pop up and go limp for `stun` s
+  // (a slide tackle, a rake...).
+  tripped(dir, stun) {
+    const S = CONFIG.player.slide
+    this.stun(stun)
+    this.tripTimer = S.tripImmune
+    for (const p of this.parts) {
+      const v = p.body.getLinearVelocity()
+      const sweep = p.name.startsWith('thigh') || p.name.startsWith('shin') ? dir * S.tripSweep : 0
+      p.body.setLinearVelocity(new Vec2(v.x + sweep, Math.max(v.y, S.tripPop)))
+    }
   }
 
   // Vine stuck in `body` at `point`: start reeling in (the spot moves along with a moving platform).
@@ -767,7 +776,7 @@ export class Player {
 
   // Hold harvest with empty hands next to something to pick up (see pickups.js).
   updateHarvest(input, dt, game, canAct) {
-    this.pickup = canAct && !this.handsFull && !this.charging ? findPickup(game, this) : null
+    this.pickup = canAct && !this.charging ? findPickup(game, this) : null
     const target = input.harvest ? this.pickup : null
     if (target?.key !== this.harvestTarget?.key) this.harvestProgress = 0   // walked away, let go, or switched to another
     this.harvestTarget = target
@@ -898,10 +907,14 @@ export class Player {
     this.drive(J.kneeL, kneeL, legT)
     this.drive(J.kneeR, kneeR, legT)
     const [frontElbow, backElbow] = f > 0 ? [J.elbowR, J.elbowL] : [J.elbowL, J.elbowR]
-    if (grips) {
+    if (grips) {   // each hand on its grip (a hand with none, relaxed: one-handed, or one of a pair gone)
       const T = armT * CONFIG.weapon.armStrength   // (firm: it has to keep up with the swing)
-      this.reachFor(frontShoulder, frontElbow, grips.front, T)
-      this.reachFor(backShoulder, backElbow, grips.back, T)
+      const { rest, bend } = this.relaxedArms(C, f, amt)
+      const arms = [[frontShoulder, frontElbow, grips.front, f > 0 ? 'R' : 'L'], [backShoulder, backElbow, grips.back, f > 0 ? 'L' : 'R']]
+      for (const [shoulderJoint, elbowJoint, grip, side] of arms) {
+        if (grip) this.reachFor(shoulderJoint, elbowJoint, grip, T)
+        else { this.drive(shoulderJoint, rest[side], armT); this.drive(elbowJoint, bend[side], armT) }
+      }
     } else if (this.handsFull || this.harvestTarget) {
       // straight arms: holding something with both hands / reaching for it
       this.drive(frontShoulder, armTarget, armT)
@@ -909,29 +922,8 @@ export class Player {
       this.drive(frontElbow, 0, armT)
       this.drive(backElbow, 0, armT)
     } else {
-      // Arms relaxed at the sides, swinging opposite the legs while walking
-      // (thrown out a bit in the air). A punch swings one arm straight at the aim.
-      const front = f > 0 ? 'R' : 'L', back = f > 0 ? 'L' : 'R'
-      const rest = { L: -0.6 * amt * Math.sin(this.walkPhase), R: -0.6 * amt * Math.sin(this.walkPhase + Math.PI) }
-      if (!this.grounded) { rest[front] = 0.8 * f; rest[back] = -0.5 * f }
-      const bend = { L: f * (this.grounded ? 0.2 + 0.4 * amt : 0.5) }
-      bend.R = bend.L
-      if (this.crouching && this.grounded) {   // sitting: hands forward toward the knees (hanging down, they'd prop us up)
-        rest.L = rest.R = f * 1.2
-        bend.L = bend.R = f * 0.4
-      }
-      if (this.slide) {   // power slide: back hand reaching down to skim the floor, front arm forward, ready
-        const s = this.slide.dir, lean = C.slide.lean, trail = s > 0 ? 'L' : 'R', front = s > 0 ? 'R' : 'L'
-        rest[trail] = -s * (0.5 + lean); bend[trail] = 0
-        rest[front] = s * (1.3 - lean); bend[front] = s * 0.8
-      }
-      if (this.wall) {   // on a wall: one hand up against it, the other out for balance
-        const w = this.wall.dir, wallArm = w > 0 ? 'R' : 'L', freeArm = w > 0 ? 'L' : 'R'
-        // (straight up, a hair away from the wall: the motor takes the short way round, and the short
-        // way to "up along the wall" would swing the arm into the wall)
-        rest[wallArm] = -w * 3.05; bend[wallArm] = -w * 0.15
-        rest[freeArm] = -w * 1.2; bend[freeArm] = w * 0.5
-      }
+      // Arms relaxed (see relaxedArms). A punch swings one arm straight at the aim.
+      const { rest, bend } = this.relaxedArms(C, f, amt)
       for (const side of ['L', 'R']) {
         const jab = this.punchTimer > 0 && this.punchArm === side
         const t = jab ? armT * 3 : armT
@@ -940,6 +932,33 @@ export class Player {
       }
     }
     this.drive(J.neck, 0, neckT)
+  }
+
+  // Arms relaxed at the sides, swinging opposite the legs while walking (thrown out a bit in the air;
+  // sitting, sliding or on a wall, posed for it): { rest (shoulder), bend (elbow) } angles, by side (L, R).
+  relaxedArms(C, f, amt) {
+    const front = f > 0 ? 'R' : 'L', back = f > 0 ? 'L' : 'R'
+    const rest = { L: -0.6 * amt * Math.sin(this.walkPhase), R: -0.6 * amt * Math.sin(this.walkPhase + Math.PI) }
+    if (!this.grounded) { rest[front] = 0.8 * f; rest[back] = -0.5 * f }
+    const bend = { L: f * (this.grounded ? 0.2 + 0.4 * amt : 0.5) }
+    bend.R = bend.L
+    if (this.crouching && this.grounded) {   // sitting: hands forward toward the knees (hanging down, they'd prop us up)
+      rest.L = rest.R = f * 1.2
+      bend.L = bend.R = f * 0.4
+    }
+    if (this.slide) {   // power slide: back hand reaching down to skim the floor, front arm forward, ready
+      const s = this.slide.dir, lean = C.slide.lean, trail = s > 0 ? 'L' : 'R', front = s > 0 ? 'R' : 'L'
+      rest[trail] = -s * (0.5 + lean); bend[trail] = 0
+      rest[front] = s * (1.3 - lean); bend[front] = s * 0.8
+    }
+    if (this.wall) {   // on a wall: one hand up against it, the other out for balance
+      const w = this.wall.dir, wallArm = w > 0 ? 'R' : 'L', freeArm = w > 0 ? 'L' : 'R'
+      // (straight up, a hair away from the wall: the motor takes the short way round, and the short
+      // way to "up along the wall" would swing the arm into the wall)
+      rest[wallArm] = -w * 3.05; bend[wallArm] = -w * 0.15
+      rest[freeArm] = -w * 1.2; bend[freeArm] = w * 0.5
+    }
+    return { rest, bend }
   }
 
   // Pose one arm (its shoulder and elbow joints) so its hand lands on `point` (as close as it can

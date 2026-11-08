@@ -8,6 +8,9 @@
 //                             (same as a pumpkin's carry)
 //   length, grip              the whole tool, and how far up from the butt end the back hand holds it (m)
 //   handGap                   the front hand: this much further up the handle (m)
+//   oneHanded                 held in one hand (the front one, at the grip); the other's free, relaxed
+//   pair                      (one-handed) they come two at a time, one for each hand (see HeldWeapon in
+//                             weapons.js): each its own `uses`; they take turns, and Throw Weapon throws one
 //   hold                      held, the grip (the back hand) rests this far out from the chest along the tool
 //                             (m; negative: pulled back beside the body, leaving the arms room to push it out)
 //   blade, headWidth          a head straight on the end (what hits things): the last `blade` m of the tool,
@@ -32,12 +35,36 @@
 //                             back from the aim in the first `windup` of the swing, then brought down
 //                             to the aim and `follow` rad past it
 //       turns                 (whirl) how many times it goes all the way round you
+//       sweep                 (slash) [from, to]: degrees above the aim (the way you face) it slashes from and
+//                             to, after a quick start from where it is (the first `windup` of it). alternate:
+//                             every other one goes the other way (down, then back up)
+//       slashes, arc          (flurry) that many slashes back and forth through the aim, `arc` degrees each,
+//                             following your aim as it goes; each slash can hit the same one again, and the
+//                             last one hits with `finish` ({ damage, knockback, stun }) instead
+//     buffer                  a click up to this long (s) before you can attack again isn't lost: it happens as
+//                             soon as you can
+//     combo                   { window, finisher }: a click within `window` s of the end of the last slash
+//                             carries on the run; every 3rd in a run is the finisher (a move of its own) instead
+//       reach, back, out, low (rake) the hands down `low` m, pushed out `reach` m along the aim in the first
+//                             `out` of the swing, then dragged back in to `back` m behind where it's held.
+//                             hookOut: it hits on the way out (else on the way back)
 //     time, cooldown          how long the swing takes, and the wait after it before the next (s)
 //     lunge                   { speed, time }: you lunge along the aim (sideways) at this speed (m/s) for this long (s)
 //     damage, knockback, stun a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //     knock                   which way a hit knocks them (see KNOCK in weapons.js; default: the way the blade's going)
-//     fullLaunch              a hit always launches them at full knockback (not just when it staggers them)
+//     tracks                  it follows your aim as you move it during the swing
+//     effect                  what a hit on someone does (see EFFECTS in weapons.js):
+//                               knock   (the default) hit and knocked back (staggering them past a point)
+//                               launch  hit, and always launched at full knockback
+//                               grab    caught on the blade (see grab)
+//                               trip    hit, their legs swept out toward you, and dragged in with it (the first
+//                                       it catches; see haul)
+//                               haul    hooked (them, a bale or a loose weapon: the first it reaches) and
+//                                       dragged in with it (see haul)
+//     haul                    (trip, haul) { stun }: let go at the end of the swing, someone dragged in lies
+//                             there this long (s)
 //     ghost                   the tool passes through the level during it (walls, floors...): nothing to clank on
+//     scrape                  the tool never clanks off the level during it: it scrapes along it (giving way)
 //     cost                    uses it costs if it touches anything (default 1)
 //   charge                    keep holding after the tap, and let go once fully charged: the same as a tap, plus
 //     chargeTime              how long to hold (from the press) until it's fully charged (s)
@@ -45,15 +72,18 @@
 //                             above the way you face, its grip `out` m forward and `up` m up from the chest,
 //                             its head a shield there (r m round it; see Player.shield): it blocks like a Big
 //                             Gourd, each block costing a use
-//     grab                    the first one it hits is caught on the blade, helpless:
+//     grab                    (effect grab) the first one it hits is caught on the blade, helpless:
 //       time                  ...carried for at most this long (s; a click flings them sooner)
 //       carrySpeed            ...slowing you down this much (× your speed)
 //       fling                 { speed, damage, stun }: then flung off it toward the aim
-//   throw                     Throw Weapon (hold, let go): it flies point first, or spinning (see looseWeapons.js)
+//   throw                     Throw Weapon (hold, let go):
+//     flight                  how it flies (see FLIGHT in looseWeapons.js): 'point' (point first, sticks where it
+//                             hits), 'spinning' (end over end), 'trap' (lobbed, landing flat as a trap),
+//                             'ricochet' (spinning flat; it bounces back off the first wall, then sticks)
 //     chargeTime              how long to hold for a full-power throw (s)
 //     speed                   [a tap, a full charge] (m/s)
 //     gravityScale            how much gravity pulls on it in flight (low: nearly straight)
-//     spin                    it flies spinning this fast (rad/s; else point first)
+//     spin                    (spinning, trap) it flies spinning this fast (rad/s)
 //     damage, stun, cost      hitting someone (damage at full power: less on a weaker throw); the uses
 //                             a throw that hits anything costs (a miss is free)
 //     knockback               a hit knocks them along its flight this hard (m/s, at full power)
@@ -63,6 +93,9 @@
 //     impale                  the one it hits is carried along on it: { carrySlow (it keeps this share
 //                             of its speed), pin (s: stuck in a wall with them on it, pinned there this long) }
 //     peg                     stuck in the side of something, it's a solid peg to stand on (until pulled out)
+//     trap                    (trap) come to rest tines up, it's armed: any part of anyone (its thrower too)
+//                             touching the tines sets it off, once: the handle smacks them { damage, stun,
+//                             knockback, cost (uses), time (s: the handle's swing up and back down) }
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
@@ -78,11 +111,11 @@ export const WEAPON_TYPES = {
     tap: { motion: 'thrust', time: 0.3, cooldown: 0.25, reach: 0.3, lunge: { speed: 9, time: 0.2 }, damage: 12, knockback: 7, stun: 0.8 },
     charge: {   // Skewer: hoisted overhead on the tines, then flung
       motion: 'thrust', chargeTime: 0.7, time: 0.35, cooldown: 0.3, reach: 0.3, lunge: { speed: 10, time: 0.22 }, cost: 2,
-      damage: 5, knockback: 7, stun: 0.8,
+      damage: 5, knockback: 7, stun: 0.8, effect: 'grab',
       grab: { time: 0.75, carrySpeed: 0.6, fling: { speed: 18, damage: 10, stun: 1 } },
     },
     throw: {   // Javelin
-      chargeTime: 0.6, speed: [16, 25], gravityScale: 0.35, damage: 20, stun: 1, cost: 2,
+      flight: 'point', chargeTime: 0.6, speed: [16, 25], gravityScale: 0.35, damage: 20, stun: 1, cost: 2,
       impale: { carrySlow: 0.75, pin: 1 }, peg: true,
     },
   },
@@ -105,7 +138,7 @@ export const WEAPON_TYPES = {
       damage: 21, knockback: 6, stun: 1, knock: 'away',
     },
     throw: {   // Buzzsaw: flat and spinning, through everyone in its way, until it buries itself in the level
-      chargeTime: 0.6, speed: [12, 20], gravityScale: 0.3, spin: 22, damage: 20, stun: 0.8, knockback: 8, cost: 2,
+      flight: 'spinning', chargeTime: 0.6, speed: [12, 20], gravityScale: 0.3, spin: 22, damage: 20, stun: 0.8, knockback: 8, cost: 2,
       through: true,
     },
   },
@@ -117,15 +150,69 @@ export const WEAPON_TYPES = {
     heft: { mass: 0.5, turn: 26 },
     tap: {   // Smack: raised up over your head and brought down flat on them, launching them along your aim
       motion: 'reap', time: 0.4, cooldown: 0.3, arc: 110, windup: 0.45, follow: 0.35,
-      damage: 10, knockback: 7.5, stun: 0.8, knock: 'aim', fullLaunch: true,
+      damage: 10, knockback: 7.5, stun: 0.8, knock: 'aim', effect: 'launch',
     },
     charge: {   // Home Run: held up in front as a shield while you wind up; then a huge smack
       motion: 'reap', chargeTime: 0.8, guard: { angle: 1.22, out: 0.35, up: -0.3, r: 0.4 }, time: 0.45, cooldown: 0.45, arc: 140, windup: 0.4, follow: 0.35, cost: 2,
-      damage: 20, knockback: 15, stun: 1.2, knock: 'aim', fullLaunch: true,
+      damage: 20, knockback: 15, stun: 1.2, knock: 'aim', effect: 'launch',
     },
     throw: {   // Bonk: end over end; whoever it hits is knocked limp, and it bounces off them
-      chargeTime: 0.6, speed: [12, 20], gravityScale: 0.6, spin: 16, damage: 18, stun: 1.2, daze: 1.2, cost: 2,
+      flight: 'spinning', chargeTime: 0.6, speed: [12, 20], gravityScale: 0.6, spin: 16, damage: 18, stun: 1.2, daze: 1.2, cost: 2,
       rebound: true,
+    },
+  },
+  rake: {
+    name: 'Rake', color: '#9b7146', metal: '#6f777e', uses: 7,
+    carry: {},
+    length: 1.7, grip: 0.1, handGap: 0.45, hold: -0.05, bladeRadius: 0.1,
+    head: {   // a garden rake's: a steel bar on the end, braced by a bow, its teeth hanging down (facing right)
+      shape: [[1.24, 0.07], [1.6, 0.07], [1.6, -0.16], [1.24, -0.16]],
+      edge: [[1.27, -0.16], [1.38, -0.16], [1.49, -0.16], [1.59, -0.16]],   // (the teeth's tips)
+      point: [1.59, -0.16],
+    },
+    heft: { mass: 0.45, turn: 30 },
+    tap: {   // Rake: pushed out low along the aim, then dragged back in: whoever the teeth catch is tripped and pulled in
+      motion: 'rake', time: 0.45, cooldown: 0.3, reach: 0.5, back: 0.2, out: 0.35, low: 0.3, scrape: true,
+      damage: 6, knock: 'toward', effect: 'trip', haul: { stun: 0.7 },
+    },
+    charge: {   // Long Pull: a lunge and shoved right out; the first thing it hooks is hauled all the way in
+      motion: 'rake', chargeTime: 0.7, time: 0.75, cooldown: 0.4, reach: 0.65, back: 0.45, out: 0.4, low: 0.2, hookOut: true, scrape: true,
+      lunge: { speed: 10, time: 0.15 }, cost: 2,
+      damage: 4, effect: 'haul', haul: { stun: 0.8 },
+    },
+    throw: {   // Trap: lobbed; come to rest tines up, it smacks whoever touches it with its handle
+      flight: 'trap', chargeTime: 0.6, speed: [6, 11], gravityScale: 1, spin: 5, damage: 8, stun: 0.5, knockback: 5, cost: 2,
+      trap: { damage: 15, stun: 1, knockback: 9, cost: 1, time: 0.35 },
+    },
+  },
+  sickle: {
+    name: 'Sickle', color: '#a0703f', metal: '#a3abb3', uses: 7,   // (each)
+    carry: { speed: 1.1 },   // (light)
+    length: 0.72, grip: 0.06, oneHanded: true, pair: true, hold: 0.2, bladeRadius: 0.1,
+    head: {   // a crescent: off the end of the short grip, curving forward and down (facing right), back round toward you
+      shape: [[0.28, 0.03], [0.62, 0.03], [0.68, -0.15], [0.58, -0.32], [0.3, -0.37]],
+      edge: [[0.5, -0.05], [0.56, -0.16], [0.5, -0.27], [0.38, -0.33]],   // (the inside of the curve)
+      point: [0.3, -0.36],
+    },
+    heft: { mass: 0.25, turn: 45 },   // (light: whips round)
+    tap: {   // Slash: quick arcs through the aim from each hand in turn, down then back up; every 3rd in a run, the uppercut
+      motion: 'slash', time: 0.16, cooldown: 0.03, sweep: [55, -55], windup: 0.2, alternate: true, buffer: 0.25,
+      damage: 5, knockback: 2, stun: 0,
+      combo: {
+        window: 0.4,
+        finisher: {   // Uppercut: a big rising arc, from low to overhead, popping them up
+          motion: 'slash', time: 0.26, cooldown: 0.2, sweep: [-70, 110], windup: 0.2,
+          damage: 8, knockback: 9, stun: 0.4, knock: 'up', effect: 'launch',
+        },
+      },
+    },
+    charge: {   // Flurry: six quick slashes back and forth, hand after hand, following your aim; you can move about all the while
+      motion: 'flurry', chargeTime: 0.5, time: 0.6, cooldown: 0.3, slashes: 6, arc: 100, windup: 0.08, tracks: true, cost: 2,
+      damage: 4, knockback: 1.5, stun: 0,
+      finish: { damage: 4, knockback: 7, stun: 0.6 },
+    },
+    throw: {   // Ricochet (one at a time): flat and fast, spinning; it bounces back off the first wall, then sticks in what it hits next
+      flight: 'ricochet', chargeTime: 0.5, speed: [14, 24], gravityScale: 0.2, spin: 30, damage: 14, stun: 0.6, knockback: 6, cost: 2,
     },
   },
 }
@@ -203,13 +290,13 @@ const REACH = 2 * BODY.armSeg * 0.98   // (a hand can be this far from its shoul
 
 // Where the hands go on a tool with its grip at `grip`, pointing along `angle`, held by someone whose
 // shoulder is at `shoulder`: { back, front }. Each slides along the handle as far as it has to to stay in
-// arm's reach, so the hands never come off it.
+// arm's reach, so the hands never come off it. One-handed: the front one at the grip, back null (free).
 export function heldHands(type, grip, angle, shoulder) {
   const wx = grip.x - shoulder.x, wy = grip.y - shoulder.y
   const b = wx * Math.cos(angle) + wy * Math.sin(angle), disc = b * b - (wx * wx + wy * wy - REACH * REACH)
   const lo = disc >= 0 ? -b - Math.sqrt(disc) : -b, hi = disc >= 0 ? -b + Math.sqrt(disc) : -b   // (the stretch of handle in reach)
   const on = t => alongTool(grip, angle, Math.min(hi, Math.max(lo, t)))
-  return { back: on(0), front: on(type.handGap) }
+  return type.oneHanded ? { back: null, front: on(0) } : { back: on(0), front: on(type.handGap) }
 }
 
 // An arm from `shoulder` reaching for `hand` (out of reach: as near as it gets), for someone facing f
