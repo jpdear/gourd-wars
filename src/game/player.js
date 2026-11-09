@@ -32,7 +32,7 @@ const freshLife = () => ({
   reviveTimer: 0,             // practice: back up after a hazard KO
   // getting hit
   stunTimer: 0,               // > 0: ragdolled
-  dazedTimer: 0,              // > 0: knocked limp by a bonk on the head (stars circling it)
+  dazedTimer: 0,              // > 0: knocked limp, stars circling the head
   sinceStun: 99,
   staggerMeter: 0,            // recent damage; reaching CONFIG.damage.staggerAt knocks you down
   shoveTimer: 0,              // got hit but not staggered: no walking control for a moment
@@ -45,9 +45,8 @@ const freshLife = () => ({
   // hazards (kept up by level.js)
   hopCooldown: 0,             // bonfire pop-out
   spikeTimer: 0,              // just hurt by pitchforks: not again until this runs out
-  // hands (holding a pumpkin or a weapon, never both)
+  // hands
   held: null,                 // { typeName, power, ripeness, ammo?, blocks? } while holding a pumpkin
-  weapon: null,               // a HeldWeapon (weapons.js) while holding one
   charging: false,
   punchTimer: 0,              // > 0 while a jab is out
   pickup: null,               // what we could pick up from where we stand (see pickups.js)
@@ -65,8 +64,6 @@ const freshLife = () => ({
   slide: null,                // power sliding (crouched while running): { dir: -1 left / 1 right, lead: 'L' / 'R', dustTimer }
   slideBoostTimer: 0,         // the slide's starting boost is used up until this runs out
   slideAir: false,            // jumped out of (or slid off the edge after) a slide: air control won't eat the extra speed
-  lungeTimer: 0,              // lunging (a weapon's thrust): we move at lungeVx (sideways, m/s) until this runs out
-  lungeVx: 0,
 })
 
 export class Player {
@@ -249,13 +246,12 @@ export class Player {
     this.stun(seconds)
   }
 
-  get handsFull() { return !!(this.held || this.weapon) }
-  // We can pick this up (pickups.js): with empty hands; or holding one of a pair, the other.
-  canPick(pk) { return !this.handsFull || !!this.weapon?.takes(pk.key) }
+  get handsFull() { return !!this.held }
+  // We can pick this up (pickups.js): with empty hands.
+  canPick() { return !this.handsFull }
 
   // What we're holding changes how we move (a Big Gourd is heavy, a Balloon makes you floaty...).
   get carry() {
-    if (this.weapon) return this.weapon.carry
     return (this.held && PUMPKIN_TYPES[this.held.typeName].carry) || {}
   }
 
@@ -264,21 +260,9 @@ export class Player {
     this.sprayTimer = 0
   }
 
-  holdWeapon(weapon) {
-    this.weapon = weapon
-    weapon.takeUp(this)
-  }
-
-  // Where the shoulders are (throws, punches and swings are aimed from here).
+  // Where the shoulders are (throws and punches are aimed from here).
   shoulder() {
     return this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
-  }
-
-  // A hand ('L', 'R'): { at (the fist), along (the way the forearm points, out to it: a unit vector) }.
-  hand(side) {
-    const forearm = side === 'L' ? this.forearmL : this.forearmR
-    const at = forearm.getWorldPoint(new Vec2(0, -BODY.armSeg / 2)), d = forearm.getWorldVector(new Vec2(0, -1))
-    return { at: { x: at.x, y: at.y }, along: { x: d.x, y: d.y } }
   }
 
   // The front hand (the one closest to where you're aiming) holds the pumpkin.
@@ -287,11 +271,9 @@ export class Player {
     return forearm.getWorldPoint(new Vec2(0, -BODY.armSeg / 2))
   }
 
-  // Empty hands: nothing to throw or swing anymore.
+  // Empty hands: nothing to throw anymore.
   dropHeld() {
-    if (this.weapon) this.weapon.release()
     this.held = null
-    this.weapon = null
     this.charging = false
   }
 
@@ -307,11 +289,9 @@ export class Player {
 
   // Our shield, if we have one up: { x, y, r, take (it blocked something: what that costs it) }, or
   // null. A held pumpkin whose type has shieldBlocks (a Big Gourd), in the front hand: it takes that
-  // many hits, then cracks apart. Or a weapon held up as one (see HeldWeapon.shield). Not while
-  // ragdolled or frozen.
+  // many hits, then cracks apart. Not while ragdolled or frozen.
   shield() {
     if (this.dead || this.helpless) return null
-    if (this.weapon) return this.weapon.shield(this)
     const type = this.held && PUMPKIN_TYPES[this.held.typeName]
     if (!type || !type.shieldBlocks) return null
     const h = this.handPosition()
@@ -387,7 +367,6 @@ export class Player {
     this.floatTimer = Math.max(0, this.floatTimer - dt)
     this.jumpLock = Math.max(0, this.jumpLock - dt)
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt)
-    this.lungeTimer = Math.max(0, this.lungeTimer - dt)
     this.dazedTimer = Math.max(0, this.dazedTimer - dt)
     if (this.stunTimer > 0) {
       this.stunTimer -= dt
@@ -461,9 +440,6 @@ export class Player {
       const maxAccel = this.grounded ? C.groundAccel : C.airAccel
       const crouchSpeed = this.crouching && this.grounded ? C.crouch.speed : 1
       let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) * crouchSpeed + (this.grounded && this.groundVel ? this.groundVel.x : 0)
-      // lunging: the lunge sets the pace (unless we're already running faster the same way)
-      const lunging = this.lungeTimer > 0
-      if (lunging && !(targetVx * this.lungeVx > 0 && Math.abs(targetVx) > Math.abs(this.lungeVx))) targetVx = this.lungeVx
       // Walking into a hay bale pushes it: it gets a shove, and we walk along at its speed instead
       // of through it. (Our legs alone would just fold and let us slide up over it.)
       const bale = dir && this.grounded ? this.baleAhead(game, dir, vel.x) : null
@@ -475,7 +451,7 @@ export class Player {
       // (crouched and not walking: hold still harder, or the soft legs pushing on the floor shuffle you along)
       const grip = this.crouching && this.grounded && !dir ? 60 : 10
       let ax = clamp((targetVx - vel.x) * grip, -maxAccel, maxAccel)
-      if (!this.grounded && dir === 0 && !lunging) ax *= 0.15   // keep momentum in the air
+      if (!this.grounded && dir === 0) ax *= 0.15   // keep momentum in the air
       // after a slide: going faster than you can run, holding forward (or nothing) doesn't slow you down
       if (this.slideAir && !this.grounded && dir * vel.x >= 0 && Math.abs(vel.x) > C.moveSpeed * (carry.speed ?? 1)) ax = 0
       if (this.wallJumpTimer > 0 && ax * this.wallGraceDir > 0) ax *= 0.15   // (let the kick off a wall happen)
@@ -542,10 +518,8 @@ export class Player {
     this.poseLimbs(game, dt, vel, control)
     if (this.slide) this.updateSlideFoot(dt, game)
 
-    // --- swinging a weapon (even when we can't act: that cuts a swing short), or throwing (or
-    // punching with empty hands) ---
-    if (this.weapon) this.weapon.update(game, this, input, dt)
-    else if (canAct) {
+    // --- throwing (or punching with empty hands) ---
+    if (canAct) {
       const clicked = input.throw && !this.prev.throw
       const heldType = this.held && PUMPKIN_TYPES[this.held.typeName]
       if (heldType && heldType.throwMode === 'spray') {
@@ -702,14 +676,6 @@ export class Player {
     this.jumpLock = Math.max(this.jumpLock, 0.1)   // hover spring off while reeling
   }
 
-  // A burst forward (a weapon's thrust): for `time` s we move at vx (sideways, m/s) instead of walking.
-  // Not into a hay bale right in front of us, or we'd end up climbing onto it.
-  lunge(game, vx, time) {
-    if (this.baleAhead(game, Math.sign(vx), 0)) return
-    this.lungeVx = vx
-    this.lungeTimer = time
-  }
-
   startPunch(game) {
     const P = CONFIG.punch
     const shoulder = this.shoulder()
@@ -764,11 +730,10 @@ export class Player {
     if (!game.match) this.reviveTimer = 1.2
   }
 
-  // Limp for the rest of the round. A pumpkin in hand is lost; a weapon falls where we went down.
+  // Limp for the rest of the round. A pumpkin in hand is lost.
   knockOut(game) {
     this.ko = true
     this.stunTimer = Infinity
-    if (this.weapon) this.weapon.drop(game)
     this.dropHeld()
     this.harvestTarget = null
     this.harvestProgress = 0
@@ -813,7 +778,7 @@ export class Player {
         const ud = fixture.getBody().getUserData()
         // ignore all players (another player's body under you isn't ground; the hover spring
         // would launch you), pumpkins, and hazards (you'd hover over pitchforks instead of landing on them)
-        if (ud && ['player', 'pumpkin', 'hazard', 'weapon', 'crow'].includes(ud.kind)) return -1
+        if (ud && ['player', 'pumpkin', 'hazard', 'crow'].includes(ud.kind)) return -1
         hit = fraction
         hitBody = fixture.getBody()
         return fraction
@@ -893,13 +858,10 @@ export class Player {
     }
 
     // Both arms point at the aim, like holding the pumpkin with two hands (or reach for what we're
-    // picking up). A weapon: both hands on its handle, where it says; a pair in the fists, the arms as
-    // they'd be empty-handed, but posed as it says (see HeldWeapon.fists). (Angles here are from straight down.)
+    // picking up). (Angles here are from straight down.)
     const shoulder = this.shoulder()
     const target = this.harvestTarget ? this.harvestTarget.at : this.aim
     const aimAngle = Math.atan2(target.x - shoulder.x, -(target.y - shoulder.y))
-    const fists = this.weapon && !this.harvestTarget ? this.weapon.fists(game, this) : null
-    const grips = this.weapon && !fists && !this.harvestTarget ? this.weapon.hands() : null
     const armTarget = aimAngle - this.torso.getAngle()
     const [frontShoulder, backShoulder] = f > 0 ? [J.shoulderR, J.shoulderL] : [J.shoulderL, J.shoulderR]
 
@@ -908,7 +870,7 @@ export class Player {
     const firm = this.crouching && !this.slide ? C.crouch.firmness : 1
     const legsOut = this.sitTime > 0 && this.sitTime < C.crouch.legsOutTime
     const legT = lerp(C.limpTorque, C.legTorque * (this.slide ? C.slide.legStrength : legsOut ? 1 : firm), control)
-    const busyArms = (this.handsFull && !fists) || this.harvestTarget || this.punchTimer > 0 || (fists && (fists.L || fists.R))   // (arms aiming, reaching or punching stay firm)
+    const busyArms = this.handsFull || this.harvestTarget || this.punchTimer > 0   // (arms aiming, reaching or punching stay firm)
     const armT = lerp(C.limpTorque, C.armTorque * (busyArms ? 1 : firm), control)
     const neckT = lerp(C.limpTorque, C.neckTorque * firm, control)
     this.drive(J.hipL, hipL, legT)
@@ -916,31 +878,17 @@ export class Player {
     this.drive(J.kneeL, kneeL, legT)
     this.drive(J.kneeR, kneeR, legT)
     const [frontElbow, backElbow] = f > 0 ? [J.elbowR, J.elbowL] : [J.elbowL, J.elbowR]
-    if (grips) {   // each hand on its grip (a hand with none, relaxed: one-handed, or one of a pair gone)
-      const T = armT * CONFIG.weapon.armStrength   // (firm: it has to keep up with the swing)
-      const { rest, bend } = this.relaxedArms(C, f, amt)
-      const arms = [[frontShoulder, frontElbow, grips.front, f > 0 ? 'R' : 'L'], [backShoulder, backElbow, grips.back, f > 0 ? 'L' : 'R']]
-      for (const [shoulderJoint, elbowJoint, grip, side] of arms) {
-        if (grip) this.reachFor(shoulderJoint, elbowJoint, grip, T)
-        else { this.drive(shoulderJoint, rest[side], armT); this.drive(elbowJoint, bend[side], armT) }
-      }
-    } else if (this.harvestTarget || (this.handsFull && !fists)) {
+    if (this.harvestTarget || this.handsFull) {
       // straight arms: holding something with both hands / reaching for it
       this.drive(frontShoulder, armTarget, armT)
       this.drive(backShoulder, armTarget - 0.15 * f, armT)
       this.drive(frontElbow, 0, armT)
       this.drive(backElbow, 0, armT)
     } else {
-      // Arms relaxed (see relaxedArms). A punch swings one arm straight at the aim; a pair in the fists,
-      // each arm as it says (its angle, from the world's x axis, turned to from straight down).
+      // Arms relaxed (see relaxedArms). A punch swings one arm straight at the aim.
       const { rest, bend } = this.relaxedArms(C, f, amt)
       for (const side of ['L', 'R']) {
-        const jab = this.punchTimer > 0 && this.punchArm === side, fist = fists && fists[side]
-        if (fist) {
-          this.drive(J['shoulder' + side], fist.angle + Math.PI / 2 - this.torso.getAngle(), armT * fist.strength)
-          this.drive(J['elbow' + side], f * fist.bend, armT * fist.strength)
-          continue
-        }
+        const jab = this.punchTimer > 0 && this.punchArm === side
         const t = jab ? armT * 3 : armT
         this.drive(J['shoulder' + side], jab ? armTarget : rest[side], t)
         this.drive(J['elbow' + side], jab ? 0 : bend[side], t)
@@ -974,16 +922,6 @@ export class Player {
       rest[freeArm] = -w * 1.2; bend[freeArm] = w * 0.5
     }
     return { rest, bend }
-  }
-
-  // Pose one arm (its shoulder and elbow joints) so its hand lands on `point` (as close as it can
-  // reach), the elbow bending down below the line to it.
-  reachFor(shoulderJoint, elbowJoint, point, torque) {
-    const sh = this.shoulder(), dx = point.x - sh.x, dy = point.y - sh.y
-    const lift = Math.acos(clamp(Math.hypot(dx, dy) / (2 * BODY.armSeg), 0, 1))   // upper arm off the line to the hand (the forearm comes back up as much)
-    const toHand = Math.atan2(dx, -dy) - this.torso.getAngle()
-    this.drive(shoulderJoint, toHand - this.facing * lift, torque)
-    this.drive(elbowJoint, this.facing * 2 * lift, torque)
   }
 
   // Joint motor as a spring: spin toward the target angle, with limited strength.

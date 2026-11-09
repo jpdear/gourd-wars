@@ -1,19 +1,17 @@
 // TUNING PANEL (opens with the debug overlay)
 // Sliders change the values live. Tweaks are saved in this browser so they
 // survive a reload; "Copy changes" puts them on the clipboard so you can
-// paste them into config.js / pumpkinTypes.js / weaponTypes.js (or into a chat).
+// paste them into config.js / pumpkinTypes.js (or into a chat).
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
-import { WEAPON_TYPES } from '../game/weaponTypes.js'
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
-const TUNING_ROOTS = { CONFIG, PUMPKIN_TYPES, WEAPON_TYPES }
+const TUNING_ROOTS = { CONFIG, PUMPKIN_TYPES }
 
 // Tabs → collapsible groups → sliders: [path, min, max, step, label (defaults to the last part of the path)]
 const T_ = 'PUMPKIN_TYPES.'
-const W_ = 'WEAPON_TYPES.'
 const TUNABLES = [
   ['Player', [
     ['World', [
@@ -218,135 +216,6 @@ const TUNABLES = [
       [T_ + 'boomerang.curve.width', 0, 8, 0.25, 'swing out'],
       [T_ + 'boomerang.gravityScale', 0, 1, 0.05, 'gravity'],
       [T_ + 'boomerang.curve.spin', 0, 60, 1, 'spin'],
-    ]],
-  ]],
-  ['Weapons', [
-    ['Holding', [
-      ['CONFIG.weapon.give.tilt', 0, 90, 5, 'give: tilt (°)'],
-      ['CONFIG.weapon.give.back', 0, 1, 0.05, 'give: slide back (m)'],
-      ['CONFIG.weapon.give.ease', 0.05, 1, 0.05, 'give: ease'],
-      ['CONFIG.weapon.armStrength', 0.5, 4, 0.25, 'arm strength'],
-    ]],
-    ['Pitchfork', [
-      [W_ + 'pitchfork.heft.mass', 0.05, 3, 0.05, 'mass (loose)'],
-      [W_ + 'pitchfork.heft.turn', 2, 60, 1, 'turn speed (spring rate)'],
-      [W_ + 'pitchfork.uses', 1, 30, 1, 'uses'],
-      [W_ + 'pitchfork.tap.damage', 0, 60, 1, 'thrust dmg'],
-      [W_ + 'pitchfork.tap.knockback', 0, 25, 0.5, 'thrust knockback'],
-      [W_ + 'pitchfork.tap.time', 0.1, 1, 0.01, 'thrust time'],
-      [W_ + 'pitchfork.tap.cooldown', 0, 1, 0.01, 'thrust cooldown'],
-      [W_ + 'pitchfork.tap.reach', 0, 0.6, 0.02, 'thrust push'],
-      [W_ + 'pitchfork.tap.lunge.speed', 0, 15, 0.5, 'thrust lunge'],
-      [W_ + 'pitchfork.tap.lunge.time', 0, 0.5, 0.01, 'thrust lunge time'],
-      [W_ + 'pitchfork.charge.chargeTime', 0.1, 2, 0.05, 'skewer charge'],
-      [W_ + 'pitchfork.charge.lunge.speed', 0, 15, 0.5, 'skewer lunge'],
-      [W_ + 'pitchfork.charge.grab.time', 0.2, 3, 0.05, 'skewer hold'],
-      [W_ + 'pitchfork.charge.grab.fling.speed', 0, 40, 0.5, 'fling speed'],
-      [W_ + 'pitchfork.charge.grab.fling.damage', 0, 60, 1, 'fling dmg'],
-      [W_ + 'pitchfork.throw.chargeTime', 0.1, 2, 0.05, 'javelin charge'],
-      [W_ + 'pitchfork.throw.speed.0', 2, 60, 1, 'javelin tap speed'],
-      [W_ + 'pitchfork.throw.speed.1', 2, 60, 1, 'javelin full speed'],
-      [W_ + 'pitchfork.throw.gravityScale', 0, 1, 0.05, 'javelin gravity'],
-      [W_ + 'pitchfork.throw.damage', 0, 60, 1, 'javelin dmg'],
-      [W_ + 'pitchfork.throw.impale.pin', 0, 3, 0.1, 'javelin pin (s)'],
-    ]],
-    ['Scythe', [
-      [W_ + 'scythe.heft.mass', 0.05, 3, 0.05, 'mass (loose)'],
-      [W_ + 'scythe.heft.turn', 2, 60, 1, 'turn speed (spring rate)'],
-      [W_ + 'scythe.uses', 1, 30, 1, 'uses'],
-      [W_ + 'scythe.carry.speed', 0.3, 1.5, 0.05, 'carry speed'],
-      [W_ + 'scythe.carry.jump', 0.3, 1.5, 0.05, 'carry jump'],
-      [W_ + 'scythe.tap.damage', 0, 60, 1, 'reap dmg'],
-      [W_ + 'scythe.tap.knockback', 0, 25, 0.5, 'reap hook'],
-      [W_ + 'scythe.tap.time', 0.2, 1.5, 0.01, 'reap time'],
-      [W_ + 'scythe.tap.windup', 0.1, 0.8, 0.05, 'reap windup (share)'],
-      [W_ + 'scythe.tap.cooldown', 0, 1, 0.01, 'reap cooldown'],
-      [W_ + 'scythe.tap.arc', 20, 270, 5, 'reap arc (° back from aim)'],
-      [W_ + 'scythe.charge.chargeTime', 0.1, 2, 0.05, 'whirl charge'],
-      [W_ + 'scythe.charge.time', 0.3, 2, 0.05, 'whirl time'],
-      [W_ + 'scythe.charge.turns', 1, 4, 1, 'whirl turns'],
-      [W_ + 'scythe.charge.damage', 0, 60, 1, 'whirl dmg'],
-      [W_ + 'scythe.charge.knockback', 0, 30, 0.5, 'whirl fling'],
-      [W_ + 'scythe.throw.speed.0', 2, 60, 1, 'buzzsaw tap speed'],
-      [W_ + 'scythe.throw.speed.1', 2, 60, 1, 'buzzsaw full speed'],
-      [W_ + 'scythe.throw.spin', 0, 60, 1, 'buzzsaw spin'],
-      [W_ + 'scythe.throw.gravityScale', 0, 1, 0.05, 'buzzsaw gravity'],
-      [W_ + 'scythe.throw.damage', 0, 60, 1, 'buzzsaw dmg'],
-    ]],
-    ['Shovel', [
-      [W_ + 'shovel.heft.mass', 0.05, 3, 0.05, 'mass (loose)'],
-      [W_ + 'shovel.heft.turn', 2, 60, 1, 'turn speed (spring rate)'],
-      [W_ + 'shovel.uses', 1, 30, 1, 'uses'],
-      [W_ + 'shovel.carry.speed', 0.3, 1.5, 0.05, 'carry speed'],
-      [W_ + 'shovel.bats.speed', 0, 50, 1, 'bat speed'],
-      [W_ + 'shovel.bats.reach', 0, 0.6, 0.05, 'bat extra reach (m)'],
-      [W_ + 'shovel.bats.grace', 0, 0.4, 0.02, 'bat late grace (s)'],
-      [W_ + 'shovel.tap.damage', 0, 60, 1, 'smack dmg'],
-      [W_ + 'shovel.tap.knockback', 0, 40, 0.5, 'smack launch'],
-      [W_ + 'shovel.tap.time', 0.2, 1.5, 0.01, 'smack time'],
-      [W_ + 'shovel.tap.cooldown', 0, 1, 0.01, 'smack cooldown'],
-      [W_ + 'shovel.tap.arc', 20, 270, 5, 'smack arc (° back from aim)'],
-      [W_ + 'shovel.charge.chargeTime', 0.1, 2, 0.05, 'home run charge'],
-      [W_ + 'shovel.charge.guard.angle', -1, 1.5, 0.05, 'guard angle (rad)'],
-      [W_ + 'shovel.charge.guard.out', -0.5, 0.8, 0.05, 'guard grip out (m)'],
-      [W_ + 'shovel.charge.guard.up', -0.8, 0.5, 0.05, 'guard grip up (m)'],
-      [W_ + 'shovel.charge.guard.r', 0.1, 1, 0.05, 'guard size (m)'],
-      [W_ + 'shovel.charge.arc', 20, 270, 5, 'home run arc (° back from aim)'],
-      [W_ + 'shovel.charge.damage', 0, 60, 1, 'home run dmg'],
-      [W_ + 'shovel.charge.knockback', 0, 50, 0.5, 'home run launch'],
-      [W_ + 'shovel.throw.speed.0', 2, 60, 1, 'bonk tap speed'],
-      [W_ + 'shovel.throw.speed.1', 2, 60, 1, 'bonk full speed'],
-      [W_ + 'shovel.throw.spin', 0, 60, 1, 'bonk spin'],
-      [W_ + 'shovel.throw.damage', 0, 60, 1, 'bonk dmg'],
-      [W_ + 'shovel.throw.daze', 0, 4, 0.1, 'bonk daze (s)'],
-    ]],
-    ['Rake', [
-      [W_ + 'rake.heft.mass', 0.05, 3, 0.05, 'mass (loose)'],
-      [W_ + 'rake.heft.turn', 2, 60, 1, 'turn speed (spring rate)'],
-      [W_ + 'rake.uses', 1, 30, 1, 'uses'],
-      [W_ + 'rake.tap.damage', 0, 60, 1, 'rake dmg'],
-      [W_ + 'rake.tap.haul.stun', 0, 3, 0.05, 'rake: down (s)'],
-      [W_ + 'rake.tap.time', 0.2, 1.5, 0.01, 'rake time'],
-      [W_ + 'rake.tap.cooldown', 0, 1, 0.01, 'rake cooldown'],
-      [W_ + 'rake.tap.reach', 0, 0.7, 0.05, 'rake reach out (m)'],
-      [W_ + 'rake.tap.back', 0, 0.5, 0.05, 'rake drag back (m)'],
-      [W_ + 'rake.charge.chargeTime', 0.1, 2, 0.05, 'long pull charge'],
-      [W_ + 'rake.charge.time', 0.3, 2, 0.05, 'long pull time'],
-      [W_ + 'rake.charge.reach', 0, 0.7, 0.05, 'long pull reach out (m)'],
-      [W_ + 'rake.charge.lunge.speed', 0, 20, 0.5, 'long pull lunge'],
-      [W_ + 'rake.charge.lunge.time', 0, 0.5, 0.01, 'long pull lunge time'],
-      [W_ + 'rake.charge.damage', 0, 60, 1, 'long pull dmg'],
-      [W_ + 'rake.charge.haul.stun', 0, 3, 0.05, 'pulled in: down (s)'],
-      [W_ + 'rake.throw.speed.0', 1, 30, 0.5, 'trap tap speed'],
-      [W_ + 'rake.throw.speed.1', 1, 30, 0.5, 'trap full speed'],
-      [W_ + 'rake.throw.gravityScale', 0, 2, 0.05, 'trap gravity'],
-      [W_ + 'rake.throw.damage', 0, 60, 1, 'trap toss dmg'],
-      [W_ + 'rake.throw.trap.damage', 0, 60, 1, 'trap smack dmg'],
-      [W_ + 'rake.throw.trap.stun', 0, 3, 0.05, 'trap smack stun'],
-      [W_ + 'rake.throw.trap.knockback', 0, 30, 0.5, 'trap smack knockback'],
-    ]],
-    ['Sickle', [
-      [W_ + 'sickle.heft.mass', 0.05, 3, 0.05, 'mass (loose)'],
-      [W_ + 'sickle.uses', 1, 40, 1, 'uses'],
-      [W_ + 'sickle.carry.speed', 0.5, 1.5, 0.05, 'carry speed'],
-      [W_ + 'sickle.tap.damage', 0, 60, 1, 'jab dmg'],
-      [W_ + 'sickle.tap.knockback', 0, 20, 0.5, 'jab knockback'],
-      [W_ + 'sickle.tap.time', 0.05, 0.6, 0.01, 'jab time'],
-      [W_ + 'sickle.tap.cooldown', 0, 0.5, 0.01, 'jab cooldown'],
-      [W_ + 'sickle.tap.buffer', 0, 0.5, 0.01, 'click buffer (s)'],
-      [W_ + 'sickle.tap.combo.window', 0.1, 1.5, 0.05, 'combo window (s)'],
-      [W_ + 'sickle.tap.combo.finisher.damage', 0, 60, 1, 'uppercut dmg'],
-      [W_ + 'sickle.tap.combo.finisher.knockback', 0, 30, 0.5, 'uppercut pop'],
-      [W_ + 'sickle.tap.combo.finisher.time', 0.1, 1, 0.01, 'uppercut time'],
-      [W_ + 'sickle.charge.chargeTime', 0.1, 2, 0.05, 'flurry charge'],
-      [W_ + 'sickle.charge.time', 0.2, 2, 0.05, 'flurry time'],
-      [W_ + 'sickle.charge.jabs', 1, 12, 1, 'flurry jabs'],
-      [W_ + 'sickle.charge.damage', 0, 30, 1, 'flurry dmg (each)'],
-      [W_ + 'sickle.charge.finish.knockback', 0, 30, 0.5, 'flurry last knockback'],
-      [W_ + 'sickle.throw.speed.0', 2, 60, 1, 'ricochet tap speed'],
-      [W_ + 'sickle.throw.speed.1', 2, 60, 1, 'ricochet full speed'],
-      [W_ + 'sickle.throw.gravityScale', 0, 1, 0.05, 'ricochet gravity'],
-      [W_ + 'sickle.throw.damage', 0, 60, 1, 'ricochet dmg'],
     ]],
   ]],
 ]

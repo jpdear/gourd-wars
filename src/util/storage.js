@@ -6,7 +6,6 @@
 export const STORAGE_KEYS = {
   customMaps: 'pumpkin-fight-custom-maps',
   spawns: 'pumpkin-fight-spawns',             // which pumpkins grow, and how often
-  weapons: 'pumpkin-fight-weapons',           // which weapons crows bring, and how often
   practiceMap: 'pumpkin-fight-map',
   match: 'pumpkin-fight-match',               // match length, map rotation
   dummies: 'pumpkin-fight-dummies',

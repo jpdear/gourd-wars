@@ -1,146 +1,36 @@
-# Handoff: Gourd Wars melee weapons (as of 2026-11-06)
+# Handoff: Gourd Wars, weapon abilities → gourds (as of 2026-11-09)
 
-Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section, the weapon table and the build order in "Build steps", step 8) and `README.md` (file map).
+Read this first, then `docs/DESIGN.md` (the full design: the **Pumpkins** table, **Crows**, and the build order, step 9) and `README.md` (file map).
 
 ## The project
 - **Gourd Wars**: a browser, peer-to-peer brawler in the style of Stick Fight. The players are ragdoll stick figures who throw pumpkins.
 - **Stack:** Planck.js (physics), PeerJS (networking), Vite, vitest.
-- **Repo:** `/Users/jdearing/Documents/Personal/p2p_game`, branch **`melee-weapons`**.
+- **Repo:** `/Users/jdearing/Documents/Personal/p2p_game`, branch **`remove-melee-weapons`**.
 - **Commands:**
-  - `npx vitest run` runs the tests (102 passing).
+  - `npx vitest run` runs the tests.
   - `npm run build` builds the game.
   - `npx vitest run -u` re-records `tests/__snapshots__/replay.json`. Only do this after confirming gameplay you didn't mean to change is unchanged.
-- **Git:** **The user commits themselves.** Never commit or push, because pushing to main deploys. The work below is **uncommitted**.
+- **Git:** **The user commits themselves.** Never commit or push, because pushing to main deploys.
 
 ## How the user wants to work (follow these)
-- **One weapon at a time:** build one weapon fully (hold, tap, charged move, throw, art), hand it over to try, then stop. Start the next one only when the user says so.
-- **Ask first:** ask that weapon's open design questions before building it.
-- **Code style:** follow *A Philosophy of Software Design*: deep modules, narrow interfaces, information hiding. Dispatch on a name with **handler maps, not if/else chains** (e.g. `MOTIONS`, `KNOCK`, `TOUCH`, `FLIGHT`, `HIT`, `THROW_POSES`, `LOOKS`).
-- **Comments:** each file keeps a plain-English header comment describing its behavior. Keep those, the weaponTypes field docs and `docs/DESIGN.md` up to date.
-- **Checking changes:**
-  - Check each change in the browser (Vite dev server plus Chrome tools; the practice map can be switched to Testing Grounds).
-  - Add tests per weapon in `tests/<weapon>.test.js`.
-  - To prove gameplay didn't change, temporarily hide new types/fields and run the replay test, then re-record.
+- **One gourd at a time:** build one fully (behavior, art, sights, tuning, tests), hand it over to try, then stop. Start the next one only when the user says so.
+- **Ask first:** ask that gourd's open design questions before building it.
+- **Code style:** follow *A Philosophy of Software Design*: deep modules, narrow interfaces, information hiding. Dispatch on a name with **handler maps, not if/else chains**.
+- **Comments:** each file keeps a plain-English header comment describing its behavior. Keep those, the `pumpkinTypes.js` field docs and `docs/DESIGN.md` up to date.
+- **Checking changes:** check each change in the browser (Vite dev server plus Chrome tools; the practice map can be switched to Testing Grounds). Add tests. To prove gameplay didn't change, temporarily hide new types and run the replay test, then re-record.
 - **Replies:** the user has ADHD. Answer first, keep it short, use bullets and checklists, bold the key info, and end with one clear next step.
 
-## Build order (step 8 = weapons)
-- [x] 8.1 Pitchfork end to end
-- [x] 8.2 crows dropping weapons, plus the Weapons settings screen
-- [x] 8.3 charged specials (hold to charge), the Throw Weapon key (F), thrown weapons
-- [x] 8.4 Scythe ✅, Shovel ✅, Rake ✅, Sickle ✅ (built 2026-11-07, the user hasn't tried it yet)
-- [ ] 8.5 parries: two swings that meet clang (both stop, both are pushed back, both lose a use)
-- [ ] 8.6 tuning panel tab, tests, version bump
+## Melee weapons: removed (2026-11-09)
+- The user decided the melee weapons (Pitchfork, Scythe, Shovel, Rake, Sickles) didn't fit the game's vibe.
+- **Archive:** a full copy of the game with them in is at `/Users/jdearing/Documents/Personal/p2p_game_melee_archive/` (see its `ARCHIVE_README.md`, and its `docs/HANDOFF.md` for how they worked). They're also in git history (branch `melee-weapons`).
+- **Crows stay**, carrying nothing: knock one down with a pumpkin, pick it up, throw it for a pecking frenzy. Host setting **Crows** (Off / Rare / Normal / Often) on Match Settings (`matchSettings.crows` → `game.crowRate`).
+- Kept for the gourds: `Player.daze(seconds)` / `dazed` (stars circling the head; `drawDizzyStars` in `render/crows.js`).
 
-## What exists (key files)
-- **`src/game/weaponTypes.js`**: every weapon's numbers and shape. The top comment documents every field.
-  - Shape helpers: `headOf`, `toWorld`, `pointOf`, `fallAngle`, `addWeaponFixtures`.
-  - Lopsided heads (like the Scythe's blade) are mirrored by `side`.
-- **`src/game/weapons.js`**: `HeldWeapon`, a weapon in someone's hands.
-  - **Posed, not simulated** (reworked 2026-11-06): no physics body. `update()` (before the physics step) reads buttons; `place()` (after it, called from `stepGame`) poses it from the chest, sweeps hits, advances the swing.
-    - Held, it eases to the aim on a critically damped spring (`turnToward`, rate `heft.turn`; `spin` carries a swing's speed into it, so the end of a swing doesn't jerk). Big turns go over the top. In a swing it follows the motion exactly; swings use the continuous angle (`heading`).
-    - **Giving way** (`src/game/giveWay.js`): if its outline (chest → grip → handle → head) hits the level, it tilts (≤ `CONFIG.weapon.give.tilt`°), else slides back (≤ `give.back` m), else passes through. Eased by `give.ease`. Never affects the holder.
-    - Knocked down: clutched at its angle to the torso (`limp`).
-  - **Hands:** `heldHands()` and `armTo()` in `weaponTypes.js`, shared by `player.js` (physics arms) and `render/players.js` (`drawWeaponArms` draws the arms on the handle).
-  - **Swing motions** are in the `MOTIONS` map (`thrust`, `snap`, `reap`, `whirl`); each returns `{angle, extend, live}`.
-  - **What hits:** only the `live` part of a swing hits. The rest gives way to the level like holding it. People, gourds, bales and crows always pass through a held weapon.
-    - **Ghost** moves (the Whirl) pass through the level.
-  - **Strikes:**
-    - A strike = a sweep along the blade's edge points (shields, then pumpkins, then patches), then `hitBodies`: all of the tool (`hitPoints`: shaft + head, every weapon) against people (`partAt`), bales (`baleAt`) and flying crows. Then a **clank** if the live pose ran into the level and wasn't already giving way (`reach` returns it).
-    - Knock direction comes from the `KNOCK` map: `along`, `aim`, `toward`, `away`.
-    - `fullLaunch` always launches at full knockback.
-  - **Batting (Shovel):**
-    - Any part of the tool bats, using `batPoints` (points along the shaft plus the blade's edge).
-    - A batted gourd goes along your aim and becomes yours (`batPumpkin`).
-    - Grace: `bats.reach` adds extra radius, and `bats.grace` keeps batting for that many seconds after the swing passes (`this.late`, `batLate`).
-  - **Wear:** a swing that touches anything costs its uses once (`wear(game, player, p, swing)`); hitting 0 uses snaps it.
-  - **Guard:** charging a move with a `guard` (Home Run) holds the weapon up as a shield (`shield()`, used by `Player.shield()`).
-  - **Throwing:** throw poses are in `THROW_POSES`. A `point` weapon draws back like a javelin; a `spinning` one goes back over the shoulder.
-  - **Pressing attack:** a press starts charging; letting go before full charge = the tap, at full charge = the special. Holding never fires the tap.
-- **`src/game/looseWeapons.js`**: dropped and thrown weapons.
-  - The `FLIGHT` map has `point` (sticks where its head hits) and `spinning` (bounces off floors and ceilings, sticks only in walls or once slower than 5 m/s).
-  - `HIT` handlers decide what a thrown weapon does to what it hits; `through` (passes through people and bales), `rebound` and `daze` are per-weapon options.
-  - Weapons settle at rest.
-- **`src/game/crows.js`**: crows carry weapons in and drop them.
-- **`src/game/pumpkins.js`**: `batPumpkin`, `cutPumpkin`.
-- **`src/game/player.js`**: `daze()` / `dazed` (stars), `shield()`, `tryBlock`.
-- **`src/game/cannons.js`** (new): the **gourd cannon** map piece.
-  - It mounts on a floor, wall or ceiling, never floating, and is solid and unbreakable.
-  - It fires an ownerless Classic gourd every `every` s after `delay`. It doesn't fire during map transitions.
-  - Map definition: `{x, y, face, aim (deg, clamped ±80° from straight out), speed, every, delay}`.
-  - Testing Grounds has 2 cannons aimed at the left ground, for practicing batting.
-- **Editor** (`src/ui/editor/tools.js`, `src/ui/editor/editor.js`):
-  - The cannon tool is key **C**: click next to a surface to mount it, then drag its handle to aim (distance sets speed).
-  - A dotted line shows the path; the panel has fields for aim, speed, every and delay.
-  - The map checks warn about an unmounted cannon.
-- **Map data:** `src/maps/mapData.js` sanitizes cannons and allows at most 8.
-- **Rendering:**
-  - `src/render/weapons.js`: the `LOOKS` map, one art function per weapon.
-  - `src/render/level.js`: `drawCannon`.
-  - `src/render/effects.js`: the 'cannon' effect.
-- **Networking:** the snapshot (`src/game/snapshot.js`) carries the held weapon `[type, x, y, angle, throwCharge, side]`, the loose weapon's `side`, the player's `dazed`, and `cannons` timers. `src/net/protocol.js` packs `side`.
-- **Tuning panel:** `src/ui/tuning.js` has a Weapons tab with Pitchfork, Scythe and Shovel groups.
-- **Debug:** the T/Y keys cycle weapons (`src/app/controls.js`).
-
-## Weapons done
-
-| Weapon | Tap | Charged | Thrown | Notes |
-|---|---|---|---|---|
-| **Pitchfork** | thrust + lunge | **Skewer**: catch on the tines, carry, click to fling | **Javelin**: point first, sticks | |
-| **Scythe** | **Reap**: `reap` motion, hooks people toward you, the whole tool hits (every weapon does now) | **Whirl**: 1 full turn (0.5 s), ghost move, flings away | **Buzzsaw**: spinning, passes `through` people and bales | heavy carry, no holding onto walls |
-| **Shovel** | **Smack**: `reap` motion, full launch along your aim, **bats gourds** | **Home Run**: guard held up in front (a shield) while charging, then a big smack | **Bonk**: spinning, dazes (stars), rebounds off them | |
-| **Rake** | **Rake**: `rake` motion, trips and drags in the first it catches (`effect: 'trip'`) | **Long Pull**: lunge, hooks a player/bale/loose weapon and hauls it in (`effect: 'haul'`) | **Trap**: lobbed, armed if it rests tines up (`flight: 'trap'`) | |
-| **Sickles** | **Jab**: `jab` fist motion (a punch), hand after hand, every 3rd an `uppercut` (`combo`) | **Flurry**: 6 `jabs` following your aim (`tracks`), hand after hand | **Ricochet**: one per press, off the first wall, then sticks (`flight: 'ricochet'`) | a `pair`, 7 uses each |
-
-## Most recent change: held-weapon rework (the user hasn't tried it yet)
-- **Why:** the user found holding janky: the weapon lagged behind, hands slipped off, it got stuck in/dragged people, glitched into the floor, and point-blank attacks stuck in bodies.
-- **Decided with the user:** animated & crisp (no physics); into the level → tilt, then slide back, then pass through, never blocking the holder; held → passes through people; point-blank attacks always hit; a wind-up hitting a low ceiling gives way instead of clanking.
-- **Side effects:** every weapon's handle now hits during an attack (was Scythe only; `handleHits` removed). `heft` is now `{ mass (loose), turn }`. Batting a gourd drops its same-step contacts (`batPumpkin`), since batting now happens after the physics step.
-- **Tests:** rewrote the old physics-rule tests; added: never trails when running/jumping, point-blank hit, never holds you back jumping past a ledge, rests on the floor aimed down. 80 pass; replay unchanged.
-- **Follow-up (user feedback: a jerk at the end of every attack):** held turning was constant-speed, so coming back from a stopped swing started at full speed. Now a spring (see above). Test: `tests/shovel.test.js` ("no jerk").
-- **Also applied:** the user's Scythe/Shovel tuning values (Whirl is now 1 turn in 0.5 s).
-
-## Earlier change (the Shovel batting feedback; the user hasn't tried it yet)
-- **The problem:** the user found gourds too hard to hit. The changes:
-  1. Any part of the shovel bats, handle included (gourds only).
-  2. Grace for gourds: `bats.reach` 0.15 m extra radius and `bats.grace` 0.1 s late window.
-  3. **Reap swings are the same size wherever you aim** (Shovel tap and Home Run, Scythe tap): new field `arc` (degrees, default **90**) back from the aim, plus `follow` past it. It replaces the old `raise`.
-     - Aiming ahead, the swing comes down from overhead; aiming up, it winds back over the shoulder; aiming down, it starts in front.
-     - `clearOfFloor()` makes sure the wind-up never swings down through the floor.
-- **Sliders:** the tuning panel has arc sliders (smack, Home Run, reap) and bat reach and grace sliders.
-- **Tests:**
-  - `tests/scythe.test.js` checks that the swing is the same size at any aim.
-  - `tests/shovel.test.js` checks that the handle bats and that the grace window works and then ends.
-- **Next:** wait for the user's feedback on how batting feels. Not checked in the browser yet.
-
-## Rake (built 2026-11-07; the user hasn't tried it yet)
-- **Decided with the user:** reach out & drag back tap; Long Pull = lunge + full reach; pulled-in player left tripped at your feet; trap one-shot then a normal rake (picking it up armed disarms it); garden (bow) rake art; lobbed throw that tumbles to rest naturally and is **armed only if it rests tines up** (changed after the user found the snap-to-floor wonky; on flat floor 84/84 test throws rested tines up); trap set off by **any part of any player** (the thrower too); a hooked loose weapon ends up at your feet.
-- **Code:**
-  - `MOTIONS.rake` (weapons.js): hands down `low`, out `reach`, dragged back to `back`; `live` on the way out (`hookOut`) or dragging back; `drags` (let go of what's hooked when the drag ends).
-  - Hit effects are now a map, **`EFFECTS`** (`knock`, `launch`, `grab`, `trip`, `haul`), picked by `move.effect` (replaced `fullLaunch` and the `grab` check). `trip` and `haul` both **hook** the first thing (`HAULED` map: player, bale, weapon) and drag it with the teeth.
-  - `scrape: true`: a live swing gives way to the level instead of clanking.
-  - `throw.flight` is now explicit (`point`, `spinning`, `trap`); `FLIGHT` entries have `sticks`, `lands`, `rests`. `restsAsTrap`, `checkTrap`, `swingSmack`, `hookWeapon`/`haulWeapon`/`letGoWeapon`, `looseWeaponAt` in looseWeapons.js; a `STATES` map steps each loose weapon.
-  - `Player.tripped(dir, stun)` (factored out of the slide tackle).
-- **Tests:** `tests/rake.test.js` (8). The replay was re-recorded: hiding the Rake first proved the replay unchanged (crows now also pick Rakes).
-- **Tuning to watch:** the trap smack's knockback (9) sent Red ~4 m in the browser.
-
-## Sickles (built 2026-11-07, reworked into a pair the same day; the user hasn't tried the pair yet)
-- **Decided with the user:** crossing arcs at the aim (down, up, then a big rising uppercut); combo window 0.4 s after a slash; the uppercut pops only them; Flurry = 6 × 4 dmg, following your aim while you **move freely, no lunge**; thrown: ricochet off the first wall, then sticks; classic crescent art.
-  - **Then (user feedback): a pair**, one in each hand, taking turns like punches. **F throws one per press** (fight on one-handed). **Each has its own uses** (7). Defaults taken: crows/sky drop two loose sickles; holding one, you can pick up the other.
-  - **Then (user feedback, 2026-11-08): held in the fists like bare hands.** The arms are the real physics arms, posed just as empty-handed (walking swing, air/slide/wall poses); each sickle goes where its hand goes (`Player.hand(side)`), handle at right angles to the forearm (blade forward, curling down, arm hanging). Attacks are the punch: **Jab** (straight out at the aim), **Uppercut** finisher (fist swung up from low, `rise`/`bend`), **Flurry** = 6 rapid `jabs`. Charging: fists up (shaking when full); winding up a throw: that arm drawn back.
-- **Code:**
-  - **Blades** (weapons.js): a `HeldWeapon` has `blades` (one; a `pair` type two, hands 'R'/'L'), each with its own pose, heading/spin, shift, give, last and uses. `this.active` is the one swinging (or about to be thrown); accessors (`pose`, `last`, `heading`, `uses`, `give`) point at it, so most code is unchanged. `reach()` poses a two-handed weapon's blade; a pair's go `inFist()` (pose from the hand, then `settle()`: the shared give-way, turning in the fist only, `giveWay(..., slides = false)`). The arms: `HeldWeapon.fists(game, player)` says what each arm does (`FIST_MOTIONS`: { angle, bend, strength }, or null = as empty-handed), and `Player.poseLimbs` drives the joints; `hands()` is null for a pair and the renderer draws the real arms (`onHandle` in render/players.js). `next()`/`used` alternate hands (taps, each Flurry jab, throws). `loseBlade()` when one snaps or is thrown. `takes(key)`/`addBlade()` for picking up the other (`Player.canPick`, `pickups.js`). `dropNew()` (looseWeapons.js) drops a new pair as two.
-  - `view()` for a pair adds `[hand, other x, y, angle, hand]`; `snapshot.js` `lerpWeapon` interpolates both; `render/weapons.js` `heldBlades(p)` draws both blades.
-  - `Player.poseLimbs`: two-handed weapons, each arm on its grip; a pair, each arm as `fists()` says or relaxed (`relaxedArms`). (`oneHanded` is gone.)
-  - `FIST_MOTIONS` (jab, uppercut, jabs; `blow` = a fresh hit per Flurry jab), `tap.combo` + `HeldWeapon.tap()` + `this.run`, `tap.buffer`, `tracks`, `hitOf`/`finish`, `KNOCK.up`, `FLIGHT.ricochet` (`whole`) as before.
-- **Tests:** `tests/sickle.test.js` (14: incl. fists on the grips, the walking arm swing, the jab). Replay re-recorded after proving the blades refactor changes nothing (with crows dropping a single sickle, the replay matched).
-
-## Then
-- **8.5 parries:** two live swings that meet clang. Both stop, both are pushed back, and both lose a use.
-- **8.6:**
-  - Finish the tuning panel groups for the Rake and Sickle.
-  - Fill test gaps.
-  - **Version bump.**
-  - Update the step 8 checklist in `docs/DESIGN.md`.
+## Build order (step 9)
+- [ ] 9.1 **Pierce** (from the Buzzsaw): flies through everyone in its path, hitting each; **breaks** on the level (doesn't stick)
+- [ ] 9.2 **Daze** (from the Bonk): knocks the target limp with stars circling their head; breaks on the hit (**no bounce**)
+- [ ] 9.3 **Bear Trap** (from the Rake's Trap): lands and sits armed; snaps shut on whoever steps on it
+- [ ] 9.4 **Landmine** (from the Rake's Trap): lands and sits armed; blows up whoever steps on it
 
 ## Open questions in the design doc (not urgent)
 - Should a fully charged Classic hit be able to knock someone off from the middle of a platform?

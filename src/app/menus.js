@@ -10,10 +10,10 @@ import {
 import { describeSession, friendCount, hostCode, joinGame, leaveSession, mode, playingAlone, startHosting } from './session.js'
 import { captureBind } from './controls.js'
 import { binds, resetBinds, setBind } from './keybinds.js'
-import { changeDummies, changeSettings, changeSpawns, changeWeapons, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
+import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
 import { app } from './state.js'
 
-let listReturnTo = 'main'       // the menu screen Pumpkins' or Weapons' "Done" goes back to
+let listReturnTo = 'main'       // the menu screen Pumpkins' "Done" goes back to
 let matchReturnTo = 'host'      // (same for Match Settings)
 
 // Every button's action, by name. A button's data-act is the name plus any arguments, separated
@@ -50,6 +50,7 @@ const ACTIONS = {
   }),
   'order-toggle': () => changeSettings(m => { m.shuffle = !m.shuffle }),
   'sights-toggle': () => changeSettings(m => { m.sights = !m.sights }),
+  crows: rate => changeSettings(m => { m.crows = rate }),
   'pref-toggle': name => togglePref(name),
   map: id => chooseMap(id),
   'dummies-down': () => changeDummies(dummyCount - 1),
@@ -75,13 +76,6 @@ const ACTIONS = {
   'reset-binds': () => { resetBinds(); app.menu.showBinds(binds) },
   'pk-toggle': k => changeSpawns(st => { st[k].on = !st[k].on }),
   'pk-rate': (k, rate) => changeSpawns(st => { st[k].rate = rate }),
-
-  // Weapons
-  'show-weapons': () => { listReturnTo = app.menu.screen; app.menu.show('weapons') },
-  'weapons-done': () => closeListSettings(),
-  drops: rate => changeWeapons(st => { st.drops = rate }),
-  'wp-toggle': k => changeWeapons(st => { st.types[k].on = !st.types[k].on }),
-  'wp-rate': (k, rate) => changeWeapons(st => { st.types[k].rate = rate }),
 
   // Map Editor (My Maps)
   'show-maps': () => showMyMaps(),
@@ -124,7 +118,7 @@ function openSettings() {
   menu.setShown('restart', mode === 'host' && friendCount() > 0)
 }
 
-// (Pumpkins, Weapons) Done: back to where they were opened from
+// (Pumpkins) Done: back to where they were opened from
 export const closeListSettings = () => (listReturnTo === 'match' ? openSettings() : app.menu.show(listReturnTo))
 export const closeControls = () => openSettings()
 export const closeMatchSettings = () => (matchReturnTo === 'paused' ? openPauseMenu() : app.menu.show(matchReturnTo))

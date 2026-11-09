@@ -2,7 +2,7 @@
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
-import { DROP_RATES, DROP_RATE_LABELS, WEAPON_TYPES, WEAPON_TYPE_NAMES } from '../game/weaponTypes.js'
+import { CROW_RATES, CROW_RATE_LABELS } from '../game/crows.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
@@ -34,15 +34,8 @@ export function createMenu(onAction) {
       <button class="pk-on" data-act="pk-toggle:${k}">On</button>
       <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
     </div>`).join('')
-  // weapon drop settings: how often crows come, then one row per weapon (like the pumpkins)
-  root.querySelector('.drop-rate').innerHTML = DROP_RATES.map(r => `<button data-act="drops:${r}">${DROP_RATE_LABELS[r]}</button>`).join('')
-  root.querySelector('.weapon-list').innerHTML = '<div class="pk-head"><span class="pk-name"></span><span>Enabled</span><span>Rarity</span></div>' + WEAPON_TYPE_NAMES.map(k => `
-    <div class="pk-row" data-weapon="${k}">
-      <span class="dot" style="background:${WEAPON_TYPES[k].color}"></span>
-      <span class="pk-name">${WEAPON_TYPES[k].name}</span>
-      <button class="pk-on" data-act="wp-toggle:${k}">On</button>
-      <div class="seg">${rates.map(r => `<button data-act="wp-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
-    </div>`).join('')
+  // how often crows fly over
+  root.querySelector('.crow-rate').innerHTML = CROW_RATES.map(r => `<button data-act="crows:${r}">${CROW_RATE_LABELS[r]}</button>`).join('')
   // keybinds: one row per action
   root.querySelector('.bind-list').innerHTML = BIND_ACTIONS.map(([action, label]) =>
     `<div class="toggle-row"><span>${label}</span><button class="bind" data-act="bind:${action}"></button></div>`).join('')
@@ -117,6 +110,7 @@ export function createMenu(onAction) {
       for (const el of root.querySelectorAll('.match-settings .stepper')) el.classList.toggle('hidden', settings.mode === 'endless')
       this.showToggle('order-toggle', settings.shuffle)
       this.showToggle('sights-toggle', settings.sights)
+      for (const b of root.querySelectorAll('.crow-rate button')) b.classList.toggle('on', b.dataset.act === 'crows:' + settings.crows)
       this.setText('match-num', settings.mode === 'rounds' ? `${settings.rounds} rounds` : `${settings.wins} wins`)
     },
     // an On/Off button
@@ -147,14 +141,10 @@ export function createMenu(onAction) {
     showSpawnSettings(settings) {
       for (const row of root.querySelectorAll('.pk-row[data-type]')) showRarityRow(row, settings[row.dataset.type])
     },
-    showWeaponSettings(settings) {
-      for (const b of root.querySelectorAll('.drop-rate button')) b.classList.toggle('on', b.dataset.act === 'drops:' + settings.drops)
-      for (const row of root.querySelectorAll('.pk-row[data-weapon]')) showRarityRow(row, settings.types[row.dataset.weapon])
-    },
   }
 }
 
-// One row of an Enabled / Rarity table (pumpkins, weapons): st = { on, rate }
+// One row of an Enabled / Rarity table (pumpkins): st = { on, rate }
 function showRarityRow(row, st) {
   row.classList.toggle('off', !st.on)
   const toggle = row.querySelector('.pk-on')

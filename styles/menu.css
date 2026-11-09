@@ -67,7 +67,7 @@
 #menu .pk-head { display: flex; align-items: center; gap: 6px; color: #8a8073; font: 400 13px/1 var(--display); letter-spacing: 0.04em; }
 #menu .pk-head span:nth-child(2) { width: 56px; }
 #menu .pk-head span:nth-child(3) { width: 276px; }
-#menu[data-screen=pumpkins] .card, #menu[data-screen=weapons] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
+#menu[data-screen=pumpkins] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
 #menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: #8a8073; font: 400 15px/1 var(--display); letter-spacing: 0.04em; }
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
 #menu .bind-list { display: flex; flex-direction: column; gap: 6px; }

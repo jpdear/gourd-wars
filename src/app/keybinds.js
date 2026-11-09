@@ -11,8 +11,7 @@ export const BIND_ACTIONS = [
   ['right', 'Move Right', 'KeyD'],
   ['jump', 'Jump', 'KeyW'],
   ['crouch', 'Crouch', 'KeyS'],
-  ['throw', 'Throw / Attack', 'Mouse0'],
-  ['toss', 'Throw Weapon', 'KeyF'],
+  ['throw', 'Throw / Punch', 'Mouse0'],
   ['harvest', 'Harvest', 'KeyE'],
   ['ragdoll', 'Ragdoll', 'KeyR'],
 ]

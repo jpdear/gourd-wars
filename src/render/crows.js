@@ -1,4 +1,4 @@
-// Drawing crows: flying over (a weapon hanging from its feet), knocked down and dazed, held or thrown
+// Drawing crows: flying over, knocked down and dazed, held or thrown
 // (as the "crow" pumpkin type: see BODIES in render/pumpkins.js), clinging to someone's face pecking,
 // and flying off (an effect: see render/effects.js).
 //
@@ -7,8 +7,6 @@
 
 import { BODY, CONFIG } from '../config.js'
 import { PART_NAMES } from '../game/snapshot.js'
-import { drawWeapon } from './weapons.js'
-import { WEAPON_TYPES, fallAngle } from '../game/weaponTypes.js'
 
 const INK = '#1a191f', FAR = '#34313c', EDGE = '#2a2830'
 const time = () => Date.now() / 1000
@@ -172,21 +170,9 @@ function legs(ctx, px, pose) {
   ctx.lineCap = 'butt'
 }
 
-// Talons gripping a handle at (0, 0), seen side-on (in px, the crow `size` px long).
-function talons(ctx, size) {
-  ctx.strokeStyle = INK
-  ctx.lineWidth = Math.max(1.5, 0.022 * size)
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(-0.02 * size, -0.14 * size); ctx.lineTo(0, 0)   // leg down to the handle
-  ctx.arc(0, 0, 0.025 * size, -Math.PI * 0.9, Math.PI * 0.6)  // toes curled round it
-  ctx.stroke()
-  ctx.lineCap = 'butt'
-}
-
 const flapping = speed => Math.sin(time() * speed)
 
-// A crow from the snapshot (snap.crows): flying over with its weapon, or knocked down.
+// A crow from the snapshot (snap.crows): flying over, or knocked down.
 export function drawCrow(ctx, c, X, Y, s) {
   const size = CONFIG.crow.length * s
   if (c.down) {
@@ -201,15 +187,6 @@ export function drawCrow(ctx, c, X, Y, s) {
   }
   const flap = flapping(16)
   const bob = flap * 0.03   // (rising a little on each downstroke)
-  if (c.carry) {   // hanging from its feet, swinging a little
-    const footX = c.x + 0.02 * c.dir, footY = c.y + bob - CONFIG.crow.talons
-    drawWeapon(ctx, c.carry, footX, footY, fallAngle(WEAPON_TYPES[c.carry], c.dir) + Math.sin(time() * 3) * 0.1, c.dir, X, Y, s)   // (point down, as it'll fall)
-    ctx.save()
-    ctx.translate(X(footX), Y(footY))
-    ctx.scale(c.dir, 1)
-    talons(ctx, size)
-    ctx.restore()
-  }
   ctx.save()
   ctx.translate(X(c.x), Y(c.y + bob))
   ctx.scale(c.dir, 1)

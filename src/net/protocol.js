@@ -15,7 +15,6 @@
 
 import { PATCH_STATES } from '../game/patches.js'
 import { PUMPKIN_TYPE_NAMES } from '../game/pumpkinTypes.js'
-import { WEAPON_TYPE_NAMES } from '../game/weaponTypes.js'
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'   // no 0/O or 1/I look-alikes
 
@@ -27,13 +26,13 @@ export function makeCode() {
 
 export function packInput(i) {
   return {
-    l: i.left ? 1 : 0, r: i.right ? 1 : 0, j: i.jump ? 1 : 0, c: i.crouch ? 1 : 0, th: i.throw ? 1 : 0, tw: i.toss ? 1 : 0, h: i.harvest ? 1 : 0, rg: i.ragdoll ? 1 : 0,
+    l: i.left ? 1 : 0, r: i.right ? 1 : 0, j: i.jump ? 1 : 0, c: i.crouch ? 1 : 0, th: i.throw ? 1 : 0, h: i.harvest ? 1 : 0, rg: i.ragdoll ? 1 : 0,
     ax: Math.round(i.aimX * 100) / 100, ay: Math.round(i.aimY * 100) / 100,
   }
 }
 
 export function unpackInput(m) {
-  return { left: !!m.l, right: !!m.r, jump: !!m.j, crouch: !!m.c, throw: !!m.th, toss: !!m.tw, harvest: !!m.h, ragdoll: !!m.rg, aimX: +m.ax || 0, aimY: +m.ay || 0 }
+  return { left: !!m.l, right: !!m.r, jump: !!m.j, crouch: !!m.c, throw: !!m.th, harvest: !!m.h, ragdoll: !!m.rg, aimX: +m.ax || 0, aimY: +m.ay || 0 }
 }
 
 // Snapshots (see game/snapshot.js) go 30 times a second, so their lists of things go as arrays
@@ -47,13 +46,9 @@ const SNAPSHOT_LISTS = {
     unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4) }),
   },
   holes: fields('id', 'x', 'y', 'r'),
-  crows: {   // (down as 0/1; what it carries by number, -1: nothing)
-    pack: c => [c.id, c.x, c.y, c.angle, c.down ? 1 : 0, c.carry ? WEAPON_TYPE_NAMES.indexOf(c.carry) : -1, c.dir],
-    unpack: ([id, x, y, angle, down, carry, dir]) => ({ id, x, y, angle, down: !!down, carry: WEAPON_TYPE_NAMES[carry] ?? null, dir }),
-  },
-  weapons: {   // (its type by number)
-    pack: w => [w.id, WEAPON_TYPE_NAMES.indexOf(w.typeName), w.x, w.y, w.angle, w.side],
-    unpack: ([id, type, x, y, angle, side]) => ({ id, typeName: WEAPON_TYPE_NAMES[type], x, y, angle, side }),
+  crows: {   // (down as 0/1)
+    pack: c => [c.id, c.x, c.y, c.angle, c.down ? 1 : 0, c.dir],
+    unpack: ([id, x, y, angle, down, dir]) => ({ id, x, y, angle, down: !!down, dir }),
   },
   strikes: fields('id', 'x', 'y', 't', 'r'),
   movers: fields('x', 'y'),

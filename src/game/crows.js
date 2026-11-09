@@ -1,28 +1,24 @@
-// CROWS — how weapons get into a round. Every so often (the host's Weapon Drops setting) a crow
-// flies across the top of the screen (under the roof, if the map has one) carrying a weapon, and
-// lets go of it over a platform; it falls in blade first and sticks (see weapons.js).
+// CROWS — every so often (the host's Crows setting) a crow flies across the top of the screen (under
+// the roof, if the map has one).
 //
-// Hit the crow on its way over (a pumpkin, or a weapon's attack) and it lets go right there and
-// falls, dazed: a little body on the floor, shoved around like anything else. Anyone with empty
+// Hit it with a pumpkin on its way over and it falls, dazed: a little body on the floor, shoved around
+// like anything else. Anyone with empty
 // hands can pick it up (the harvest key) and throw it like a pumpkin (it's the "crow" pumpkin type):
 // whoever it hits gets a pecking frenzy (it sits on their head pecking a while, then flies off). Left
 // lying there, it comes to and flies off; thrown and missing, it flies off where it lands.
 //
-// game.crows: { id, state: 'flying' | 'down', body, carrying (weapon type | null), dropX (where it lets go),
-//   dir (-1 / 1: which way it's flying or facing), downTime (s lying there) }
+// game.crows: { id, state: 'flying' | 'down', body, dir (-1 / 1: which way it's flying or facing),
+//   downTime (s lying there) }
 // game.pecks: { victim, t, tick } (a crow on someone's head)
 // game.crowTimer: seconds until the next crow is sent
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { BODY, COLLIDE, CONFIG } from '../config.js'
-import { currentMap } from './game.js'
-import { inFire, skyCeiling } from './level.js'
-import { pickWeaponType } from './weaponTypes.js'
-import { dropNew } from './looseWeapons.js'
+import { skyCeiling } from './level.js'
 import { r3 } from '../util/math.js'
 
-const FLYING = { categoryBits: COLLIDE.crow, maskBits: COLLIDE.pumpkin | COLLIDE.weapon }   // (only pumpkins and weapons hit it)
+const FLYING = { categoryBits: COLLIDE.crow, maskBits: COLLIDE.pumpkin }   // (only pumpkins hit it)
 const DOWN = { categoryBits: COLLIDE.crow, maskBits: 0xFFFF & ~COLLIDE.pumpkin }             // (on the floor: everything but pumpkins)
 
 // Start of a round: no crows, and the first one comes after a while.
@@ -33,17 +29,19 @@ export function clearCrows(game) {
   game.crowTimer = CONFIG.crow.firstAfter + Math.random() * dropInterval(game) * 0.5
 }
 
-const dropInterval = game => CONFIG.crow.every[game.weaponSettings.drops] || Infinity
+// How often crows come: the host's choice (CONFIG.crow.every has the times).
+export const CROW_RATES = ['off', 'rare', 'normal', 'often']
+export const CROW_RATE_LABELS = { off: 'Off', rare: 'Rare', normal: 'Normal', often: 'Often' }
+const dropInterval = game => CONFIG.crow.every[game.crowRate] || Infinity
 
-// A crow sets off now, carrying a weapon of this type, if there's somewhere to drop it. Returns it (or null).
-export function sendCrow(game, typeName) {
-  const y = flightHeight(), dropX = pickDropSpot(game, y)
-  if (dropX === null) return null
+// A crow sets off now, from one side or the other. Returns it.
+export function sendCrow(game) {
+  const y = flightHeight()
   const dir = Math.random() < 0.5 ? 1 : -1, x = dir > 0 ? -1 : CONFIG.view.w + 1
   const body = game.world.createBody({ type: 'kinematic', position: new Vec2(x, y) })
   body.createFixture(new planck.Circle(CONFIG.crow.radius), { density: 2, friction: 0.5, restitution: 0.2, filterCategoryBits: FLYING.categoryBits, filterMaskBits: FLYING.maskBits })
   body.setLinearVelocity(new Vec2(dir * CONFIG.crow.speed, 0))
-  const crow = { id: game.nextCrowId++, state: 'flying', body, carrying: typeName, dropX, dir, downTime: 0 }
+  const crow = { id: game.nextCrowId++, state: 'flying', body, dir, downTime: 0 }
   body.setUserData({ kind: 'crow', crow })
   game.crows.push(crow)
   return crow
@@ -56,31 +54,10 @@ export function sendCrow(game, typeName) {
   }
 }
 
-// Somewhere over a platform (not a moving one, not into hazards or a bonfire) where a weapon let go of
-// at height y lands. A few random tries; null if none worked.
-function pickDropSpot(game, y) {
-  const floors = currentMap(game).platforms.filter(p => !p.wall && p.w > 1)
-  for (let tries = 0; tries < 12 && floors.length; tries++) {
-    const p = floors[Math.floor(Math.random() * floors.length)]
-    const x = p.x + (Math.random() - 0.5) * (p.w - 1)
-    let lands = null
-    game.world.rayCast(new Vec2(x, y), new Vec2(x, CONFIG.killY), (fixture, point, normal, fraction) => {
-      const ud = fixture.getBody().getUserData()
-      if (ud && (ud.kind === 'player' || ud.kind === 'pumpkin' || ud.kind === 'weapon' || ud.kind === 'crow')) return -1
-      lands = ud && ud.kind === 'platform' && !ud.mover && !inFire(game, point, 0.3)
-      return fraction
-    })
-    if (lands) return x
-  }
-  return null
-}
-
-// Hit by a pumpkin or a weapon: it lets go of what it's carrying and falls, dazed.
+// Hit by a pumpkin: it falls, dazed.
 export function knockDownCrow(game, crow) {
   if (crow.state !== 'flying') return
   const p = crow.body.getPosition()
-  if (crow.carrying) dropNew(game, crow.carrying, p.x, p.y - CONFIG.crow.talons, crow.dir)
-  crow.carrying = null
   crow.state = 'down'
   crow.downTime = 0
   const body = crow.body
@@ -120,10 +97,6 @@ export function updateCrows(game, dt) {
   for (const c of game.crows) {
     const p = c.body.getPosition()
     if (c.state === 'flying') {
-      if (c.carrying && (p.x - c.dropX) * c.dir >= 0) {   // over the spot: let go
-        dropNew(game, c.carrying, p.x, p.y - CONFIG.crow.talons, c.dir)
-        c.carrying = null
-      }
       if (p.x < -2 || p.x > CONFIG.view.w + 2) c.gone = true   // (flown off)
     } else if ((c.downTime += dt) >= C.wakeTime || p.y < CONFIG.killY) flyOff(game, c)
   }
@@ -148,14 +121,12 @@ export function updateCrows(game, dt) {
   game.pecks = game.pecks.filter(pk => !pk.done)
 }
 
-// Every so often a crow comes, bringing one of the weapons that are on, unless there are enough lying around.
+// Every so often a crow comes, unless there are already enough around.
 function sendCrows(game, dt) {
-  if (game.transition || game.weaponSettings.drops === 'off') return
+  if (game.transition || game.crowRate === 'off') return
   if ((game.crowTimer -= dt) > 0 || game.roundTime < CONFIG.crow.firstAfter) return
   game.crowTimer = dropInterval(game) * (0.75 + Math.random() * 0.5)
-  const coming = game.looseWeapons.length + game.crows.filter(c => c.carrying).length
-  const typeName = pickWeaponType(game.weaponSettings)
-  if (coming < CONFIG.crow.maxLoose && typeName) sendCrow(game, typeName)
+  if (game.crows.length < CONFIG.crow.maxAround) sendCrow(game)
 }
 
 function flyOff(game, crow) {

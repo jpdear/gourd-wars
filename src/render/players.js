@@ -5,10 +5,8 @@ import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
-import { WEAPON_TYPES, armTo, heldHands } from '../game/weaponTypes.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
-import { drawHeldWeapon } from './weapons.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 
@@ -52,7 +50,6 @@ export function drawGrappleVine(ctx, p, X, Y, s) {
 // What a player (from the snapshot) would throw right now, and how it'd fly: { x0, y0 (where it
 // starts), dx, dy (which way), speed, gravity, life (s), radius, color, splitAge?, curve? }, or null.
 //   a pumpkin   from the hand (a Seed Spitter's: its seeds')
-//   a weapon    while they hold Throw Weapon: from its tip, point first
 function flightOf(p, aim) {
   const [sx, sy] = partEnds(p.parts[PART_NAMES.indexOf('torso')], PART_HALF_LEN.torso)   // (the shoulders: aimed from there)
   if (p.held) {
@@ -62,16 +59,6 @@ function flightOf(p, aim) {
     return {
       x0: hx + dx * 0.15, y0: hy + dy * 0.15, dx, dy, speed: lerp(lo, hi, p.charge), gravity: CONFIG.gravity * (flying.gravityScale ?? 1),
       life: flying.lifetime || Infinity, radius: flying.radius, color: type.color, splitAge: type.splitAge, curve: type.curve,
-    }
-  }
-  if (p.weapon && p.weapon[4] >= 0) {
-    const [typeName, gx, gy, , charge] = p.weapon, type = WEAPON_TYPES[typeName], T = type.throw
-    const cy = sy - 0.26   // (aimed from the chest, where it's carried: see weapons.js)
-    const d = Math.hypot(aim.x - sx, aim.y - cy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - cy) / d
-    const out = type.length - type.grip
-    return {
-      x0: gx + dx * out, y0: gy + dy * out, dx, dy, speed: lerp(T.speed[0], T.speed[1], charge),
-      gravity: CONFIG.gravity * T.gravityScale, life: Infinity, radius: type.bladeRadius, color: type.metal,
     }
   }
   return null
@@ -89,7 +76,7 @@ function sightObstacles(map, snap) {
 }
 
 // Your sight (only you see it, when the host has sights on): dots in the colour of what you're
-// throwing (a gourd, or a weapon while you hold Throw Weapon), with a dark edge so they show up on any
+// throwing, with a dark edge so they show up on any
 // map, along where it would fly if thrown now (so it grows while you charge), fading a little toward
 // the far end, up to the first thing it would hit, where it would fizzle (Vine) or split (Gourd
 // Cluster), or off screen (a Boomerang: once it's done curving, since it can come back on).
@@ -139,7 +126,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   ctx.lineCap = 'round'
   p.parts.forEach((part, i) => {
     const name = PART_NAMES[i]
-    if (name === 'head' || (onHandle(p) && ARMS.has(name))) return   // (hands on a weapon's handle: see drawWeaponArms)
+    if (name === 'head') return
     const [x1, y1, x2, y2] = partEnds(part, PART_HALF_LEN[name])
     ctx.lineWidth = (name === 'torso' ? 0.16 : 0.11) * s
     ctx.beginPath()
@@ -147,7 +134,6 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
     ctx.lineTo(X(x2), Y(y2))
     ctx.stroke()
   })
-  if (onHandle(p)) drawWeaponArms(ctx, p, X, Y, s)
 
   const [hx, hy] = p.parts[PART_NAMES.indexOf('head')]
   ctx.beginPath()
@@ -198,32 +184,6 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   if (p.dazed) drawDizzyStars(ctx, X(hx), Y(hy + 0.3), s)
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s)
-  if (p.weapon) drawHeldWeapon(ctx, p, X, Y, s)
-}
-
-const ARMS = new Set(['armL', 'armR', 'forearmL', 'forearmR'])
-// Both hands on a weapon's handle (drawn by drawWeaponArms). (A pair's in the fists: the arms are
-// drawn as they are, each holding one.)
-const onHandle = p => !!p.weapon && !WEAPON_TYPES[p.weapon[0]].pair
-
-// Holding a weapon, the arms are drawn reaching for its handle, just as the game poses them (see
-// heldHands and armTo), so the hands are always on it.
-function drawWeaponArms(ctx, p, X, Y, s) {
-  const type = WEAPON_TYPES[p.weapon[0]]
-  const [tx, ty, ta] = p.parts[PART_NAMES.indexOf('torso')], up = BODY.torsoLen / 2 - BODY.shoulderDrop
-  const shoulder = { x: tx - Math.sin(ta) * up, y: ty + Math.cos(ta) * up }
-  const [, x, y, angle] = p.weapon, h = heldHands(type, { x, y }, angle, shoulder)
-  ctx.lineWidth = 0.11 * s
-  ctx.lineJoin = 'round'
-  for (const hand of [h.back, h.front]) {
-    const arm = armTo(shoulder, hand, p.facing)
-    ctx.beginPath()
-    ctx.moveTo(X(shoulder.x), Y(shoulder.y))
-    ctx.lineTo(X(arm.elbow.x), Y(arm.elbow.y))
-    ctx.lineTo(X(arm.hand.x), Y(arm.hand.y))
-    ctx.stroke()
-  }
-  ctx.lineJoin = 'miter'
 }
 
 // A little gold crown sitting on a head ([x, y, angle]), tilting with it.

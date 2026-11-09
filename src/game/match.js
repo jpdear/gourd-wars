@@ -1,7 +1,7 @@
 // MATCH — rounds and scoring (host only; game.match is null in practice).
 //   transition (pan to the map) → fight → roundOver (slow motion, "Blue wins!") →
 //   (transition to the next round's map | matchOver → new match)
-// Settings (picked by the host): { mode: 'rounds' | 'wins' | 'endless', rounds, wins, maps, shuffle, sights }
+// Settings (picked by the host): { mode: 'rounds' | 'wins' | 'endless', rounds, wins, maps, shuffle, sights, crows }
 //   rounds:  play this many rounds, most wins takes it (tied → sudden-death rounds)
 //   wins:    first to this many round wins
 //   endless: just keep score
@@ -10,6 +10,8 @@
 //            false → they're played in the order the menu lists them, starting from the first
 //   sights:  true → everyone sees a sight (their own) for whatever gourd they're holding (also used
 //            in practice: the app keeps game.sights in step with it)
+//   crows:   how often crows fly over: one of CROW_RATES in crows.js (also used in practice: the app keeps
+//            game.crowRate in step with it)
 
 import { CONFIG, MAX_PLAYERS } from '../config.js'
 import { startTransition } from './transition.js'
@@ -17,7 +19,7 @@ import { MAPS, mapIds } from '../maps/builtin.js'
 
 export const MATCH_MODES = ['rounds', 'wins', 'endless']
 export const defaultRotation = () => Object.fromEntries(mapIds().map(id => [id, id !== 'testing']))
-export const defaultMatchSettings = () => ({ mode: 'rounds', rounds: 10, wins: 5, maps: defaultRotation(), shuffle: true, sights: false })
+export const defaultMatchSettings = () => ({ mode: 'rounds', rounds: 10, wins: 5, maps: defaultRotation(), shuffle: true, sights: false, crows: 'normal' })
 
 // The next map from the rotation: a random one, not the one just played (unless it's the only
 // one on), or in order the one after it (the first one when a match starts).

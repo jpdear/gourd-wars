@@ -15,8 +15,6 @@ import { handlePumpkinContacts, recordPumpkinContact, updatePumpkins } from './p
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
 import { clearCrows, updateCrows } from './crows.js'
-import { defaultWeaponSettings } from './weaponTypes.js'
-import { clearLooseWeapons, looseContactEnabled, recordThrownContact, updateLooseWeapons } from './looseWeapons.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
 export function createGame() {
@@ -29,13 +27,12 @@ export function createGame() {
   // movers: moving platforms { def, body }; moverTime: how far along their trips they are
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
-  // looseWeapons: weapons nobody's holding (weaponHits: what thrown ones ran into this step) (see looseWeapons.js); crows: bringing them, or knocked down (pecks:
-  // thrown ones on someone's head; crowTimer: until the next one) (see crows.js)
-  // weaponSettings: which weapons crows bring and how often (the host's menu replaces this object)
+  // crows: flying over, or knocked down (pecks: thrown ones on someone's head; crowTimer: until the next one) (see crows.js)
+  // crowRate: how often crows fly over (the host's choice: one of CROW_RATES in crows.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], looseWeapons: [], weaponHits: [], crows: [], pecks: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextWeaponId: 1, nextCrowId: 1, crowTimer: 0,
-    weaponSettings: defaultWeaponSettings(), match: null, spawnSettings: defaultSpawnSettings(), sights: false,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], crows: [], pecks: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextCrowId: 1, crowTimer: 0,
+    crowRate: 'normal', match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
     joining: [],        // slots waiting to jump in at the start of the next round
@@ -51,17 +48,14 @@ export function createGame() {
     recordPumpkinContact(game, contact.getFixtureB(), contact.getFixtureA())
     recordHazardContact(game, contact.getFixtureA(), contact.getFixtureB())
     recordHazardContact(game, contact.getFixtureB(), contact.getFixtureA())
-    recordThrownContact(game, contact)
   })
   // Pumpkins don't physically shove players; the knockback comes only from applyHit(),
   // so it follows our numbers (damage, stagger, ripeness) instead of raw collision physics.
-  // (And a thrown weapon passes through people and crows, whom it hits by its own rules; see
-  // looseWeapons.js. A weapon in someone's hands isn't a physics body at all: see weapons.js.)
   world.on('pre-solve', contact => {
     const a = contact.getFixtureA().getBody().getUserData(), b = contact.getFixtureB().getBody().getUserData()
     const pk = a && a.kind === 'pumpkin' ? a.pumpkin : b && b.kind === 'pumpkin' ? b.pumpkin : null
     const other = pk && (a.kind === 'pumpkin' ? b : a)
-    if ((pk && other && other.kind === 'player') || !looseContactEnabled(a, b)) contact.setEnabled(false)
+    if (pk && other && other.kind === 'player') contact.setEnabled(false)
   })
   resetRound(game)
   return game
@@ -135,14 +129,13 @@ export function loadMap(game, id) {
 export const currentMap = game => mapDef(game.map)
 
 // Fresh start: (the chosen map), everyone back at their spawn with empty hands, bales rebuilt,
-// patches almost ripe, no weapons lying around (or crows around).
+// patches almost ripe, no crows around.
 export function resetRound(game) {
   if (game.map !== game.mapChoice) loadMap(game, game.mapChoice)
   for (const pk of game.pumpkins) game.world.destroyBody(pk.body)
   game.pumpkins = []
   game.holes = []
   game.strikes = []
-  clearLooseWeapons(game)
   clearCrows(game)
   resetBales(game)
   game.roundTime = 0
@@ -168,12 +161,10 @@ export function stepGame(game, inputs) {
   updateBlackHoles(game, dt)
   updateAirstrikes(game, dt)
   game.world.step(dt, 10, 8)
-  for (const p of game.players) if (p.weapon) p.weapon.place(game, p, dt)   // (where everyone is now: see weapons.js)
   handlePumpkinContacts(game)
   updatePumpkins(game, dt)
   updateHazards(game, dt)
   updateBales(game, dt)
-  updateLooseWeapons(game, dt)
   updateCrows(game, dt)
   updatePatches(game, dt)
   for (const p of game.players) p.checkDeath(dt, game)

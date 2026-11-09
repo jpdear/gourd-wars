@@ -61,10 +61,11 @@
       <div class="map-select" data-show="practice-map"></div>
       <div class="dummy-select" data-show="dummies"></div>
       <div class="toggle-row" data-show="host-settings"><span>Sights</span><button class="pk-on" data-act="sights-toggle">Off</button></div>
+      <p class="label" data-show="host-settings">Crows</p>
+      <div class="seg crow-rate" data-show="host-settings"></div>
       <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
       <div class="toggle-row"><span>Lock Mouse</span><button class="pk-on" data-act="pref-toggle:lockMouse">Off</button></div>
       <button data-act="show-pumpkins" data-show="host-settings">Pumpkins</button>
-      <button data-act="show-weapons" data-show="host-settings">Weapons</button>
       <button data-act="show-controls">Controls</button>
       <button data-act="restart" data-show="restart">Restart Match</button>
       <button class="primary" data-act="match-done">Done</button>
@@ -79,13 +80,6 @@
     <div class="screen" data-screen="pumpkins" data-title="Pumpkins">
       <div class="pumpkin-list"></div>
       <button class="primary" data-act="pumpkins-done">Done</button>
-    </div>
-    <!-- which weapons crows bring, and how often -->
-    <div class="screen" data-screen="weapons" data-title="Weapons">
-      <p class="label">Crows Bring Weapons</p>
-      <div class="seg drop-rate"></div>
-      <div class="pumpkin-list weapon-list"></div>
-      <button class="primary" data-act="weapons-done">Done</button>
     </div>
     <div class="screen" data-screen="maps" data-title="Map Editor">
       <p class="label note">Your maps (when you host, your friends get them too)</p>

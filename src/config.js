@@ -102,27 +102,17 @@ export const CONFIG = {
     spikeBounce: 12,         // m/s pop up off the tines
     scytheTurnTime: 3,       // seconds per full turn of a scarecrow's scythe
   },
-  pickup: {                  // standing at something to pick up with the harvest key (a pumpkin, a weapon)
+  pickup: {                  // standing at something to pick up with the harvest key (a pumpkin, a crow)
     reach: 1.1,              // how close (sideways) you need to be
     height: 1.6,             // ...with your hips at most this far above where it sits
   },
-  weapon: {
-    yankTime: 0.25,          // hold the harvest key this long to pull one out of the ground
-    armStrength: 1.5,        // holding one, the arms are this many times as strong (they're drawn on its handle anyway)
-    give: { tilt: 45, back: 0.4, ease: 0.5 },   // held, running into the level it tilts away (up to `tilt` degrees),
-                             // then slides back along its handle (up to `back` m), else passes through (see giveWay.js);
-                             // `ease`: the share of a change in that it makes each step (so it doesn't pop)
-    baleMultiplier: 2,       // weapons do this many times their damage to hay bales
-    clankPush: 2,            // the blade bounced off something hard: you're pushed back this fast (m/s)
-  },
-  crow: {                    // crows bring weapons (see game/crows.js)
-    every: { rare: 45, normal: 25, often: 12 },   // a crow about this often (s, ±25%), by the host's Weapon Drops setting
+  crow: {                    // crows flying over (see game/crows.js)
+    every: { rare: 45, normal: 25, often: 12 },   // a crow about this often (s, ±25%), by the host's Crows setting
     firstAfter: 8,           // never in the first this many seconds of a round
-    maxLoose: 3,             // no new crow while this many weapons lie around (or are on their way)
+    maxAround: 3,            // no new crow while this many are around (flying or knocked down)
     speed: 7,                // flying across (m/s)
     length: 0.75,            // beak to tail (m; a big crow: easy to read at game scale)
     radius: 0.27,            // (its body, to hit)
-    talons: 0.21,            // what it carries hangs from its feet, this far below its middle (m)
     wakeTime: 8,             // knocked down and left lying there, it comes to and flies off after this long (s)
     pickTime: 0.15,          // hold the harvest key this long to pick it up
     peck: { time: 1.5, every: 0.25, damage: 2 },   // thrown into someone: pecks their head this long, this often, this hard
@@ -139,10 +129,9 @@ export const CONFIG = {
 }
 
 // Collision categories: what passes through what. Everything else is in category 1 and touches all of these.
-//   pumpkin   thrown pumpkins: held weapons let them pass right through
-//   crow      a crow flying over: only pumpkins and weapons can hit it (people jumping into it don't)
-//   weapon    a weapon in someone's hands
-export const COLLIDE = { pumpkin: 0x0002, crow: 0x0004, weapon: 0x0008 }
+//   pumpkin   thrown pumpkins
+//   crow      a crow flying over: only pumpkins can hit it (people jumping into it don't)
+export const COLLIDE = { pumpkin: 0x0002, crow: 0x0004 }
 
 // Stick figure proportions (meters)
 export const BODY = {
