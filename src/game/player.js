@@ -41,6 +41,7 @@ const freshLife = () => ({
   frozenTimer: 0,             // Frost: stiff as a statue
   gluedTimer: 0,              // Splat Pie: stuck to the floor
   pendingGlue: 0,             // ...hit in the air: sticks when you land
+  trappedTimer: 0,            // bitten by a Chomper: held in place
   floatTimer: 0,              // Balloon: floating helplessly upward
   // hazards (kept up by level.js)
   hopCooldown: 0,             // bonfire pop-out
@@ -170,10 +171,12 @@ export class Player {
   get stunned() { return this.stunTimer > 0 }   // ragdolled
   get frozen() { return this.frozenTimer > 0 }
   get glued() { return this.gluedTimer > 0 }
+  get trapped() { return this.trappedTimer > 0 }
+  get stuck() { return this.glued || this.trapped }   // can't walk or jump (glued, or in a Chomper's jaws)
   get floating() { return this.floatTimer > 0 }
   get shoved() { return this.shoveTimer > 0 }
   get helpless() { return this.stunned || this.frozen }   // can't do anything (ragdolled or frozen)
-  get canWalk() { return !this.helpless && !this.shoved && !this.glued }   // (also: slide, hold onto a wall)
+  get canWalk() { return !this.helpless && !this.shoved && !this.stuck }   // (also: slide, hold onto a wall)
   get out() { return this.ko || this.dead }   // out of the round
 
   // Ghost: passes through everything (while being carried across a map during a pan).
@@ -236,6 +239,11 @@ export class Player {
     this.frozenTimer = Math.max(this.frozenTimer, seconds)
     this.charging = false
     this.punchTimer = 0
+  }
+
+  // A Chomper's jaws: held in place for `seconds` (we can still aim, throw and punch).
+  trap(seconds) {
+    this.trappedTimer = Math.max(this.trappedTimer, seconds)
   }
 
   glue(seconds) {
@@ -366,6 +374,7 @@ export class Player {
     this.punchTimer = Math.max(0, this.punchTimer - dt)
     this.frozenTimer = Math.max(0, this.frozenTimer - dt)
     this.gluedTimer = Math.max(0, this.gluedTimer - dt)
+    this.trappedTimer = Math.max(0, this.trappedTimer - dt)
     this.floatTimer = Math.max(0, this.floatTimer - dt)
     this.jumpLock = Math.max(0, this.jumpLock - dt)
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt)
@@ -462,8 +471,8 @@ export class Player {
       torso.applyForceToCenter(new Vec2(ax * this.mass * control, 0), true)
     }
 
-    // glued: held in place on the floor
-    if (this.glued && this.grounded) {
+    // stuck (glued, or a Chomper's got us): held in place on the floor
+    if (this.stuck && this.grounded) {
       for (const p of this.parts) {
         const v = p.body.getLinearVelocity()
         p.body.setLinearVelocity(new Vec2(v.x * 0.5, v.y))
@@ -500,7 +509,7 @@ export class Player {
 
     // --- jump ---
     if (input.jump && !this.prev.jump) this.jumpBufferTimer = C.jumpBuffer
-    if (canAct && !this.glued && this.jumpBufferTimer > 0 && this.coyote > 0) {
+    if (canAct && !this.stuck && this.jumpBufferTimer > 0 && this.coyote > 0) {
       this.popUp(C.jumpSpeed * (carry.jump ?? 1), 0.2)
       this.coyote = 0
       this.jumpBufferTimer = 0

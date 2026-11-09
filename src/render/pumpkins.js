@@ -196,6 +196,7 @@ const BODIES = {
   boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
   saw: (ctx, r, colors) => drawSawSquash(ctx, r, colors),
   bottle: (ctx, r, colors) => drawBottleGourd(ctx, r, colors),
+  chomper: (ctx, r, colors) => { ctx.rotate(-Math.PI / 2); ctx.translate(0, 1.2 * r); chomperShape(ctx, r, 0, colors) },   // (thrown or held: shut, lying on its side)
   crow: (ctx, r) => crowShape(ctx, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
   cluster: (ctx, r, colors) => {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
@@ -338,6 +339,72 @@ function drawBoomerangGourd(ctx, r, colors) {
   ctx.quadraticCurveTo(tx + ux * 0.4 * r, ty + uy * 0.4 * r, tx + (ux * 0.3 + tnx * 0.35) * r, ty + (uy * 0.3 + tny * 0.35) * r)
   ctx.stroke()
   ctx.lineCap = 'butt'
+}
+
+// A Chomper: a warty gourd split lengthwise, carved teeth along the cut, standing on end on (0, 0) (canvas
+// y down): `r` px across its middle, 1.2 × that to its middle the long way. Its two halves are hinged at
+// the bottom: `open` from 0 (shut: a whole gourd with a zigzag seam) to 1 (each half fallen out to its
+// side, lying flat on the ground, red mouth and teeth facing up).
+const MOUTH_RED = '#c8383a', TOOTH = '#f3ecc4', WART = '#7f8a2c'
+const WARTS = [[0.55, -0.5], [0.35, 0.45], [0.7, 0.1], [0.3, -0.1]]   // (across × r, along × the long way from the middle; mirrored on the left)
+function chomperShape(ctx, r, open, colors) {
+  const h = r * 1.2, tip = open * Math.PI / 2, lift = r * Math.sin(tip)   // (falling over, it ends up resting on its rind)
+  ctx.lineJoin = 'round'
+  for (const side of [-1, 1]) {
+    ctx.save()
+    ctx.translate(0, -lift)
+    ctx.rotate(side * tip)
+    const arc = (rx, ry) => ctx.ellipse(0, -h, rx, ry, 0, side > 0 ? -Math.PI / 2 : Math.PI / 2, side > 0 ? Math.PI / 2 : Math.PI * 1.5)
+    ctx.fillStyle = colors.color   // the rind
+    ctx.strokeStyle = colors.rib
+    ctx.lineWidth = Math.max(1, r * 0.1)
+    ctx.beginPath()
+    arc(r, h)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.lineWidth = Math.max(1, r * 0.07)
+    ctx.beginPath()   // a rib
+    arc(r * 0.5, h * 0.97)
+    ctx.stroke()
+    ctx.fillStyle = WART
+    for (const [x, y] of WARTS) { ctx.beginPath(); ctx.arc(side * x * r, -h + y * h, r * 0.09, 0, Math.PI * 2); ctx.fill() }
+    if (open > 0.05) {   // the mouth: red along the cut
+      ctx.fillStyle = MOUTH_RED
+      ctx.beginPath()
+      arc(r * 0.32 * Math.min(1, open * 2), h * 0.9)
+      ctx.closePath()
+      ctx.fill()
+    }
+    ctx.fillStyle = TOOTH   // carved teeth along the cut, poking across it (the two sides' in between each other)
+    ctx.lineWidth = Math.max(1, r * 0.05)
+    ctx.beginPath()
+    const gap = h / 3
+    for (let y = -2 * h + gap * (side > 0 ? 0.6 : 1.1); y < -gap * 0.4; y += gap) {
+      ctx.moveTo(0, y - gap * 0.4)
+      ctx.lineTo(-side * r * 0.32, y)
+      ctx.lineTo(0, y + gap * 0.4)
+    }
+    ctx.fill()
+    ctx.stroke()
+    if (side > 0 && open < 0.3) {   // the stem, out of the middle of one side (lying open, it's underneath)
+      ctx.fillStyle = '#4c7a2a'
+      ctx.fillRect(r * 0.95, -h - r * 0.1, r * 0.34, r * 0.2)
+    }
+    ctx.restore()
+  }
+  ctx.lineJoin = 'miter'
+}
+
+// A planted Chomper from the snapshot ({ x, y, angle, open, bite }), standing on its spot: on the floor,
+// its halves falling open to lie flat; biting someone, shut tight around their foot (or whatever it bit).
+export function drawChomper(ctx, t, X, Y, s) {
+  const r = PUMPKIN_TYPES.chomper.trap.size * s   // (lying open it's ~1 m end to end)
+  ctx.save()
+  ctx.translate(X(t.x), Y(t.y))
+  ctx.rotate(-t.angle)
+  chomperShape(ctx, r, t.open, PUMPKIN_TYPES.chomper)
+  ctx.restore()
 }
 
 // A bottle gourd (around 0, 0; canvas y down): a big bulb below, a smaller one on top, pinched in

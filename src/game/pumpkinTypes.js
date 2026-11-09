@@ -31,6 +31,7 @@ import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
 import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { peck } from './crows.js'
+import { biteWith, plantTrap } from './traps.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -226,6 +227,23 @@ export const PUMPKIN_TYPES = {
       knockback(game, player, part, pk, vel)
       const D = pk.type.daze, m = (part === player.head ? D.head : 1) * pk.power
       player.daze(D.limp * m, D.dizzy * m)
+    },
+  },
+  chomper: {   // a warty gourd split lengthwise with carved teeth: comes down on a floor, plants itself and
+    // falls open flat; whoever touches it is chomped (see traps.js)
+    name: 'Chomper', color: '#b9c24a', rib: '#6b7524', mark: 'chomper',
+    radius: 0.2, density: 2, restitution: 0.3, breakAfterHits: 4,   // (off walls and ceilings it bounces on, a few times)
+    damage: 10, knockback: 0, stun: 0, breakEvent: null,
+    // armTime: s opening after it lands (it can't bite yet); life: s it waits before wilting; reach: how
+    // close (m) a part of someone has to come to its mouth; bite: { damage, hold (s stuck in place) }; size: how
+    // big it's drawn planted or biting (m across its middle; it's 2.4 × that long)
+    trap: { armTime: 0.4, life: 15, reach: 0.32, size: 0.2, bite: { damage: 10, hold: 2 } },
+    onHitPlayer: (game, pk, player, part) => biteWith(game, pk, player, part),
+    onHitWorld: (game, pk) => plantTrap(game, pk),
+    onHitBale: (game, pk) => plantTrap(game, pk),
+    onBreak: (game, pk) => {   // (broken without planting or biting: it wilts where it is)
+      const p = pk.body.getPosition()
+      if (!pk.used) game.events.push({ type: 'wilt', x: r3(p.x), y: r3(p.y) })
     },
   },
 }

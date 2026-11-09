@@ -62,6 +62,8 @@ const EFFECTS = {
     spray(fx, ev.x, ev.y, 24, chips, [ev.dx, ev.dy], 0.6, [5, 12], [0.35, 0.65], [0.045, 0.08], 1.5)
     burst(fx, ev.x, ev.y, 10, chips, [1.5, 4], [0.25, 0.45], [0.035, 0.06])   // (and some falling off where it cut)
   },
+  snap: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#b9c24a', '#6b7524', '#c8383a', '#f3ecc4'], [2, 6], [0.25, 0.45], [0.03, 0.06], 1.5),   // a Chomper biting
+  wilt: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#9a9a3e', '#6b6a2c', '#a07a3a'], [0.5, 2], [0.5, 0.9], [0.03, 0.06], 1),     // a Chomper shriveling away
   hole: (fx, ev) => burst(fx, ev.x, ev.y, 18, ['#4b2c84', '#a46bff', '#0b0614'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
   swallow: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#a46bff', '#0b0614', '#f4efe6'], [0.5, 2], [0.2, 0.4], [0.03, 0.06]),
   collapse: (fx, ev) => {   // a hole closing: a last purple pulse

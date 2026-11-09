@@ -15,6 +15,7 @@ import { handlePumpkinContacts, piercesThrough, recordPumpkinContact, updatePump
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
 import { clearCrows, updateCrows } from './crows.js'
+import { clearTraps, updateTraps } from './traps.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
 export function createGame() {
@@ -27,11 +28,12 @@ export function createGame() {
   // movers: moving platforms { def, body }; moverTime: how far along their trips they are
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
+  // traps: Chompers planted on the floor or biting someone (see traps.js)
   // crows: flying over, or knocked down (pecks: thrown ones on someone's head; crowTimer: until the next one) (see crows.js)
   // crowRate: how often crows fly over (the host's choice: one of CROW_RATES in crows.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], crows: [], pecks: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextCrowId: 1, crowTimer: 0,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], crows: [], pecks: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextCrowId: 1, crowTimer: 0,
     crowRate: 'normal', match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], scythes: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
@@ -137,6 +139,7 @@ export function resetRound(game) {
   game.pumpkins = []
   game.holes = []
   game.strikes = []
+  clearTraps(game)
   clearCrows(game)
   resetBales(game)
   game.roundTime = 0
@@ -164,6 +167,7 @@ export function stepGame(game, inputs) {
   game.world.step(dt, 10, 8)
   handlePumpkinContacts(game)
   updatePumpkins(game, dt)
+  updateTraps(game, dt)
   updateHazards(game, dt)
   updateBales(game, dt)
   updateCrows(game, dt)

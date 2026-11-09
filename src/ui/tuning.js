@@ -235,6 +235,14 @@ const TUNABLES = [
       ['CONFIG.player.dizzy.sway', 0, 1, 0.05, 'dizzy sway (rad)'],
       ['CONFIG.player.dizzy.swayRate', 0, 20, 0.5, 'dizzy sway speed'],
     ]],
+    ['Chomper', [
+      [T_ + 'chomper.trap.bite.damage', 0, 100, 1, 'bite dmg'],
+      [T_ + 'chomper.trap.bite.hold', 0, 6, 0.1, 'stuck (s)'],
+      [T_ + 'chomper.trap.armTime', 0, 2, 0.05, 'opening (s)'],
+      [T_ + 'chomper.trap.life', 1, 60, 1, 'wilts after (s)'],
+      [T_ + 'chomper.trap.reach', 0.05, 0.6, 0.01, 'reach (m)'],
+      [T_ + 'chomper.trap.size', 0.1, 0.5, 0.01, 'size (m)'],
+    ]],
   ]],
 ]
 

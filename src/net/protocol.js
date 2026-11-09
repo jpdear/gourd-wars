@@ -46,6 +46,7 @@ const SNAPSHOT_LISTS = {
     unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4) }),
   },
   holes: fields('id', 'x', 'y', 'r'),
+  traps: fields('id', 'x', 'y', 'angle', 'open', 'bite'),
   crows: {   // (down as 0/1)
     pack: c => [c.id, c.x, c.y, c.angle, c.down ? 1 : 0, c.dir],
     unpack: ([id, x, y, angle, down, dir]) => ({ id, x, y, angle, down: !!down, dir }),

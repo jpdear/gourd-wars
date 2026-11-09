@@ -4,6 +4,7 @@
 
 import { patchRot } from './patches.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
+import { trapOpen } from './traps.js'
 import { mapDef } from '../maps/builtin.js'
 import { lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -58,6 +59,8 @@ export function makeSnapshot(game) {
         frozen: b.frozenTimer > 0, sticky: b.stickyTimer > 0, floating: b.floatTimer > 0,
       }
     }),
+    // open: 0 shut .. 1 lying wide open; bite: biting someone (its x, y: on them) (see traps.js)
+    traps: game.traps.map(t => ({ id: t.id, x: r3(t.x), y: r3(t.y), angle: r3(wrapAngle(t.angle)), open: r3(trapOpen(t)), bite: !!t.victim })),
     holes: game.holes.map(h => ({ id: h.id, x: r3(h.x), y: r3(h.y), r: r3(h.r) })),   // r: the core's radius
     // down: knocked down (else flying over); dir: which way it faces
     crows: game.crows.map(c => {
@@ -116,6 +119,7 @@ export function interpolateSnapshots(a, b, t) {
     pumpkins: byId(a.pumpkins, b.pumpkins, moved),
     bales: byId(a.bales, b.bales, moved),
     holes: byId(a.holes, b.holes, (r, q) => ({ ...q, r: lerp(r.r, q.r, t) })),
+    traps: byId(a.traps, b.traps, moved),
     crows: byId(a.crows, b.crows, moved),
     strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
     scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
