@@ -58,19 +58,20 @@ function flightOf(p, aim) {
     const d = Math.hypot(aim.x - sx, aim.y - sy) || 1, dx = (aim.x - sx) / d, dy = (aim.y - sy) / d
     return {
       x0: hx + dx * 0.15, y0: hy + dy * 0.15, dx, dy, speed: lerp(lo, hi, p.charge), gravity: CONFIG.gravity * (flying.gravityScale ?? 1),
-      life: flying.lifetime || Infinity, radius: flying.radius, color: type.color, splitAge: type.splitAge, curve: type.curve,
+      life: flying.lifetime || Infinity, radius: flying.radius, color: type.color, splitAge: type.splitAge, curve: type.curve, pierces: type.pierces,
     }
   }
   return null
 }
 
 // What a thrown gourd would stop at: boxes { x0, x1, y0, y1 } for platforms and walls, moving
-// platforms and hay bales (where this snapshot has them; bales as if upright) and pitchfork rows.
-function sightObstacles(map, snap) {
+// platforms and hay bales (where this snapshot has them; bales as if upright; not for a gourd that
+// pierces them) and pitchfork rows.
+function sightObstacles(map, snap, pierces) {
   const box = (x, y, w, h) => ({ x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 })
   const boxes = map.platforms.map(p => box(p.x, p.y, p.w, p.h))
   map.movers.forEach((m, i) => { const { x, y } = (snap.movers && snap.movers[i]) || m; boxes.push(box(x, y, m.w, m.h)) })
-  for (const { x, y } of snap.bales) boxes.push(box(x, y, BALE.w, BALE.h))
+  if (!pierces) for (const { x, y } of snap.bales) boxes.push(box(x, y, BALE.w, BALE.h))
   for (const sp of map.spikes) boxes.push({ x0: sp.x - sp.w / 2, x1: sp.x + sp.w / 2, y0: sp.y, y1: sp.y + TINE.tip })
   return boxes
 }
@@ -86,7 +87,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   const { x0, y0, dx, dy, speed, gravity, life, radius } = flight
   let end = Math.min(life, 4)
   if (flight.splitAge) end = Math.min(end, Math.max(flight.splitAge, dy * speed / gravity))   // (the top of its arc)
-  const boxes = sightObstacles(map, snap)
+  const boxes = sightObstacles(map, snap, flight.pierces)
   const hits = (x, y) => boxes.some(b => x > b.x0 - radius && x < b.x1 + radius && y > b.y0 - radius && y < b.y1 + radius)
 
   // walk the arc in small steps (~5 cm), keeping a dot every 0.45 m

@@ -27,7 +27,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Pumpkins** table,
 - Kept for the gourds: `Player.daze(seconds)` / `dazed` (stars circling the head; `drawDizzyStars` in `render/crows.js`).
 
 ## Build order (step 9)
-- [ ] 9.1 **Pierce** (from the Buzzsaw): flies through everyone in its path, hitting each; **breaks** on the level (doesn't stick)
+- [x] 9.1 **Buzzsaw** (Pierce; built 2026-11-09, the user hasn't tried it yet): pattypan saw, flat & fast (⅓ gravity, 18–30 m/s), 15 dmg to each person it goes through, cuts through bales, knocks crows down, breaks on anything else. Code: `pierces` + `spin` fields, `PIERCES` / `piercesThrough` in pumpkins.js (also used by game.js pre-solve), `drawSawSquash` in render/pumpkins.js, sight skips bales, a `pierce` event per cut (chip spray in render/effects.js). Tests: `tests/buzzsaw.test.js`.
 - [ ] 9.2 **Daze** (from the Bonk): knocks the target limp with stars circling their head; breaks on the hit (**no bounce**)
 - [ ] 9.3 **Bear Trap** (from the Rake's Trap): lands and sits armed; snaps shut on whoever steps on it
 - [ ] 9.4 **Landmine** (from the Rake's Trap): lands and sits armed; blows up whoever steps on it

@@ -8,6 +8,9 @@
 //   unblockable              goes right through a carried Big Gourd's shield
 //   breakEvent               the event when it breaks (default 'splat'; null: none, its onBreak shows something)
 //   missesThrower            never touches the one who threw it (passes right through them and their shield)
+//   pierces                  goes right through people, hay bales and flying crows (see PIERCES in pumpkins.js),
+//                            hitting each one once, and breaks on anything else
+//   spin                     how fast it spins leaving the hand (radians/s; default 8)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
@@ -205,6 +208,12 @@ export const PUMPKIN_TYPES = {
     //   spin    how fast it spins (radians/s; just for looks)
     curve: { reach: 15, width: 5, spin: 24 },
     update: (game, pk, dt) => updateBoomerang(game, pk, dt),
+  },
+  buzzsaw: {   // a pattypan squash with a saw-tooth rim, thrown flat and spinning: through everyone in its way
+    name: 'Buzzsaw', color: '#d4e38f', rib: '#7d9343', mark: 'saw',
+    radius: 0.22, density: 2, restitution: 0, gravityScale: 0.33,   // (nearly straight)
+    damage: 15, knockback: 5, stun: 0.7, breakAfterHits: 1,         // (each person it goes through)
+    throwSpeed: { min: 18, max: 30 }, spin: 30, pierces: true,
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

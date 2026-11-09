@@ -194,6 +194,7 @@ const BODIES = {
     ctx.fill()
   },
   boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
+  saw: (ctx, r, colors) => drawSawSquash(ctx, r, colors),
   crow: (ctx, r) => crowShape(ctx, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
   cluster: (ctx, r, colors) => {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
@@ -246,7 +247,8 @@ const IN_FLIGHT = {
   homing: (ctx, pk, colors, snap, X, Y, s) => {   // on the hunt (it has a heading): flames out the back
     if (pk.heading !== null && pk.heading !== undefined) drawFlameTrail(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.heading)
   },
-  boomerang: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors),
+  boomerang: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'boomerang'),
+  buzzsaw: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'saw'),
 }
 
 // A thrown pumpkin (pk: as in IN_FLIGHT).
@@ -337,11 +339,42 @@ function drawBoomerangGourd(ctx, r, colors) {
   ctx.lineCap = 'butt'
 }
 
-// A Boomerang in flight (pixels): faint copies of it on either side of where it is, like a blur
-// from how fast it's spinning.
-function drawSpinBlur(ctx, x, y, r, angle, colors) {
+// A pattypan squash seen face on, like a saw blade (around 0, 0): a flat disc whose rim is a ring of
+// pointed teeth, a scalloped ridge inside it, and a little stem nub in the middle.
+const SAW_TEETH = 10
+function drawSawSquash(ctx, r, colors) {
+  ctx.fillStyle = colors.color
+  ctx.strokeStyle = colors.rib
+  ctx.lineWidth = Math.max(1, r * 0.1)
+  ctx.lineJoin = 'round'
+  ctx.beginPath()   // the rim: each tooth leans the same way round, like a saw's
+  for (let i = 0; i < SAW_TEETH; i++) {
+    const a = i / SAW_TEETH * Math.PI * 2, next = (i + 1) / SAW_TEETH * Math.PI * 2
+    ctx.lineTo(Math.cos(a) * r * 0.86, Math.sin(a) * r * 0.86)
+    ctx.lineTo(Math.cos(next - 0.12) * r * 1.15, Math.sin(next - 0.12) * r * 1.15)
+  }
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  ctx.lineJoin = 'miter'
+  ctx.lineWidth = Math.max(1, r * 0.07)
+  ctx.beginPath()   // the scalloped ridge
+  for (let i = 0; i <= SAW_TEETH * 2; i++) {
+    const a = i / (SAW_TEETH * 2) * Math.PI * 2, rr = r * (i % 2 ? 0.5 : 0.6)
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
+  }
+  ctx.stroke()
+  ctx.fillStyle = '#4c7a2a'   // the stem nub
+  ctx.beginPath()
+  ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// A spinning gourd in flight (pixels; mark: its shape): faint copies of it on either side of where it
+// is, like a blur from how fast it's spinning.
+function drawSpinBlur(ctx, x, y, r, angle, colors, mark) {
   ctx.globalAlpha = 0.18
-  for (const off of [-0.5, 0.5]) drawPumpkin(ctx, x, y, r, angle + off, colors, 'boomerang')
+  for (const off of [-0.5, 0.5]) drawPumpkin(ctx, x, y, r, angle + off, colors, mark)
   ctx.globalAlpha = 1
 }
 

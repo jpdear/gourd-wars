@@ -26,6 +26,20 @@ function burst(effects, x, y, n, colors, speed, life, size, lift = 0) {
   }
 }
 
+// n particles sprayed from (x, y) along (dx, dy) (a unit vector), up to `spread` radians either side of it.
+function spray(effects, x, y, n, colors, [dx, dy], spread, speed, life, size, lift = 0) {
+  const heading = Math.atan2(dy, dx)
+  for (let i = 0; i < n; i++) {
+    const a = heading + (Math.random() * 2 - 1) * spread
+    const v = lerp(speed[0], speed[1], Math.random())
+    effects.particles.push({
+      x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + lift,
+      life: lerp(life[0], life[1], Math.random()), age: 0,
+      r: lerp(size[0], size[1], Math.random()), color: colors[i % colors.length],
+    })
+  }
+}
+
 // n black feathers popping out of (x, y), then drifting down, rocking side to side.
 function feathers(effects, x, y, n, speed) {
   for (let i = 0; i < n; i++) {
@@ -42,6 +56,11 @@ const EFFECTS = {
   boom: (fx, ev) => {
     burst(fx, ev.x, ev.y, 40, ['#ff9a2e', '#e2571b', '#3b3631', '#ffd36b'], [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
     fx.rings.push({ x: ev.x, y: ev.y, r: ev.r, color: '#e2571b', age: 0, life: 0.35 })
+  },
+  pierce: (fx, ev) => {   // a Buzzsaw cutting through someone (or a bale, a crow): chips of squash spraying on ahead of it
+    const t = PUMPKIN_TYPES[ev.typeName], chips = [t.rib, t.color, '#4f6a24', '#f6f1cf']   // (its ribs, its skin, dark rind, pale flesh)
+    spray(fx, ev.x, ev.y, 24, chips, [ev.dx, ev.dy], 0.6, [5, 12], [0.35, 0.65], [0.045, 0.08], 1.5)
+    burst(fx, ev.x, ev.y, 10, chips, [1.5, 4], [0.25, 0.45], [0.035, 0.06])   // (and some falling off where it cut)
   },
   hole: (fx, ev) => burst(fx, ev.x, ev.y, 18, ['#4b2c84', '#a46bff', '#0b0614'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
   swallow: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#a46bff', '#0b0614', '#f4efe6'], [0.5, 2], [0.2, 0.4], [0.03, 0.06]),

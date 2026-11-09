@@ -11,7 +11,7 @@ import { updateMatch } from './match.js'
 import { createPatches, resetPatches, updatePatches } from './patches.js'
 import { Player } from './player.js'
 import { updateAirstrikes, updateBlackHoles } from './powers.js'
-import { handlePumpkinContacts, recordPumpkinContact, updatePumpkins } from './pumpkins.js'
+import { handlePumpkinContacts, piercesThrough, recordPumpkinContact, updatePumpkins } from './pumpkins.js'
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
 import { clearCrows, updateCrows } from './crows.js'
@@ -51,11 +51,12 @@ export function createGame() {
   })
   // Pumpkins don't physically shove players; the knockback comes only from applyHit(),
   // so it follows our numbers (damage, stagger, ripeness) instead of raw collision physics.
+  // (And a piercing one goes right through bales and crows too: see PIERCES in pumpkins.js.)
   world.on('pre-solve', contact => {
     const a = contact.getFixtureA().getBody().getUserData(), b = contact.getFixtureB().getBody().getUserData()
     const pk = a && a.kind === 'pumpkin' ? a.pumpkin : b && b.kind === 'pumpkin' ? b.pumpkin : null
     const other = pk && (a.kind === 'pumpkin' ? b : a)
-    if (pk && other && other.kind === 'player') contact.setEnabled(false)
+    if (pk && other && (other.kind === 'player' || piercesThrough(pk, other))) contact.setEnabled(false)
   })
   resetRound(game)
   return game

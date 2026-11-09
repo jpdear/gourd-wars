@@ -217,6 +217,15 @@ const TUNABLES = [
       [T_ + 'boomerang.gravityScale', 0, 1, 0.05, 'gravity'],
       [T_ + 'boomerang.curve.spin', 0, 60, 1, 'spin'],
     ]],
+    ['Buzzsaw', [
+      [T_ + 'buzzsaw.damage', 0, 100, 1, 'damage (each)'],
+      [T_ + 'buzzsaw.knockback', 0, 30, 0.5],
+      [T_ + 'buzzsaw.stun', 0, 3, 0.05],
+      [T_ + 'buzzsaw.throwSpeed.min', 2, 60, 1, 'tap speed'],
+      [T_ + 'buzzsaw.throwSpeed.max', 2, 60, 1, 'full speed'],
+      [T_ + 'buzzsaw.gravityScale', 0, 1, 0.05, 'gravity'],
+      [T_ + 'buzzsaw.spin', 0, 80, 1],
+    ]],
   ]],
 ]
 

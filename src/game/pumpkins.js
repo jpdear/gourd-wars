@@ -22,9 +22,10 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
-  body.setAngularVelocity(owner ? -owner.facing * 8 : 0)
+  body.setAngularVelocity(owner ? -owner.facing * (type.spin ?? 8) : 0)
   const pumpkin = {
     id: game.nextPumpkinId++, typeName, type, radius, body, fixture, owner, hits: 0, age: 0, broken: false,
+    pierced: new Set(),                          // (pierces: who and what it's gone through)
     power: quality ? quality.power : 1,          // from how ripe it was when picked
     ripeness: quality ? quality.ripeness : 1,
     launch: { x: vel.x, y: vel.y },              // how it was thrown (a Boomerang curves back from this)
@@ -41,11 +42,24 @@ export function recordPumpkinContact(game, fixture, other) {
   game.contacts.push({ pumpkin: ud.pumpkin, other: other.getBody(), velocity: { x: v.x, y: v.y } })
 }
 
+// What a piercing gourd (type.pierces) goes right through instead of breaking on, by kind: the thing
+// itself (so it hits each only once, however many of its parts it touches).
+const PIERCES = { player: ud => ud.player, bale: ud => ud.bale, crow: ud => ud.crow }
+export const piercesThrough = (pumpkin, ud) => !!(pumpkin.type.pierces && ud && PIERCES[ud.kind])
+
 export function handlePumpkinContacts(game) {
   for (const c of game.contacts) {
     const p = c.pumpkin
     if (p.broken) continue
     const ud = c.other.getUserData()
+    const pierced = piercesThrough(p, ud)
+    if (pierced) {
+      const target = PIERCES[ud.kind](ud)
+      if (p.pierced.has(target)) continue
+      p.pierced.add(target)
+      const pos = p.body.getPosition(), d = unit(c.velocity)   // (chips fly off it as it cuts through)
+      game.events.push({ type: 'pierce', x: r3(pos.x), y: r3(pos.y), dx: r3(d.x), dy: r3(d.y), typeName: p.typeName })
+    }
     const hitPlayer = ud && ud.kind === 'player', hitCrow = ud && ud.kind === 'crow'
     if (hitCrow) knockDownCrow(game, ud.crow)   // (a crow flying over: it drops what it's carrying)
     else if (hitPlayer) {
@@ -55,7 +69,7 @@ export function handlePumpkinContacts(game) {
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
-      p.hits++
+      if (!pierced) p.hits++
       if (ud && ud.kind === 'bale') {
         const power = hitPower(p, c.velocity)
         damageBale(game, ud.bale, p.type.damage * power)
@@ -63,7 +77,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (hitPlayer || hitCrow || p.hits >= p.type.breakAfterHits) breakPumpkin(game, p)
+    if (!pierced && (hitPlayer || hitCrow || p.hits >= p.type.breakAfterHits)) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }
