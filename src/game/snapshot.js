@@ -18,7 +18,7 @@ export function makeSnapshot(game) {
       color: p.color,
       facing: p.facing,
       stunned: p.stunned && !game.transition,   // (no X eyes while just being carried)
-      dazed: p.dazed && !game.transition,       // (stars circling their head)
+      dazed: p.dazed && !game.transition,       // (stars circling their head: limp or dizzy)
       dead: p.dead,
       ko: p.ko,
       health: Math.ceil(p.health),

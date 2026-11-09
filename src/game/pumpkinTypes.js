@@ -215,6 +215,19 @@ export const PUMPKIN_TYPES = {
     damage: 15, knockback: 5, stun: 0.7, breakAfterHits: 1,         // (each person it goes through)
     throwSpeed: { min: 18, max: 30 }, spin: 30, pierces: true,
   },
+  daze: {   // a bottle gourd, tumbling end over end: whoever it bonks goes limp, then gets up dizzy
+    name: 'Dizzy Gourd', color: '#c99a5b', rib: '#86602f', mark: 'bottle',
+    radius: 0.2, density: 2, restitution: 0.2, spin: 14,
+    damage: 10, knockback: 4, stun: 0.5, breakAfterHits: 1,
+    // limp: s knocked limp; dizzy: s more after getting up, left/right swapped (see Player.daze);
+    // head: both that many times as long for a hit on the head. (× power: picked green, shorter.)
+    daze: { limp: 0.6, dizzy: 1.5, head: 2 },
+    onHitPlayer: (game, pk, player, part, vel) => {
+      knockback(game, player, part, pk, vel)
+      const D = pk.type.daze, m = (part === player.head ? D.head : 1) * pk.power
+      player.daze(D.limp * m, D.dizzy * m)
+    },
+  },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots
 

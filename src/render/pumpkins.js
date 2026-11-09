@@ -195,6 +195,7 @@ const BODIES = {
   },
   boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
   saw: (ctx, r, colors) => drawSawSquash(ctx, r, colors),
+  bottle: (ctx, r, colors) => drawBottleGourd(ctx, r, colors),
   crow: (ctx, r) => crowShape(ctx, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
   cluster: (ctx, r, colors) => {   // three little gourds stuck together
     for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) drawPumpkin(ctx, ox * r, oy * r, r * 0.58, 0, colors)
@@ -337,6 +338,23 @@ function drawBoomerangGourd(ctx, r, colors) {
   ctx.quadraticCurveTo(tx + ux * 0.4 * r, ty + uy * 0.4 * r, tx + (ux * 0.3 + tnx * 0.35) * r, ty + (uy * 0.3 + tny * 0.35) * r)
   ctx.stroke()
   ctx.lineCap = 'butt'
+}
+
+// A bottle gourd (around 0, 0; canvas y down): a big bulb below, a smaller one on top, pinched in
+// between, a curved line down the big bulb and a stem on top.
+function drawBottleGourd(ctx, r, colors) {
+  const bulbs = [[0, 0.3, 0.68], [0, -0.48, 0.42]]   // [x, y, radius] (× r)
+  ctx.fillStyle = colors.color
+  ctx.strokeStyle = colors.rib
+  ctx.lineWidth = Math.max(1, r * 0.12)
+  for (const [x, y, br] of bulbs) { ctx.beginPath(); ctx.arc(x * r, y * r, br * r, 0, Math.PI * 2); ctx.stroke() }
+  for (const [x, y, br] of bulbs) { ctx.beginPath(); ctx.arc(x * r, y * r, br * r, 0, Math.PI * 2); ctx.fill() }   // (covers the outline where they overlap)
+  ctx.lineWidth = Math.max(1, r * 0.08)
+  ctx.beginPath()
+  ctx.ellipse(0, 0.3 * r, 0.3 * r, 0.64 * r, 0, -Math.PI * 0.35, Math.PI * 0.35)   // a rib down the big bulb
+  ctx.stroke()
+  ctx.fillStyle = '#4c7a2a'
+  ctx.fillRect(-r * 0.08, -r * 1.12, r * 0.16, r * 0.26)   // the stem
 }
 
 // A pattypan squash seen face on, like a saw blade (around 0, 0): a flat disc whose rim is a ring of

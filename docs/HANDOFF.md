@@ -24,11 +24,10 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Pumpkins** table,
 - The user decided the melee weapons (Pitchfork, Scythe, Shovel, Rake, Sickles) didn't fit the game's vibe.
 - **Archive:** a full copy of the game with them in is at `/Users/jdearing/Documents/Personal/p2p_game_melee_archive/` (see its `ARCHIVE_README.md`, and its `docs/HANDOFF.md` for how they worked). They're also in git history (branch `melee-weapons`).
 - **Crows stay**, carrying nothing: knock one down with a pumpkin, pick it up, throw it for a pecking frenzy. Host setting **Crows** (Off / Rare / Normal / Often) on Match Settings (`matchSettings.crows` → `game.crowRate`).
-- Kept for the gourds: `Player.daze(seconds)` / `dazed` (stars circling the head; `drawDizzyStars` in `render/crows.js`).
 
 ## Build order (step 9)
 - [x] 9.1 **Buzzsaw** (Pierce; built 2026-11-09, the user hasn't tried it yet): pattypan saw, flat & fast (⅓ gravity, 18–30 m/s), 15 dmg to each person it goes through, cuts through bales, knocks crows down, breaks on anything else. Code: `pierces` + `spin` fields, `PIERCES` / `piercesThrough` in pumpkins.js (also used by game.js pre-solve), `drawSawSquash` in render/pumpkins.js, sight skips bales, a `pierce` event per cut (chip spray in render/effects.js). Tests: `tests/buzzsaw.test.js`.
-- [ ] 9.2 **Daze** (from the Bonk): knocks the target limp with stars circling their head; breaks on the hit (**no bounce**)
+- [x] 9.2 **Dizzy Gourd** (Daze; built 2026-11-09, the user hasn't tried it yet): tan bottle gourd, 10 dmg, limp 0.6 s then dizzy 1.5 s (left/right swapped, swaying), head hits ×2, breaks on the hit. Code: `daze` type (`daze: { limp, dizzy, head }`), `Player.daze(limp, dizzy)` / `dazed` / `dizzy`, `CONFIG.player.dizzy` (sway), `drawBottleGourd`. Tests: `tests/daze.test.js`.
 - [ ] 9.3 **Bear Trap** (from the Rake's Trap): lands and sits armed; snaps shut on whoever steps on it
 - [ ] 9.4 **Landmine** (from the Rake's Trap): lands and sits armed; blows up whoever steps on it
 

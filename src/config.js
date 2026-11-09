@@ -21,6 +21,7 @@ export const CONFIG = {
     uprightD: 18,
     uprightInertia: 0.6,
     uprightMaxTorque: 50,
+    dizzy: { sway: 0.35, swayRate: 7 },   // dazed and back up: left/right swapped, swaying this far (rad) side to side, this fast (rad/s)
     jointK: 15,              // joint motor speed per radian of error
     legTorque: 8,
     armTorque: 4.5,

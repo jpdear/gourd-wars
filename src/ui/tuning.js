@@ -226,6 +226,15 @@ const TUNABLES = [
       [T_ + 'buzzsaw.gravityScale', 0, 1, 0.05, 'gravity'],
       [T_ + 'buzzsaw.spin', 0, 80, 1],
     ]],
+    ['Dizzy Gourd', [
+      [T_ + 'daze.damage', 0, 100, 1],
+      [T_ + 'daze.knockback', 0, 30, 0.5],
+      [T_ + 'daze.daze.limp', 0, 3, 0.05, 'limp (s)'],
+      [T_ + 'daze.daze.dizzy', 0, 6, 0.1, 'dizzy (s)'],
+      [T_ + 'daze.daze.head', 1, 4, 0.25, 'head hit ×'],
+      ['CONFIG.player.dizzy.sway', 0, 1, 0.05, 'dizzy sway (rad)'],
+      ['CONFIG.player.dizzy.swayRate', 0, 20, 0.5, 'dizzy sway speed'],
+    ]],
   ]],
 ]
 

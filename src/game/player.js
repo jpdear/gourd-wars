@@ -32,7 +32,7 @@ const freshLife = () => ({
   reviveTimer: 0,             // practice: back up after a hazard KO
   // getting hit
   stunTimer: 0,               // > 0: ragdolled
-  dazedTimer: 0,              // > 0: knocked limp, stars circling the head
+  dazedTimer: 0,              // > 0: dazed (limp, then dizzy once back up), stars circling the head
   sinceStun: 99,
   staggerMeter: 0,            // recent damage; reaching CONFIG.damage.staggerAt knocks you down
   shoveTimer: 0,              // got hit but not staggered: no walking control for a moment
@@ -219,12 +219,14 @@ export class Player {
     this.punchTimer = 0
   }
 
-  // Bonked on the head: limp for `seconds`, seeing stars.
-  daze(seconds) {
-    this.stun(seconds)
-    this.dazedTimer = Math.max(this.dazedTimer, seconds)
+  // Bonked: limp for `limp` s, then back up but dizzy for `dizzy` s more (left and right swapped,
+  // swaying about), seeing stars all the while.
+  daze(limp, dizzy) {
+    this.stun(limp)
+    this.dazedTimer = Math.max(this.dazedTimer, limp + dizzy)
   }
-  get dazed() { return this.dazedTimer > 0 && this.stunned }
+  get dazed() { return this.dazedTimer > 0 && !this.ko }
+  get dizzy() { return this.dazed && !this.stunned }
 
   endStun() {
     this.stunTimer = 0
@@ -394,7 +396,7 @@ export class Player {
 
     // --- wall check: in the air, holding toward a wall (not right after kicking off one) ---
     const W = C.wall
-    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
+    const dir = ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * (this.dizzy ? -1 : 1)   // (dizzy: the wrong way)
     this.wallJumpTimer = Math.max(0, this.wallJumpTimer - dt)
     const canStick = dir && this.canWalk && !this.crouching && !this.grounded && !this.floating && !this.grapple && this.wallJumpTimer <= 0 &&
       carry.wallStick !== false
@@ -405,7 +407,9 @@ export class Player {
     // --- sliding: start, stop ---
     this.updateSlide(dt, carry)
     // how far the torso leans back (sliding: away from where we're going; sitting: away from the aim)
-    const lean = this.slide ? this.slide.dir * C.slide.lean : this.crouching && this.grounded ? this.facing * C.crouch.lean : 0
+    // (dizzy: swaying from side to side)
+    const lean = (this.slide ? this.slide.dir * C.slide.lean : this.crouching && this.grounded ? this.facing * C.crouch.lean : 0) +
+      (this.dizzy ? Math.sin(this.dazedTimer * C.dizzy.swayRate) * C.dizzy.sway : 0)
 
     // --- 1. hover spring (crouched: off, so you drop and sit; sliding: on, holding you low) ---
     if (canAct && (!this.crouching || this.slide) && this.groundDist !== null && this.jumpLock <= 0) {
