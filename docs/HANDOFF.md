@@ -7,7 +7,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 - **Stack:** Planck.js (physics), PeerJS (networking), Vite, vitest.
 - **Repo:** `/Users/jdearing/Documents/Personal/p2p_game`, branch **`melee-weapons`**.
 - **Commands:**
-  - `npx vitest run` runs the tests (101 passing).
+  - `npx vitest run` runs the tests (102 passing).
   - `npm run build` builds the game.
   - `npx vitest run -u` re-records `tests/__snapshots__/replay.json`. Only do this after confirming gameplay you didn't mean to change is unchanged.
 - **Git:** **The user commits themselves.** Never commit or push, because pushing to main deploys. The work below is **uncommitted**.
@@ -89,7 +89,7 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 | **Scythe** | **Reap**: `reap` motion, hooks people toward you, the whole tool hits (every weapon does now) | **Whirl**: 1 full turn (0.5 s), ghost move, flings away | **Buzzsaw**: spinning, passes `through` people and bales | heavy carry, no holding onto walls |
 | **Shovel** | **Smack**: `reap` motion, full launch along your aim, **bats gourds** | **Home Run**: guard held up in front (a shield) while charging, then a big smack | **Bonk**: spinning, dazes (stars), rebounds off them | |
 | **Rake** | **Rake**: `rake` motion, trips and drags in the first it catches (`effect: 'trip'`) | **Long Pull**: lunge, hooks a player/bale/loose weapon and hauls it in (`effect: 'haul'`) | **Trap**: lobbed, armed if it rests tines up (`flight: 'trap'`) | |
-| **Sickles** | **Slash**: `slash` motion, hand after hand, alternating, every 3rd an uppercut (`combo`) | **Flurry**: 6 slashes following your aim (`tracks`), hand after hand | **Ricochet**: one per press, off the first wall, then sticks (`flight: 'ricochet'`) | a `pair`, 7 uses each |
+| **Sickles** | **Jab**: `jab` fist motion (a punch), hand after hand, every 3rd an `uppercut` (`combo`) | **Flurry**: 6 `jabs` following your aim (`tracks`), hand after hand | **Ricochet**: one per press, off the first wall, then sticks (`flight: 'ricochet'`) | a `pair`, 7 uses each |
 
 ## Most recent change: held-weapon rework (the user hasn't tried it yet)
 - **Why:** the user found holding janky: the weapon lagged behind, hands slipped off, it got stuck in/dragged people, glitched into the floor, and point-blank attacks stuck in bodies.
@@ -125,14 +125,14 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Weapons** section
 
 ## Sickles (built 2026-11-07, reworked into a pair the same day; the user hasn't tried the pair yet)
 - **Decided with the user:** crossing arcs at the aim (down, up, then a big rising uppercut); combo window 0.4 s after a slash; the uppercut pops only them; Flurry = 6 × 4 dmg, following your aim while you **move freely, no lunge**; thrown: ricochet off the first wall, then sticks; classic crescent art.
-  - **Then (user feedback): a pair**, one in each hand, taking turns like punches, held **down by your sides**. **F throws one per press** (fight on one-handed). **Each has its own uses** (7). Defaults taken: crows/sky drop two loose sickles; holding one, you can pick up the other.
+  - **Then (user feedback): a pair**, one in each hand, taking turns like punches. **F throws one per press** (fight on one-handed). **Each has its own uses** (7). Defaults taken: crows/sky drop two loose sickles; holding one, you can pick up the other.
+  - **Then (user feedback, 2026-11-08): held in the fists like bare hands.** The arms are the real physics arms, posed just as empty-handed (walking swing, air/slide/wall poses); each sickle goes where its hand goes (`Player.hand(side)`), handle at right angles to the forearm (blade forward, curling down, arm hanging). Attacks are the punch: **Jab** (straight out at the aim), **Uppercut** finisher (fist swung up from low, `rise`/`bend`), **Flurry** = 6 rapid `jabs`. Charging: fists up (shaking when full); winding up a throw: that arm drawn back.
 - **Code:**
-  - **Blades** (weapons.js): a `HeldWeapon` has `blades` (one; a `pair` type two, hands 'R'/'L'), each with its own pose, heading/spin, shift, give, last and uses. `this.active` is the one swinging (or about to be thrown); accessors (`pose`, `last`, `heading`, `uses`, `give`) point at it, so most code is unchanged. `reach(game, player, b, ...)` poses one blade; idle pair blades get `atSide()`. `next()`/`used` alternate hands (taps, each Flurry slash, throws). `loseBlade()` when one snaps or is thrown. `takes(key)`/`addBlade()` for picking up the other (`Player.canPick`, `pickups.js`). `dropNew()` (looseWeapons.js) drops a new pair as two.
-  - `view()` for a pair adds `[hand, other x, y, angle, hand]`; `snapshot.js` `lerpWeapon` interpolates both; `render/weapons.js` `heldBlades(p)` + `render/players.js` draw both blades and each holding arm.
-  - `Player.poseLimbs`: each arm holds its grip or relaxes (`relaxedArms`).
-  - `oneHanded`: `heldHands` gives one hand at the grip.
-  - `MOTIONS.slash` / `MOTIONS.flurry`, `tap.combo` + `HeldWeapon.tap()` + `this.run`, `tap.buffer`, `tracks`, `hitOf`/`finish`, `KNOCK.up`, `FLIGHT.ricochet` (`whole`) as before.
-- **Tests:** `tests/sickle.test.js` (13). Replay re-recorded after proving the blades refactor changes nothing (with crows dropping a single sickle, the replay matched).
+  - **Blades** (weapons.js): a `HeldWeapon` has `blades` (one; a `pair` type two, hands 'R'/'L'), each with its own pose, heading/spin, shift, give, last and uses. `this.active` is the one swinging (or about to be thrown); accessors (`pose`, `last`, `heading`, `uses`, `give`) point at it, so most code is unchanged. `reach()` poses a two-handed weapon's blade; a pair's go `inFist()` (pose from the hand, then `settle()`: the shared give-way, turning in the fist only, `giveWay(..., slides = false)`). The arms: `HeldWeapon.fists(game, player)` says what each arm does (`FIST_MOTIONS`: { angle, bend, strength }, or null = as empty-handed), and `Player.poseLimbs` drives the joints; `hands()` is null for a pair and the renderer draws the real arms (`onHandle` in render/players.js). `next()`/`used` alternate hands (taps, each Flurry jab, throws). `loseBlade()` when one snaps or is thrown. `takes(key)`/`addBlade()` for picking up the other (`Player.canPick`, `pickups.js`). `dropNew()` (looseWeapons.js) drops a new pair as two.
+  - `view()` for a pair adds `[hand, other x, y, angle, hand]`; `snapshot.js` `lerpWeapon` interpolates both; `render/weapons.js` `heldBlades(p)` draws both blades.
+  - `Player.poseLimbs`: two-handed weapons, each arm on its grip; a pair, each arm as `fists()` says or relaxed (`relaxedArms`). (`oneHanded` is gone.)
+  - `FIST_MOTIONS` (jab, uppercut, jabs; `blow` = a fresh hit per Flurry jab), `tap.combo` + `HeldWeapon.tap()` + `this.run`, `tap.buffer`, `tracks`, `hitOf`/`finish`, `KNOCK.up`, `FLIGHT.ricochet` (`whole`) as before.
+- **Tests:** `tests/sickle.test.js` (14: incl. fists on the grips, the walking arm swing, the jab). Replay re-recorded after proving the blades refactor changes nothing (with crows dropping a single sickle, the replay matched).
 
 ## Then
 - **8.5 parries:** two live swings that meet clang. Both stop, both are pushed back, and both lose a use.

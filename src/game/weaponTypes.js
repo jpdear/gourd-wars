@@ -8,10 +8,12 @@
 //                             (same as a pumpkin's carry)
 //   length, grip              the whole tool, and how far up from the butt end the back hand holds it (m)
 //   handGap                   the front hand: this much further up the handle (m)
-//   oneHanded                 held in one hand (the front one, at the grip); the other's free, relaxed
-//   pair                      (one-handed) they come two at a time, one for each hand (see HeldWeapon in
-//                             weapons.js): each its own `uses`; they take turns, and Throw Weapon throws one
-//   hold                      held, the grip (the back hand) rests this far out from the chest along the tool
+//   pair                      they come two at a time, one in each fist (see HeldWeapon in weapons.js): each
+//                             its own `uses`; they take turns, and Throw Weapon throws one. Held in the fists,
+//                             the arms move just as they would empty-handed (swinging as you walk, punching:
+//                             see the fist motions), and each goes wherever its hand goes, its handle
+//                             sticking out of the fist at right angles to the forearm
+//   hold                      (not a pair) held, the grip (the back hand) rests this far out from the chest along the tool
 //                             (m; negative: pulled back beside the body, leaving the arms room to push it out)
 //   blade, headWidth          a head straight on the end (what hits things): the last `blade` m of the tool,
 //                             this wide. Or, for any other head:
@@ -35,15 +37,16 @@
 //                             back from the aim in the first `windup` of the swing, then brought down
 //                             to the aim and `follow` rad past it
 //       turns                 (whirl) how many times it goes all the way round you
-//       sweep                 (slash) [from, to]: degrees above the aim (the way you face) it slashes from and
-//                             to, after a quick start from where it is (the first `windup` of it). alternate:
-//                             every other one goes the other way (down, then back up)
-//       slashes, arc          (flurry) that many slashes back and forth through the aim, `arc` degrees each,
-//                             following your aim as it goes; each slash can hit the same one again, and the
-//                             last one hits with `finish` ({ damage, knockback, stun }) instead
+//       (a pair's: the arm, the weapon in its fist)
+//       (jab)                 punched straight out at the aim, like a bare-handed punch
+//       rise, bend            (uppercut) the arm swung up from `rise[0]` to `rise[1]` degrees above the aim (the
+//                             way you face), the elbow bent `bend` rad
+//       jabs                  (jabs) that many punches at the aim, hand after hand, following your aim as it
+//                             goes; each can hit the same one again, and the last one hits with `finish`
+//                             ({ damage, knockback, stun }) instead
 //     buffer                  a click up to this long (s) before you can attack again isn't lost: it happens as
 //                             soon as you can
-//     combo                   { window, finisher }: a click within `window` s of the end of the last slash
+//     combo                   { window, finisher }: a click within `window` s of the end of the last one
 //                             carries on the run; every 3rd in a run is the finisher (a move of its own) instead
 //       reach, back, out, low (rake) the hands down `low` m, pushed out `reach` m along the aim in the first
 //                             `out` of the swing, then dragged back in to `back` m behind where it's held.
@@ -188,26 +191,26 @@ export const WEAPON_TYPES = {
   sickle: {
     name: 'Sickle', color: '#a0703f', metal: '#a3abb3', uses: 7,   // (each)
     carry: { speed: 1.1 },   // (light)
-    length: 0.72, grip: 0.06, oneHanded: true, pair: true, hold: 0.2, bladeRadius: 0.1,
+    length: 0.72, grip: 0.06, pair: true, bladeRadius: 0.1,
     head: {   // a crescent: off the end of the short grip, curving forward and down (facing right), back round toward you
       shape: [[0.28, 0.03], [0.62, 0.03], [0.68, -0.15], [0.58, -0.32], [0.3, -0.37]],
       edge: [[0.5, -0.05], [0.56, -0.16], [0.5, -0.27], [0.38, -0.33]],   // (the inside of the curve)
       point: [0.3, -0.36],
     },
-    heft: { mass: 0.25, turn: 45 },   // (light: whips round)
-    tap: {   // Slash: quick arcs through the aim from each hand in turn, down then back up; every 3rd in a run, the uppercut
-      motion: 'slash', time: 0.16, cooldown: 0.03, sweep: [55, -55], windup: 0.2, alternate: true, buffer: 0.25,
+    heft: { mass: 0.25 },   // (light) (in the fists: it turns as they do)
+    tap: {   // Jab: punched out at the aim, each hand in turn; every 3rd in a run, the uppercut
+      motion: 'jab', time: 0.16, cooldown: 0.03, buffer: 0.25,
       damage: 5, knockback: 2, stun: 0,
       combo: {
         window: 0.4,
-        finisher: {   // Uppercut: a big rising arc, from low to overhead, popping them up
-          motion: 'slash', time: 0.26, cooldown: 0.2, sweep: [-70, 110], windup: 0.2,
+        finisher: {   // Uppercut: the fist swung up from low in front, popping them up
+          motion: 'uppercut', time: 0.26, cooldown: 0.2, rise: [-70, 70], bend: 1,
           damage: 8, knockback: 9, stun: 0.4, knock: 'up', effect: 'launch',
         },
       },
     },
-    charge: {   // Flurry: six quick slashes back and forth, hand after hand, following your aim; you can move about all the while
-      motion: 'flurry', chargeTime: 0.5, time: 0.6, cooldown: 0.3, slashes: 6, arc: 100, windup: 0.08, tracks: true, cost: 2,
+    charge: {   // Flurry: six quick punches, hand after hand, following your aim; you can move about all the while
+      motion: 'jabs', chargeTime: 0.5, time: 0.6, cooldown: 0.3, jabs: 6, tracks: true, cost: 2,
       damage: 4, knockback: 1.5, stun: 0,
       finish: { damage: 4, knockback: 7, stun: 0.6 },
     },
@@ -290,13 +293,13 @@ const REACH = 2 * BODY.armSeg * 0.98   // (a hand can be this far from its shoul
 
 // Where the hands go on a tool with its grip at `grip`, pointing along `angle`, held by someone whose
 // shoulder is at `shoulder`: { back, front }. Each slides along the handle as far as it has to to stay in
-// arm's reach, so the hands never come off it. One-handed: the front one at the grip, back null (free).
+// arm's reach, so the hands never come off it.
 export function heldHands(type, grip, angle, shoulder) {
   const wx = grip.x - shoulder.x, wy = grip.y - shoulder.y
   const b = wx * Math.cos(angle) + wy * Math.sin(angle), disc = b * b - (wx * wx + wy * wy - REACH * REACH)
   const lo = disc >= 0 ? -b - Math.sqrt(disc) : -b, hi = disc >= 0 ? -b + Math.sqrt(disc) : -b   // (the stretch of handle in reach)
   const on = t => alongTool(grip, angle, Math.min(hi, Math.max(lo, t)))
-  return type.oneHanded ? { back: null, front: on(0) } : { back: on(0), front: on(type.handGap) }
+  return { back: on(0), front: on(type.handGap) }
 }
 
 // An arm from `shoulder` reaching for `hand` (out of reach: as near as it gets), for someone facing f

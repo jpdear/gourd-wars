@@ -31,12 +31,32 @@ function click(game, aim, wait) {
 }
 const SLASH = Math.ceil((S.tap.time + S.tap.cooldown) * 60) + 1   // (steps: one slash and its wait)
 
-it('they come in a pair, one in each hand, held down by your sides; carrying them you\'re quicker', () => {
+// Where blade b's grip is from the fist holding it (m).
+const offFist = (me, b) => { const h = me.hand(b.hand).at; return Math.hypot(b.pose.at.x - h.x, b.pose.at.y - h.y) }
+
+it('they come in a pair, one in each fist, the arms down by your sides; carrying them you\'re quicker', () => {
   const { me } = setup()
-  const hands = me.weapon.hands(), sh = me.shoulder()
+  const sh = me.shoulder()
   expect(me.weapon.blades.map(b => b.hand).sort()).toEqual(['L', 'R'])
-  for (const h of [hands.front, hands.back]) expect(h.y).toBeLessThan(sh.y - 0.4)   // (down by your sides)
+  for (const b of me.weapon.blades) {
+    expect(offFist(me, b)).toBeLessThan(0.01)
+    expect(b.pose.at.y).toBeLessThan(sh.y - 0.4)   // (down by your sides)
+  }
   expect(me.weapon.carry.speed).toBe(1.1)
+})
+
+it('walking, the arms swing just as they would empty-handed, the sickles in the fists', () => {
+  const { game, me, aim } = setup()
+  const walk = { ...aim, right: true }
+  const spread = []   // (how far apart the fists are, front to back)
+  for (let i = 0; i < 60; i++) {
+    steps(game, 1, walk)
+    const [a, b] = me.weapon.blades
+    spread.push(a.pose.at.x - b.pose.at.x)
+    for (const blade of me.weapon.blades) expect(offFist(me, blade)).toBeLessThan(0.01)
+  }
+  expect(Math.max(...spread)).toBeGreaterThan(0.15)   // (one forward, the other back...)
+  expect(Math.min(...spread)).toBeLessThan(-0.15)     // (...then the other way round)
 })
 
 it('clicks come from each hand in turn, like punches', () => {
@@ -103,16 +123,16 @@ it('a pair falls in as two, side by side', () => {
   expect(game.looseWeapons.filter(w => w.typeName === 'sickle')).toHaveLength(2)
 })
 
-it('clicks slash through the aim, down then back up', () => {
+it('a click punches one out at the aim, like a bare-handed punch; the other stays down', () => {
   const { game, me, aim } = setup()
-  const turning = () => { const a = me.weapon.pose.angle; steps(game, 1, aim); return me.weapon.pose.angle - a }
+  const sh = me.shoulder()
   steps(game, 1, { ...aim, throw: true })
-  steps(game, 4, aim)
-  expect(turning()).toBeLessThan(0)      // (facing right: down is clockwise)
-  steps(game, SLASH - 6, aim)
-  steps(game, 1, { ...aim, throw: true })
-  steps(game, 4, aim)
-  expect(turning()).toBeGreaterThan(0)   // (back up)
+  steps(game, 7, aim)
+  const w = me.weapon, out = w.active, other = w.blades.find(b => b !== out)
+  expect(out.pose.at.x - sh.x).toBeGreaterThan(0.4)                // (the fist out ahead)
+  expect(Math.abs(out.pose.at.y - (sh.y - 0.2))).toBeLessThan(0.2)  // (at the aim)
+  expect(other.pose.at.y).toBeLessThan(sh.y - 0.4)
+  expect(offFist(me, out)).toBeLessThan(0.01)
 })
 
 it('every 3rd slash in a run is an uppercut: it pops them up', () => {

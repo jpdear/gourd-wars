@@ -5,7 +5,7 @@
 // where that would put it into the level, it gives way, in this order:
 //   1. tilt     turned away from what it ran into (up to CONFIG.weapon.give.tilt degrees), as close to
 //               the pose as it can be: it rests on the floor, leans on the wall
-//   2. back     slid back along its handle toward its holder (up to give.back m)
+//   2. back     slid back along its handle toward its holder (up to give.back m; not one in a fist)
 //   3. through  still in the way (jumping up past a ledge with it under the lip, say): it passes
 //               through, until it's clear again
 // It never pushes or pulls its holder, so it never stops a jump, a step or a climb.
@@ -50,8 +50,9 @@ function levelRay(game, a, b) {
 
 // How to give way (see the top), the tool held as in toolBlocked having run into the level at `hit`:
 // { tilt (rad, added to its angle), back (m, slid back along it), through }. `before`: how it gave way
-// last time (it keeps tilting the same way, so it doesn't flip-flop at a corner).
-export function giveWay(game, type, side, from, angle, along, hit, before) {
+// last time (it keeps tilting the same way, so it doesn't flip-flop at a corner). `slides`: it can slide
+// back (held in a fist, it can't: it only turns in it).
+export function giveWay(game, type, side, from, angle, along, hit, before, slides = true) {
   const G = CONFIG.weapon.give, maxTilt = G.tilt * Math.PI / 180
   const clear = (tilt, back) => !toolBlocked(game, type, side, from, angle + tilt, along - back)
   // 1. tilt: toward the side the surface faces (the way it last tilted, if it's still tilting)
@@ -62,7 +63,7 @@ export function giveWay(game, type, side, from, angle, along, hit, before) {
     if (clear(sign * maxTilt, 0)) return { tilt: sign * least(t => clear(sign * t, 0), maxTilt), back: 0, through: false }
   }
   // 2. slid back along the handle
-  if (clear(0, G.back)) return { tilt: 0, back: least(b => clear(0, b), G.back), through: false }
+  if (slides && clear(0, G.back)) return { tilt: 0, back: least(b => clear(0, b), G.back), through: false }
   // 3. through it, until it's clear
   return { tilt: 0, back: 0, through: true }
 }

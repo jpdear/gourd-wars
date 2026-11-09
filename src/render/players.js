@@ -8,7 +8,7 @@ import { PART_NAMES } from '../game/snapshot.js'
 import { WEAPON_TYPES, armTo, heldHands } from '../game/weaponTypes.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
-import { drawHeldWeapon, heldBlades } from './weapons.js'
+import { drawHeldWeapon } from './weapons.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 
@@ -139,7 +139,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   ctx.lineCap = 'round'
   p.parts.forEach((part, i) => {
     const name = PART_NAMES[i]
-    if (name === 'head' || (p.weapon && heldArms(p).has(name))) return   // (holding a weapon: see drawWeaponArms)
+    if (name === 'head' || (onHandle(p) && ARMS.has(name))) return   // (hands on a weapon's handle: see drawWeaponArms)
     const [x1, y1, x2, y2] = partEnds(part, PART_HALF_LEN[name])
     ctx.lineWidth = (name === 'torso' ? 0.16 : 0.11) * s
     ctx.beginPath()
@@ -147,7 +147,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
     ctx.lineTo(X(x2), Y(y2))
     ctx.stroke()
   })
-  if (p.weapon) drawWeaponArms(ctx, p, X, Y, s)
+  if (onHandle(p)) drawWeaponArms(ctx, p, X, Y, s)
 
   const [hx, hy] = p.parts[PART_NAMES.indexOf('head')]
   ctx.beginPath()
@@ -202,14 +202,9 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
 }
 
 const ARMS = new Set(['armL', 'armR', 'forearmL', 'forearmR'])
-const ARM = { R: ['armR', 'forearmR'], L: ['armL', 'forearmL'] }
-// The arm parts on a weapon's handle (drawn by drawWeaponArms): both; one-handed, the front one; a pair,
-// each hand holding one.
-function heldArms(p) {
-  const type = WEAPON_TYPES[p.weapon[0]]
-  if (type.pair) return new Set(heldBlades(p).flatMap(b => ARM[b.hand]))
-  return type.oneHanded ? new Set(ARM[p.facing > 0 ? 'R' : 'L']) : ARMS
-}
+// Both hands on a weapon's handle (drawn by drawWeaponArms). (A pair's in the fists: the arms are
+// drawn as they are, each holding one.)
+const onHandle = p => !!p.weapon && !WEAPON_TYPES[p.weapon[0]].pair
 
 // Holding a weapon, the arms are drawn reaching for its handle, just as the game poses them (see
 // heldHands and armTo), so the hands are always on it.
@@ -217,13 +212,10 @@ function drawWeaponArms(ctx, p, X, Y, s) {
   const type = WEAPON_TYPES[p.weapon[0]]
   const [tx, ty, ta] = p.parts[PART_NAMES.indexOf('torso')], up = BODY.torsoLen / 2 - BODY.shoulderDrop
   const shoulder = { x: tx - Math.sin(ta) * up, y: ty + Math.cos(ta) * up }
-  const hands = heldBlades(p).flatMap(b => {
-    const h = heldHands(type, { x: b.x, y: b.y }, b.angle, shoulder)
-    return [h.back, h.front]
-  })
+  const [, x, y, angle] = p.weapon, h = heldHands(type, { x, y }, angle, shoulder)
   ctx.lineWidth = 0.11 * s
   ctx.lineJoin = 'round'
-  for (const hand of hands.filter(Boolean)) {
+  for (const hand of [h.back, h.front]) {
     const arm = armTo(shoulder, hand, p.facing)
     ctx.beginPath()
     ctx.moveTo(X(shoulder.x), Y(shoulder.y))
