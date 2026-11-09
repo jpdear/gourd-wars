@@ -13,11 +13,12 @@
 // or passes through), so it never gets in its holder's way. People pass right through it, and so do
 // flying pumpkins, bales and crows: only attacks touch anything.
 // The arms are posed (and drawn) with the hands on its handle (see heldHands in weaponTypes.js).
-// A pair (the Sickles) is two blades, one in each hand, held down by your sides: they take turns (each
-// tap, each slash of a flurry, each throw), and each has its own uses (one snapping, or thrown, leaves
-// you the other; holding one, you can pick up the other).
+// A pair (the Sickles) is two blades, one in each fist, held like bare hands: the arms move just as they
+// would empty-handed (swinging as you walk, punching: see FIST_MOTIONS, and Player.poseLimbs), and each
+// blade goes wherever its hand goes. They take turns (each tap, each punch of a flurry, each throw), and
+// each has its own uses (one snapping, or thrown, leaves you the other; holding one, you can pick up the other).
 // Clicks: a press starts charging; let go sooner it's the tap (see attack). A tap can be part of a run
-// (tap.combo: the Sickle's every-3rd uppercut), and a click a moment too soon can be kept (tap.buffer).
+// (tap.combo: the Sickles' every-3rd uppercut), and a click a moment too soon can be kept (tap.buffer).
 // Only attacks hurt. During the part of a swing that can hit, whatever it passes (all of it, handle and
 // all, for people, bales and crows; its edge for the rest):
 //   players            hit, each at most once a swing (however close: right up against them still hits); what
@@ -64,7 +65,6 @@ function shaftPoints(type) {
 }
 const CARRY = 0.22       // held, it's carried this far below the shoulders (at the chest, not through the head)
 const SHIFT = 0.35       // moving its grip (into a guard, winding up a throw): the share of the way it goes each step
-const SHIFT_QUICK = 0.6  // ...a pair's (from your side up into a slash, like a punch)
 
 // How each kind of swing moves the tool, u = 0 → 1 through it: { angle, extend (pushed out further
 // than usual, m), live (the blade can hit things) }. The angle goes continuously on from where it
@@ -97,23 +97,6 @@ const MOTIONS = {
   // all the way round you `turns` times, over the top toward the way you face (picking up speed, then
   // slowing at the end), and back to pointing where it started.
   whirl: (move, u, swing) => ({ angle: swing.from - swing.f * move.turns * 2 * Math.PI * smooth(u), extend: 0, live: u < 0.95 }),
-  // a quick slash from `sweep[0]` to `sweep[1]` degrees above the aim (the way you face), after a quick
-  // start from where it was (the first `windup`); turned round (swing.turn -1: alternate ones), the other way.
-  slash: (move, u, swing) => {
-    const [a, b] = swing.turn < 0 ? [move.sweep[1], move.sweep[0]] : move.sweep
-    const start = swing.aim + swing.f * a * DEG, end = swing.aim + swing.f * b * DEG
-    if (u < move.windup) return { angle: swing.from + (start - swing.from) * smooth(u / move.windup), extend: 0, live: false }
-    const v = (u - move.windup) / (1 - move.windup)
-    return { angle: start + (end - start) * (1 - (1 - v) ** 2), extend: 0, live: v < 0.9 }
-  },
-  // `slashes` slashes back and forth through the aim (`arc` degrees each, starting down), after a quick
-  // start from where it was; each one a fresh slash (it can hit the same one again), the last the finish.
-  flurry: (move, u, swing) => {
-    const a = move.arc / 2 * DEG, start = swing.aim + swing.f * a
-    if (u < move.windup) return { angle: swing.from + (start - swing.from) * smooth(u / move.windup), extend: 0, live: false }
-    const v = (u - move.windup) / (1 - move.windup), k = Math.min(move.slashes - 1, Math.floor(v * move.slashes))
-    return { angle: swing.aim + swing.f * a * Math.cos(Math.PI * v * move.slashes), extend: 0, live: true, slash: k, finishing: k === move.slashes - 1 }
-  },
   // raking: the hands down `low` (it lies flatter along the floor), pushed out `reach` along the aim (the
   // first `out` of it), dragged back in to `back` behind where it's held, then eased back to where it's
   // held. It hits on the way out (hookOut) or dragging back; whatever it hooks it drags in (drags), and lets
@@ -124,6 +107,25 @@ const MOTIONS = {
       : dragging ? move.reach - (move.reach + move.back) * smooth((u - out) / (home - out))
       : -move.back * (1 - smooth((u - home) / (1 - home)))
     return { angle: swing.aim, extend, up: -(move.low ?? 0), live: move.hookOut ? outward : dragging, drags: outward || dragging }
+  },
+}
+// A pair's (held in the fists): how the arm with the active one moves, u = 0 → 1 through it: { arm: {
+// angle (the way the arm points, world), bend (the elbow, rad), strength (× an arm's usual) }, live,
+// blow (a run of punches: which one this is; each a fresh one, from the other hand), finishing (the last) }.
+// The other arm's as it'd be empty-handed.
+const PUNCH = 3   // (a punching arm's strength, like a bare-handed punch's)
+const FIST_MOTIONS = {
+  // punched straight out at the aim
+  jab: (move, u, swing) => ({ arm: { angle: swing.aim, bend: 0, strength: PUNCH }, live: true }),
+  // swung up from low in front to high, the elbow bent
+  uppercut: (move, u, swing) => {
+    const [a, b] = move.rise, v = 1 - (1 - u) ** 2
+    return { arm: { angle: swing.aim + swing.f * (a + (b - a) * v) * DEG, bend: move.bend, strength: PUNCH }, live: true }
+  },
+  // `jabs` punches at the aim, hand after hand
+  jabs: (move, u, swing) => {
+    const k = Math.min(move.jabs - 1, Math.floor(u * move.jabs))
+    return { arm: { angle: swing.aim, bend: 0, strength: PUNCH }, live: true, blow: k, finishing: k === move.jabs - 1 }
   },
 }
 const smooth = u => u * u * (3 - 2 * u)
@@ -153,7 +155,7 @@ const KNOCK = {
   away: (holder, victim) => unitFrom(holder.torso.getPosition(), victim.torso.getPosition()),
   up: holder => ({ x: 0.25 * holder.facing, y: 1 }),   // (popped up)
 }
-// How hard a swing hits right now: its move's numbers (its last slash, a flurry's finish).
+// How hard a swing hits right now: its move's numbers (a flurry's last punch: its finish).
 const hitOf = s => s.finishing ? { ...s.move, ...s.move.finish } : s.move
 
 // What a hit does to someone, by the move's effect (see weaponTypes.js): (w, game, holder, victim, part
@@ -272,8 +274,9 @@ export class HeldWeapon {
     for (const b of this.blades) this.raise(b)
   }
 
-  // Held straight up, in front of the chest (just pulled out of the ground).
+  // Held straight up, in front of the chest (just pulled out of the ground); a pair's, in its fist.
   raise(b) {
+    if (this.type.pair) { b.pose = this.fistPose(this.holder, b); b.heading = b.pose.angle; return }
     b.heading = Math.PI / 2
     b.pose = { at: alongTool(chestOf(this.holder), b.heading, this.type.hold), angle: b.heading }
   }
@@ -346,16 +349,19 @@ export class HeldWeapon {
     const s = this.swing
     if (s && s.move.tracks) s.aim += wrapAngle(aimAngle(player) - s.aim)   // (following the aim)
     const want = this.want(game, player, aimAngle(player))
-    if (s && want.slash !== undefined && want.slash !== s.slash) {   // (a fresh slash: a pair's, from the other hand)
-      s.slash = want.slash
+    if (s && want.blow !== undefined && want.blow !== s.blow) {   // (a fresh blow: a pair's, from the other hand)
+      s.blow = want.blow
       s.hit = new Set()
-      if (this.blades.length > 1 && s.slash > 0) { this.active = this.used = this.next(); this.active.last = null }
+      if (this.blades.length > 1 && s.blow > 0) { this.active = this.used = this.next(); this.active.last = null }
     }
     if (s) s.finishing = !!want.finishing
     if (this.haul && !want.drags) this.letGoHaul()   // (done dragging it in)
     const live = !!(s && s.live && want.live)
-    for (const b of this.blades) if (b !== this.active) this.reach(game, player, b, this.atSide(player, b), false, dt)
-    const clank = this.reach(game, player, this.active, want, live, dt)
+    let clank = null
+    for (const b of this.blades) {
+      const hit = this.type.pair ? this.inFist(game, player, b, live && b === this.active, dt) : this.reach(game, player, b, want, live, dt)
+      if (b === this.active) clank = hit
+    }
     this.striking = live
     if (live) {
       this.late = this.type.bats ? { swing: s, left: this.type.bats.grace ?? 0 } : null
@@ -369,13 +375,9 @@ export class HeldWeapon {
     }
   }
 
-  // Put it where `want` says, giving way to the level (see giveWay.js). A swing's hitting part running
-  // into the level (that it wasn't already giving way to) doesn't give way: returns where it hit
-  // ({ x, y, normal }: it clanks), or null.
-  // (Blade b: the active one goes where the swing says; the others are at your side.)
+  // Put it (blade b: a weapon's one) where `want` says, giving way to the level (see settle).
   reach(game, player, b, want, live, dt) {
-    const type = this.type, swing = b === this.active ? this.swing : null
-    const k = perStep(CONFIG.weapon.give.ease, dt), shift = perStep(type.pair ? SHIFT_QUICK : SHIFT, dt)
+    const type = this.type, swing = this.swing, shift = perStep(SHIFT, dt)
     b.shift.out += ((want.out ?? 0) - b.shift.out) * shift
     b.shift.up += ((want.up ?? 0) - b.shift.up) * shift
     const chest = want.limp ? limpChestOf(player) : chestOf(player)
@@ -384,13 +386,34 @@ export class HeldWeapon {
       b.spin = (want.angle - b.heading) / dt
       b.heading = want.angle
     } else ({ angle: b.heading, spin: b.spin } = turnToward(b.heading, b.spin, want.angle, type.heft.turn, dt))
-    const along = type.hold + want.extend
+    return this.settle(game, b, from, type.hold + want.extend, live, dt)
+  }
+
+  // A pair's blade b: in its fist, wherever its hand is, the handle at right angles to the forearm
+  // (turning in the fist to give way to the level).
+  inFist(game, player, b, live, dt) {
+    const { at, angle } = this.fistPose(player, b)
+    b.heading = angle
+    return this.settle(game, b, at, 0, live, dt, false)
+  }
+
+  fistPose(player, b) {
+    const { at, along } = player.hand(b.hand)
+    return { at, angle: Math.atan2(along.y, along.x) + this.side * Math.PI / 2 }
+  }
+
+  // Blade b pointing along b.heading, its grip `along` m out from `from` along it, giving way to the level
+  // (see giveWay.js; `slides`: it can slide back along its handle). A swing's hitting part running into
+  // the level (that it wasn't already giving way to) doesn't give way: returns where it hit ({ x, y,
+  // normal }: it clanks), or null.
+  settle(game, b, from, along, live, dt, slides = true) {
+    const type = this.type, swing = b === this.active ? this.swing : null, k = perStep(CONFIG.weapon.give.ease, dt)
     const hit = swing && swing.move.ghost ? null : toolBlocked(game, type, this.side, from, b.heading, along)
     const clank = hit && live && !b.giving && !swing.move.scrape ? hit : null
     b.giving = !!hit && !clank
     if (clank) b.give = { ...NO_GIVE }
     else {
-      const target = hit ? giveWay(game, type, this.side, from, b.heading, along, hit, b.give) : NO_GIVE
+      const target = hit ? giveWay(game, type, this.side, from, b.heading, along, hit, b.give, slides) : NO_GIVE
       b.give = { tilt: lerp(b.give.tilt, target.tilt, k), back: lerp(b.give.back, target.back, k), through: target.through }
     }
     const angle = b.heading + b.give.tilt
@@ -398,10 +421,18 @@ export class HeldWeapon {
     return clank
   }
 
-  // A pair's blade, held at its hand's side (hands by your sides), pointing down and forward.
-  atSide(player, b) {
-    const front = (b.hand === 'R') === (player.facing > 0)
-    return { angle: facingAngle(player.facing, -0.95), extend: 0, out: front ? 0.06 : -0.1, up: -0.3, live: false }
+  // A pair's: how each arm's posed (for Player.poseLimbs), by hand: { L, R }, each { angle (the way the
+  // arm points, world), bend (the elbow, rad), strength (× an arm's usual) }, or null: as it'd be
+  // empty-handed. (Not a pair: null; the hands are on its handle, see hands.)
+  fists(game, player) {
+    if (!this.type.pair) return null
+    const arms = { L: null, R: null }, s = this.swing, f = player.facing
+    if (s) arms[this.active.hand] = FIST_MOTIONS[s.move.motion](s.move, s.t / s.move.time, s).arm
+    else if (this.charge !== null) {   // fists up (shaking a little once it's full)
+      const shake = this.charge >= 1 ? Math.sin(game.time * 70) * 0.06 : 0
+      arms.L = arms.R = { angle: facingAngle(f, -0.9) + shake, bend: 1.9, strength: 1 }
+    } else if (this.aiming !== null) arms[this.active.hand] = { angle: facingAngle(f, 2.6), bend: 0.6 * this.aiming, strength: 1 }   // (drawn back)
+    return arms
   }
 
   // The swing's over: the wait before the next one starts.
@@ -463,7 +494,7 @@ export class HeldWeapon {
   }
 
   // A tap: part of a run, if the type has a combo (a click within combo.window s of the last one ending,
-  // without being hurt since): alternate ones turned round (tap.alternate), every 3rd the finisher.
+  // without being hurt since): every 3rd the finisher.
   tap(game, player, aim) {
     const tap = this.type.tap, C = tap.combo, r = this.run
     const carry = !!C && game.time - r.end <= C.window && player.damageTaken === r.hurt
@@ -471,7 +502,7 @@ export class HeldWeapon {
     r.hurt = player.damageTaken
     const move = C && r.n === 2 ? C.finisher : tap
     this.active = this.used = this.next()   // (a pair: from the other hand)
-    this.start(game, player, move, aim, { turn: tap.alternate && r.n === 1 ? -1 : 1, run: true })
+    this.start(game, player, move, aim, { run: true })
   }
 
   // Throw Weapon held: it charges (0 → 1). Let go: thrown along the aim from where it is, point first,
@@ -501,12 +532,13 @@ export class HeldWeapon {
     const from = this.pose.angle
     this.swing = { move, t: 0, aim: from + wrapAngle(aim - from), f: player.facing, from, hit: new Set(), wore: false, live: true, ...extra }
     const b = this.active
+    b.last = null      // (the blade sweeps from where the swing starts, not from wherever it was pointing)
+    this.late = null
+    if (this.type.pair) return   // (in the fist: it goes where the hand goes)
     b.heading = from
     b.spin = 0
     b.give.tilt = 0
     b.giving = false   // (what it was resting on held, it can clank off now: a thrust into the floor)
-    b.last = null      // (the blade sweeps from where the swing starts, not from wherever it was pointing)
-    this.late = null
   }
 
   // Where it should be this step: in a swing, hoisting someone, held back charging (shaking a little
@@ -515,6 +547,7 @@ export class HeldWeapon {
   // forward, up; m), live, drags (still dragging in what it's hooked), limp }.
   want(game, player, aim) {
     const s = this.swing
+    if (this.type.pair) return s ? FIST_MOTIONS[s.move.motion](s.move, s.t / s.move.time, s) : { live: false }   // (in the fists: see fists)
     if (s) return MOTIONS[s.move.motion](s.move, s.t / s.move.time, s)
     if (this.limp !== null) return { angle: player.torso.getAngle() + this.limp, extend: 0, live: false, limp: true }
     if (this.grab) {   // up overhead (tilted a little forward), with them on it
@@ -528,7 +561,6 @@ export class HeldWeapon {
       return { angle: aim + shake, extend: -0.25 * this.charge, live: false }
     }
     if (this.aiming !== null) return THROW_POSES[this.type.throw.flight](aim, this.aiming, player.facing)
-    if (this.type.pair) return this.atSide(player, this.active)   // (hands by your sides)
     return { angle: aim, extend: 0, live: false }
   }
 
@@ -560,14 +592,10 @@ export class HeldWeapon {
     this.grab.victim.setVelocity(v.x + (tip.x - body.x) * FOLLOW, v.y + (tip.y + 0.2 - body.y) * FOLLOW)
   }
 
-  // Where the hands go on its handle (the arms are posed to reach them: see heldHands).
-  // A pair: one in each hand ({ front, back }: the hand nearest the aim, the other; null if it's empty).
+  // Where the hands go on its handle (the arms are posed to reach them: see heldHands). (A pair: null:
+  // they're in the fists, see fists.)
   hands() {
-    const sh = this.holder.shoulder()
-    if (!this.type.pair) return heldHands(this.type, this.pose.at, this.pose.angle, sh)
-    const grip = hand => { const b = this.blades.find(b => b.hand === hand); return b ? heldHands(this.type, b.pose.at, b.pose.angle, sh).front : null }
-    const [front, back] = this.holder.facing > 0 ? ['R', 'L'] : ['L', 'R']
-    return { front: grip(front), back: grip(back) }
+    return this.type.pair ? null : heldHands(this.type, this.pose.at, this.pose.angle, this.holder.shoulder())
   }
 
   // Lying loose again where it is (its holder was knocked out), with the uses it has left (a pair: each).

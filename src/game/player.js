@@ -274,6 +274,13 @@ export class Player {
     return this.torso.getWorldPoint(new Vec2(0, this.shoulderLocalY))
   }
 
+  // A hand ('L', 'R'): { at (the fist), along (the way the forearm points, out to it: a unit vector) }.
+  hand(side) {
+    const forearm = side === 'L' ? this.forearmL : this.forearmR
+    const at = forearm.getWorldPoint(new Vec2(0, -BODY.armSeg / 2)), d = forearm.getWorldVector(new Vec2(0, -1))
+    return { at: { x: at.x, y: at.y }, along: { x: d.x, y: d.y } }
+  }
+
   // The front hand (the one closest to where you're aiming) holds the pumpkin.
   handPosition() {
     const forearm = this.facing > 0 ? this.forearmR : this.forearmL
@@ -532,7 +539,7 @@ export class Player {
     this.updateHarvest(input, dt, game, canAct)
 
     // --- 3. pose the limbs ---
-    this.poseLimbs(dt, vel, control)
+    this.poseLimbs(game, dt, vel, control)
     if (this.slide) this.updateSlideFoot(dt, game)
 
     // --- swinging a weapon (even when we can't act: that cuts a swing short), or throwing (or
@@ -839,7 +846,7 @@ export class Player {
     return null
   }
 
-  poseLimbs(dt, vel, control) {
+  poseLimbs(game, dt, vel, control) {
     const C = CONFIG.player
     const f = this.facing
     const J = this.joints
@@ -886,11 +893,13 @@ export class Player {
     }
 
     // Both arms point at the aim, like holding the pumpkin with two hands (or reach for what we're
-    // picking up). A weapon: both hands on its handle, where it says. (Angles here are from straight down.)
+    // picking up). A weapon: both hands on its handle, where it says; a pair in the fists, the arms as
+    // they'd be empty-handed, but posed as it says (see HeldWeapon.fists). (Angles here are from straight down.)
     const shoulder = this.shoulder()
     const target = this.harvestTarget ? this.harvestTarget.at : this.aim
     const aimAngle = Math.atan2(target.x - shoulder.x, -(target.y - shoulder.y))
-    const grips = this.weapon && !this.harvestTarget ? this.weapon.hands() : null
+    const fists = this.weapon && !this.harvestTarget ? this.weapon.fists(game, this) : null
+    const grips = this.weapon && !fists && !this.harvestTarget ? this.weapon.hands() : null
     const armTarget = aimAngle - this.torso.getAngle()
     const [frontShoulder, backShoulder] = f > 0 ? [J.shoulderR, J.shoulderL] : [J.shoulderL, J.shoulderR]
 
@@ -899,7 +908,7 @@ export class Player {
     const firm = this.crouching && !this.slide ? C.crouch.firmness : 1
     const legsOut = this.sitTime > 0 && this.sitTime < C.crouch.legsOutTime
     const legT = lerp(C.limpTorque, C.legTorque * (this.slide ? C.slide.legStrength : legsOut ? 1 : firm), control)
-    const busyArms = this.handsFull || this.harvestTarget || this.punchTimer > 0   // (arms aiming, reaching or punching stay firm)
+    const busyArms = (this.handsFull && !fists) || this.harvestTarget || this.punchTimer > 0 || (fists && (fists.L || fists.R))   // (arms aiming, reaching or punching stay firm)
     const armT = lerp(C.limpTorque, C.armTorque * (busyArms ? 1 : firm), control)
     const neckT = lerp(C.limpTorque, C.neckTorque * firm, control)
     this.drive(J.hipL, hipL, legT)
@@ -915,17 +924,23 @@ export class Player {
         if (grip) this.reachFor(shoulderJoint, elbowJoint, grip, T)
         else { this.drive(shoulderJoint, rest[side], armT); this.drive(elbowJoint, bend[side], armT) }
       }
-    } else if (this.handsFull || this.harvestTarget) {
+    } else if (this.harvestTarget || (this.handsFull && !fists)) {
       // straight arms: holding something with both hands / reaching for it
       this.drive(frontShoulder, armTarget, armT)
       this.drive(backShoulder, armTarget - 0.15 * f, armT)
       this.drive(frontElbow, 0, armT)
       this.drive(backElbow, 0, armT)
     } else {
-      // Arms relaxed (see relaxedArms). A punch swings one arm straight at the aim.
+      // Arms relaxed (see relaxedArms). A punch swings one arm straight at the aim; a pair in the fists,
+      // each arm as it says (its angle, from the world's x axis, turned to from straight down).
       const { rest, bend } = this.relaxedArms(C, f, amt)
       for (const side of ['L', 'R']) {
-        const jab = this.punchTimer > 0 && this.punchArm === side
+        const jab = this.punchTimer > 0 && this.punchArm === side, fist = fists && fists[side]
+        if (fist) {
+          this.drive(J['shoulder' + side], fist.angle + Math.PI / 2 - this.torso.getAngle(), armT * fist.strength)
+          this.drive(J['elbow' + side], f * fist.bend, armT * fist.strength)
+          continue
+        }
         const t = jab ? armT * 3 : armT
         this.drive(J['shoulder' + side], jab ? armTarget : rest[side], t)
         this.drive(J['elbow' + side], jab ? 0 : bend[side], t)
