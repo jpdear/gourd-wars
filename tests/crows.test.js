@@ -9,10 +9,12 @@ import { defaultWeaponSettings } from '../src/game/weaponTypes.js'
 import { dropWeapon } from '../src/game/looseWeapons.js'
 import { HeldWeapon } from '../src/game/weapons.js'
 
-// Practice on The Patch: you (x 11) and a dummy, on the main platform (top at y 4.4).
+// Practice on The Patch: you (x 11) and a dummy, on the main platform (top at y 4.4). No crows but the
+// ones a test sends (the schedule's are random: one could turn up mid-test).
 function setup(map) {
   const game = createGame()
   if (map) { game.mapChoice = map; resetRound(game) }
+  game.crowTimer = Infinity
   steps(game, 30)   // (stand up)
   return { game, me: game.players[0], dummy: game.players[1] }
 }
