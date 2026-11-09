@@ -238,7 +238,7 @@ export const PUMPKIN_TYPES = {
     // close (m) a part of someone has to come to its mouth; bite: { damage, hold (s stuck in place) }; size: how
     // big it's drawn planted or biting (m across its middle; it's 2.4 × that long)
     trap: { armTime: 0.4, life: 15, reach: 0.32, size: 0.2, bite: { damage: 10, hold: 2 } },
-    onHitPlayer: (game, pk, player, part) => biteWith(game, pk, player, part),
+    onHitPlayer: (game, pk, player) => biteWith(game, pk, player),
     onHitWorld: (game, pk) => plantTrap(game, pk),
     onHitBale: (game, pk) => plantTrap(game, pk),
     onBreak: (game, pk) => {   // (broken without planting or biting: it wilts where it is)

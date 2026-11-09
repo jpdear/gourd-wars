@@ -75,14 +75,15 @@ it('unused, it wilts after a while', () => {
   expect(game.events.some(e => e.type === 'wilt')).toBe(true)
 })
 
-it('thrown right into someone, it bites them at once', () => {
+it('thrown right into someone, it just chomps them: the damage, but it doesn\'t hold them', () => {
   const { game, me, dummy } = setup()
   const c = dummy.torso.getPosition()
-  spawnPumpkin(game, 'chomper', new Vec2(c.x - 1.5, c.y), new Vec2(20, 0), me)
-  for (let i = 0; i < 20 && !dummy.trapped; i++) steps(game, 1)
-  expect(dummy.trapped).toBe(true)
+  const pk = spawnPumpkin(game, 'chomper', new Vec2(c.x - 1.5, c.y), new Vec2(20, 0), me)
+  for (let i = 0; i < 20 && !dummy.damageTaken; i++) steps(game, 1)
   expect(dummy.damageTaken).toBe(T.bite.damage)
-  expect(game.traps[0].victim).toBe(dummy)
+  expect(dummy.trapped).toBe(false)
+  expect(pk.broken).toBe(true)
+  expect(game.traps).toHaveLength(0)
 })
 
 it('off a wall it bounces on (no planting on walls)', () => {

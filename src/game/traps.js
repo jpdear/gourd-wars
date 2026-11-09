@@ -1,9 +1,9 @@
 // CHOMPERS — what a thrown Chomper gourd turns into (see the 'chomper' pumpkin type). Coming down on a
 // floor (a platform, a moving platform, a hay bale: it rides along on it), it plants itself there and
 // splits open, its two halves lying flat on the ground; once it's open, anyone who touches it (its
-// thrower too) is chomped: hurt, and stuck in place a while (see Player.trap), the trap clamped shut on
-// whatever it bit. Thrown straight into someone, it bites them right away. Unused, it shrivels away
-// after a while; done biting, it does too.
+// thrower too) is chomped: hurt, and stuck in place a while (see Player.trap), the trap clamped shut
+// around their leg. Thrown straight into someone, it just chomps them (hurts, doesn't hold them) and
+// is used up. Unused, it shrivels away after a while; done biting, it does too.
 //
 // game.traps: { id, on (the body it sits on, or the part it's biting), local (where on it), turn (its
 //   angle on it), x, y, angle (in the world), age, victim (biting: who), hold (biting: s left) }
@@ -37,13 +37,13 @@ export function plantTrap(game, pk) {
   breakPumpkin(game, pk)
 }
 
-// A thrown Chomper flew right into someone: it bites `part` (one of their bodies) at once. (A biting
-// trap stands on the spot it holds, like one bitten shut on the floor: so this one stands half its
-// length below where it hit, to be shut around it.)
-export function biteWith(game, pk, player, part) {
+// A thrown Chomper flew right into someone: it chomps them (the bite's damage) and is used up. It
+// doesn't hold them: only one they step in does.
+export function biteWith(game, pk, player) {
   pk.used = true
   const p = pk.body.getPosition()
-  bite(game, addTrap(game, part, { x: p.x, y: p.y - 1.2 * T().size }, 0), player, part)
+  player.takeHit(game, T().bite.damage, 0, p)
+  game.events.push({ type: 'snap', x: r3(p.x), y: r3(p.y) })
 }
 
 export function updateTraps(game, dt) {
@@ -64,7 +64,7 @@ export function updateTraps(game, dt) {
     for (const pl of game.players) {
       if (pl.out || pl.removed) continue
       const part = pl.partAt(mouth, C.reach)
-      if (part) { bite(game, t, pl, part, { x: part.getPosition().x, y: t.y }); break }   // (shut around their leg, on the floor)
+      if (part) { bite(game, t, pl, part); break }
     }
   }
   game.traps = game.traps.filter(t => !t.gone)
@@ -83,10 +83,10 @@ function addTrap(game, body, at, angle) {
   return t
 }
 
-// The jaws snap shut on `part` of `player`, standing at `spot` (default: where it is): it hurts,
-// they're stuck, and the trap goes with that part.
-function bite(game, t, player, part, spot = { x: t.x, y: t.y }) {
-  t.x = spot.x; t.y = spot.y
+// Someone stepped in it: the jaws snap shut around `part` of `player` (standing on the floor, around their
+// leg): it hurts, they're stuck, and the trap goes with that part.
+function bite(game, t, player, part) {
+  t.x = part.getPosition().x
   const B = T().bite, at = part.getLocalPoint(new Vec2(t.x, t.y))
   Object.assign(t, { on: part, local: { x: at.x, y: at.y }, turn: t.angle - part.getAngle(), victim: player, hold: B.hold })
   player.takeHit(game, B.damage, 0, { x: t.x, y: t.y })
