@@ -53,7 +53,7 @@ src/
     pumpkinTypes.js     every pumpkin's numbers + spawn rates
     pumpkins.js         throwing, hits, knockback        powers.js   what the specials do
     crows.js            crows flying over (knocked down, thrown, pecking)
-    traps.js            Chompers: planted on the floor, biting whoever touches them
+    traps.js            planted gourds: Chompers (biting) and Landmines (blowing up)
     pickups.js          what the harvest key can pick up (pumpkins, crows)
     level.js            hay bales, pitchforks, scarecrows, bonfires, moving platforms
     cannons.js          gourd cannons (a map piece firing gourds)
