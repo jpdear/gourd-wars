@@ -1,0 +1,87 @@
+/* Design tokens: every color and font the HTML parts use (menus, map editor panel, tuning panel), in
+   one place. The other stylesheets only use these var(--…) names. (The canvas has its own list:
+   src/render/palette.js.) Loaded before the other stylesheets. */
+:root {
+  /* fonts */
+  --font-display: 'Luckiest Guy', 'Arial Black', system-ui, sans-serif;   /* titles, headings, buttons */
+  --font-logo: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;          /* the main menu's logo */
+  --font-text: system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  /* the page behind everything */
+  --page: #24211d;
+
+  /* menus: backdrop and card */
+  --scrim: rgba(36, 33, 29, 0.55);          /* over the game */
+  --backdrop-glow: #4a3c2c;                 /* out of the game: a soft glow... */
+  --backdrop: #2e2822;
+  --backdrop-edge: #1e1b18;                 /* ...fading out to the edges */
+  --card: #f4efe6;
+  --card-shadow: rgba(0, 0, 0, 0.35);
+  --card-inset: #e9e2d6;                    /* a My Maps row */
+  --white: #fff;
+
+  /* menus: text */
+  --ink: #3b3631;
+  --muted: #8a8073;                         /* labels, small print, quiet buttons */
+  --status: #6b6358;
+  --status-on-dark: #e2d9cc;                /* the main menu's status line */
+  --warn-text: #c0392b;                     /* an unbound key, a map that needs fixing */
+
+  /* the logo and card titles */
+  --pumpkin: #f28c28;
+  --logo-edge: #2a1d10;
+
+  /* menu buttons: a color, its hover, and the ledge under it */
+  --button: #3b3631;
+  --button-hover: #4d4741;
+  --button-edge: #1a1612;
+  --primary: #e07a1a;
+  --primary-hover: #f28c28;
+  --primary-edge: #9c4f0c;
+  --waiting-edge: #8a4a0c;                  /* a key bind waiting for its new key */
+  --seg: #e2d9cc;                           /* segmented buttons, map grid, toggles that are off */
+  --seg-hover: #d6ccbd;
+  --seg-edge: #c2b6a5;
+  --toggle-on: #5a8f3c;
+  --toggle-on-hover: #67a046;
+  --toggle-on-edge: #3a6326;
+  --danger: #a8402f;
+  --danger-hover: #c24d39;
+  --danger-edge: #6b2418;
+
+  /* menu inputs */
+  --input: #fff;
+  --input-border: #c9bfb2;
+  --input-focus: #e07a1a;
+  --dot-ring: rgba(0, 0, 0, 0.25);          /* round each pumpkin's color dot */
+
+  /* dark panels: the map editor and the tuning panel */
+  --panel: #2c2824;
+  --panel-glass: rgba(30, 27, 24, 0.92);    /* the tuning panel, over the game */
+  --panel-deep: #1e1b18;                    /* edges, input fills, text on orange */
+  --panel-tab: #3a3531;
+  --panel-button: #4a4440;
+  --panel-button-hover: #5c5550;
+  --panel-on: #f28c28;
+  --panel-primary: #e07a1a;
+  --panel-text: #eee;
+  --panel-label: #bdb4aa;
+  --panel-faint: #9a9086;
+  --panel-heading: #f2a65a;
+  --panel-changed: #ffcf6e;                 /* tuning: a value you've changed */
+  --panel-note: #4a3a28;
+  --panel-dot-ring: rgba(0, 0, 0, 0.35);
+  --panel-ok: #9fd47a;
+  --panel-bad: #ffb36e;
+
+  /* the map editor's checks */
+  --problem-err: #5a2420;
+  --problem-err-hover: #6e2c26;
+  --problem-err-text: #ffd0c8;
+  --problem-warn: #4a3a20;
+  --problem-warn-hover: #5c4826;
+  --problem-warn-text: #ffe0a8;
+  --problem-ok: #2e4422;
+  --problem-ok-text: #c8f0a8;
+}

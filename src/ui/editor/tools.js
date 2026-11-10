@@ -6,6 +6,7 @@
 import { PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../../config.js'
 import { cannonParts } from '../../game/cannons.js'
 import { BALE, TINE } from '../../game/level.js'
+import { FONT } from '../../render/palette.js'
 
 export const EDITOR_MAP_ID = '__editor'   // (ids starting with __ stay out of the menus and rotation)
 export const EDITOR_TOOLS = [
@@ -91,7 +92,7 @@ export function drawSpawnMarker(ctx, sp, i, X, Y, s) {
   ctx.arc(X(sp.x), Y(sp.y + 1.62), 0.22 * s, 0, Math.PI * 2)
   ctx.stroke()
   ctx.fillStyle = color
-  ctx.font = `bold ${Math.round(0.36 * s)}px system-ui, sans-serif`
+  ctx.font = `bold ${Math.round(0.36 * s)}px ${FONT.ui}`
   ctx.textAlign = 'center'
   ctx.fillText(String(i + 1), X(sp.x), Y(sp.y + 2.05))
   ctx.lineCap = 'butt'

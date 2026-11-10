@@ -1,5 +1,6 @@
 // MAP EDITOR — the editor itself (tools and piece shapes are in tools.js).
 // hooks: onSave(def), onPlaytest(id), onExit()
+// Its marks over the map are colored by the map's theme and EDITOR (render/palette.js).
 
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../../config.js'
 import { CANNON, CANNON_FACES, cannonParts, cannonPath, clampAim, mountPoint } from '../../game/cannons.js'
@@ -9,6 +10,7 @@ import { MAPS } from '../../maps/builtin.js'
 import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
 import { THEMES } from '../../maps/themes.js'
 import { drawBale, drawBonfire, drawCannon, drawPitchforks, drawScarecrow } from '../../render/level.js'
+import { EDITOR, FONT } from '../../render/palette.js'
 import { drawPumpkin } from '../../render/pumpkins.js'
 import { EDITOR_MAP_ID, EDITOR_TOOLS, PIECE_FIELDS, PIECE_KINDS, PIECE_NAMES, TOOL_KINDS, cannonSpeedAt, drawSpawnMarker, moverEnd, pieceBox, pieceHandles } from './tools.js'
 import { hexA } from '../../util/color.js'
@@ -489,7 +491,7 @@ export function createEditor(canvas, view, hooks) {
     // markers: spawns, scythe reach, what a patch grows
     def.spawns.forEach((sp, i) => drawSpawnMarker(ctx, sp, i, X, Y, s))
     ctx.setLineDash([6, 5])
-    ctx.strokeStyle = 'rgba(200, 40, 40, 0.55)'
+    ctx.strokeStyle = EDITOR.scytheReach
     ctx.lineWidth = 1.5
     for (const sc of def.scythes) { ctx.beginPath(); ctx.arc(X(sc.x), Y(sc.y), sc.length * s, 0, Math.PI * 2); ctx.stroke() }
     ctx.setLineDash([])
@@ -515,7 +517,7 @@ export function createEditor(canvas, view, hooks) {
         ctx.fill()
       }
     }
-    ctx.font = `bold ${Math.round(0.28 * s)}px system-ui, sans-serif`
+    ctx.font = `bold ${Math.round(0.28 * s)}px ${FONT.ui}`
     ctx.textAlign = 'center'
     for (const pt of def.patches) {
       if (!pt.only) continue
@@ -533,26 +535,26 @@ export function createEditor(canvas, view, hooks) {
       ctx.setLineDash([])
     }
     ctx.lineWidth = 2
-    for (const p of problems.warnings) outline(p.kind, p.index, '#e89a1c', [5, 4])
-    for (const p of problems.errors) outline(p.kind, p.index, '#e0302a', [5, 4])
-    if (hover && !(sel && hover.kind === sel.kind && hover.index === sel.index)) { ctx.lineWidth = 1.5; outline(hover.kind, hover.index, 'rgba(43, 155, 255, 0.6)', []) }
+    for (const p of problems.warnings) outline(p.kind, p.index, EDITOR.warning, [5, 4])
+    for (const p of problems.errors) outline(p.kind, p.index, EDITOR.error, [5, 4])
+    if (hover && !(sel && hover.kind === sel.kind && hover.index === sel.index)) { ctx.lineWidth = 1.5; outline(hover.kind, hover.index, EDITOR.hover, []) }
     // selection + handles
     const o = piece(sel)
     if (o) {
       ctx.lineWidth = 2
-      outline(sel.kind, sel.index, '#2b9bff', [], 0.1)
+      outline(sel.kind, sel.index, EDITOR.select, [], 0.1)
       if (sel.kind === 'scythes') {   // the arm the length handle sits on
-        ctx.strokeStyle = '#2b9bff'
+        ctx.strokeStyle = EDITOR.select
         ctx.beginPath(); ctx.moveTo(X(o.x), Y(o.y)); ctx.lineTo(X(o.x + o.length), Y(o.y)); ctx.stroke()
       }
       if (sel.kind === 'cannons') {   // a line out to the aim handle
         const { pivot } = cannonParts(o), [[, hx, hy]] = pieceHandles('cannons', o)
-        ctx.strokeStyle = '#2b9bff'
+        ctx.strokeStyle = EDITOR.select
         ctx.beginPath(); ctx.moveTo(X(pivot.x), Y(pivot.y)); ctx.lineTo(X(hx), Y(hy)); ctx.stroke()
       }
       for (const [, hx, hy] of pieceHandles(sel.kind, o)) {
-        ctx.fillStyle = '#fff'
-        ctx.strokeStyle = '#1d6fb8'
+        ctx.fillStyle = EDITOR.handle
+        ctx.strokeStyle = EDITOR.handleEdge
         ctx.lineWidth = 1.5
         ctx.fillRect(X(hx) - 5, Y(hy) - 5, 10, 10)
         ctx.strokeRect(X(hx) - 5, Y(hy) - 5, 10, 10)
@@ -563,7 +565,7 @@ export function createEditor(canvas, view, hooks) {
       const x0 = Math.min(drag.x0, drag.x1), x1 = Math.max(drag.x0, drag.x1), y0 = Math.min(drag.y0, drag.y1), y1 = Math.max(drag.y0, drag.y1)
       ctx.fillStyle = hexA(tool === 'wall' ? theme.wall : theme.platform, 0.55)
       ctx.fillRect(X(x0), Y(y1), (x1 - x0) * s, (y1 - y0) * s)
-      ctx.strokeStyle = '#2b9bff'
+      ctx.strokeStyle = EDITOR.select
       ctx.lineWidth = 2
       ctx.strokeRect(X(x0), Y(y1), (x1 - x0) * s, (y1 - y0) * s)
     } else if (drag && drag.type === 'spikes') {
@@ -586,12 +588,12 @@ export function createEditor(canvas, view, hooks) {
         else if (kind === 'cannons' && ghost.face !== undefined) { drawCannon(ctx, ghost, null, X, Y, s); drawCannonPath(ctx, ghost, true, X, Y, s) }
         ctx.globalAlpha = 1
       } else {
-        ctx.fillStyle = '#2b9bff'
+        ctx.fillStyle = EDITOR.select
         ctx.beginPath(); ctx.arc(X(snap(cursor.x, cursor.free)), Y(snap(cursor.y, cursor.free)), 4, 0, Math.PI * 2); ctx.fill()
       }
     }
     // help + where the cursor is, along the bottom
-    ctx.font = `${Math.round(0.32 * s)}px system-ui, sans-serif`
+    ctx.font = `${Math.round(0.32 * s)}px ${FONT.ui}`
     ctx.fillStyle = theme.muted
     ctx.strokeStyle = theme.sky[1]
     ctx.lineWidth = 3
@@ -603,7 +605,7 @@ export function createEditor(canvas, view, hooks) {
 
   // where a cannon's gourds go: a dotted line (stronger for the selected one)
   function drawCannonPath(ctx, c, strong, X, Y, s) {
-    ctx.fillStyle = strong ? 'rgba(242, 140, 40, 0.9)' : 'rgba(242, 140, 40, 0.45)'
+    ctx.fillStyle = strong ? EDITOR.cannonPath.strong : EDITOR.cannonPath.faint
     cannonPath(c, def.platforms).forEach((p, i) => {
       if (i % 3) return
       ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), (strong ? 0.05 : 0.04) * s, 0, Math.PI * 2); ctx.fill()

@@ -3,12 +3,13 @@
 // and flying off (an effect: see render/effects.js).
 //
 // The crow itself is a classic black silhouette seen side-on, drawn in its own units: 1 = its length
-// from beak tip to tail (x forward, y down, its middle at 0, 0).
+// from beak tip to tail (x forward, y down, its middle at 0, 0). Colors: CROW and DIZZY (palette.js).
 
 import { BODY, CONFIG } from '../config.js'
 import { PART_NAMES } from '../game/snapshot.js'
+import { CROW, DIZZY } from './palette.js'
 
-const INK = '#1a191f', FAR = '#34313c', EDGE = '#2a2830'
+const { ink: INK, far: FAR, edge: EDGE } = CROW
 const time = () => Date.now() / 1000
 
 // The head turns about the neck; the beak's tip, and the way it points (from the middle of the head).
@@ -84,7 +85,7 @@ function head(ctx, turn, lunge, dazed, px) {
   ctx.moveTo(0.35, -0.125); ctx.lineTo(0.5, -0.105)
   ctx.stroke()
   if (dazed) {
-    ctx.strokeStyle = '#f4efe6'
+    ctx.strokeStyle = CROW.xEye
     ctx.lineWidth = Math.max(1.2 * px, 0.012)
     const ex = 0.27, ey = -0.15, e = 0.022
     ctx.beginPath()
@@ -92,11 +93,11 @@ function head(ctx, turn, lunge, dazed, px) {
     ctx.moveTo(ex + e, ey - e); ctx.lineTo(ex - e, ey + e)
     ctx.stroke()
   } else {
-    ctx.fillStyle = '#4a4652'
+    ctx.fillStyle = CROW.eyeRing
     ctx.beginPath(); ctx.arc(0.275, -0.15, 0.026, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = '#060608'
+    ctx.fillStyle = CROW.pupil
     ctx.beginPath(); ctx.arc(0.278, -0.15, 0.017, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = CROW.glint
     ctx.beginPath(); ctx.arc(0.283, -0.156, Math.max(0.006, 0.9 * px), 0, Math.PI * 2); ctx.fill()
   }
   ctx.fillStyle = INK
@@ -197,8 +198,8 @@ export function drawCrow(ctx, c, X, Y, s) {
 // Little yellow stars circling over something dazed.
 export function drawDizzyStars(ctx, x, y, s) {
   const t = time() * 3
-  ctx.fillStyle = '#f7c531'
-  ctx.strokeStyle = '#9a6b00'
+  ctx.fillStyle = DIZZY.star
+  ctx.strokeStyle = DIZZY.edge
   ctx.lineWidth = Math.max(1, 0.012 * s)
   for (let i = 0; i < 3; i++) {
     const a = t + i * 2.1, depth = Math.sin(a)   // (going round: smaller at the back)
@@ -264,7 +265,7 @@ export function drawFeather(ctx, f, X, Y, s) {
   ctx.bezierCurveTo(-0.3 * L, -0.55 * L, 0.6 * L, -0.5 * L, L, -0.1 * L)
   ctx.bezierCurveTo(0.6 * L, 0.35 * L, -0.3 * L, 0.4 * L, -L, 0)
   ctx.fill()
-  ctx.strokeStyle = '#5a5563'   // the quill
+  ctx.strokeStyle = CROW.quill   // the quill
   ctx.lineWidth = Math.max(1, 0.06 * L)
   ctx.beginPath()
   ctx.moveTo(-1.25 * L, 0); ctx.lineTo(0.8 * L, 0)

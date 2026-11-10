@@ -5,6 +5,7 @@
 //         overlay (map editor: draws its markers instead of the HUD),
 //         crosshair (the mouse is locked to the game: draw where it points),
 //         damageNumbers (show them: the player's setting), harvestKey (its name, for the harvest bubble) }
+// Every color and font the drawing uses is in palette.js (plus each map's theme and each pumpkin type's own).
 
 import { CONFIG } from '../config.js'
 import { SCYTHE_START } from '../game/level.js'
@@ -18,6 +19,7 @@ import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
+import { FONT } from './palette.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
@@ -101,7 +103,7 @@ export function render(ctx, view, snap, effects, ui) {
     if (t.damage && !ui.debug && !ui.damageNumbers) continue   // damage numbers: only if you turned them on (or with the tuning panel)
     ctx.globalAlpha = 1 - Math.pow(t.age / t.life, 2)
     ctx.fillStyle = t.color || theme.ink
-    ctx.font = `bold ${Math.round(t.size * s)}px system-ui, sans-serif`
+    ctx.font = `bold ${Math.round(t.size * s)}px ${FONT.ui}`
     ctx.fillText(t.text, X(t.x), Y(t.y))
   }
   ctx.globalAlpha = 1
@@ -116,7 +118,7 @@ export function render(ctx, view, snap, effects, ui) {
 
   if (ui.message) {
     ctx.textAlign = 'center'
-    ctx.font = `bold ${Math.round(0.5 * s)}px system-ui, sans-serif`
+    ctx.font = `bold ${Math.round(0.5 * s)}px ${FONT.ui}`
     ctx.fillStyle = theme.ink
     ctx.fillText(ui.message, XS(CONFIG.view.w / 2), Y(12.6))
   }

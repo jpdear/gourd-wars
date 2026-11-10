@@ -2,20 +2,22 @@
 // Match info at the top. No score numbers during a round (the leader wears a crown); the
 // scores show during the pan to the next map and at the end of the match. Health bars only in
 // debug mode: it's more fun when nobody knows exactly how much health is left.
+// Colors: the map's theme (text), the players' own, and UI (palette.js); fonts: FONT.
 
 import { CONFIG, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
 import { matchInfoText } from '../game/match.js'
+import { FONT, UI } from './palette.js'
 import { clamp } from '../util/math.js'
 
 export function drawHud(ctx, snap, ui, X, Y, s) {
   const W = CONFIG.view.w, barW = 5, barH = 0.24
   if (ui.debug) snap.players.forEach((p, i) => {   // one small bar per player, along the top
     const x0 = 0.6 + i * (barW + 1.2), y0 = 16.7
-    ctx.font = `bold ${Math.round(0.3 * s)}px system-ui, sans-serif`
+    ctx.font = `bold ${Math.round(0.3 * s)}px ${FONT.ui}`
     ctx.fillStyle = p.color
     ctx.textAlign = 'left'
     ctx.fillText(`${PLAYER_COLOR_NAMES[p.slot]}${p.slot === ui.localIndex ? ' (you)' : ''} ${p.health}`, X(x0), Y(y0 + barH + 0.14))
-    ctx.fillStyle = 'rgba(59, 54, 49, 0.15)'
+    ctx.fillStyle = UI.healthTrack
     ctx.fillRect(X(x0), Y(y0 + barH), barW * s, barH * s)
     ctx.fillStyle = p.color
     ctx.fillRect(X(x0), Y(y0 + barH), barW * clamp(p.health / CONFIG.player.maxHealth, 0, 1) * s, barH * s)
@@ -25,12 +27,12 @@ export function drawHud(ctx, snap, ui, X, Y, s) {
   const m = snap.match
   if (m) {
     ctx.fillStyle = ui.theme.muted
-    ctx.font = `${Math.round(0.32 * s)}px system-ui, sans-serif`
+    ctx.font = `${Math.round(0.32 * s)}px ${FONT.ui}`
     ctx.fillText(matchInfoText(m), X(W / 2), Y(16.1))
     if (m.phase === 'transition') drawScores(ctx, snap, ui, X, Y, s, 15)
   } else {
     ctx.fillStyle = ui.theme.muted
-    ctx.font = `${Math.round(0.36 * s)}px system-ui, sans-serif`
+    ctx.font = `${Math.round(0.36 * s)}px ${FONT.ui}`
     ctx.fillText(ui.hud, X(W / 2), Y(16.6))
   }
 }
@@ -45,7 +47,7 @@ export function drawCrosshair(ctx, x, y) {
     }
   }
   ctx.lineCap = 'round'
-  for (const [color, width] of [['rgba(30, 24, 20, 0.85)', 3], ['#fff', 1.5]]) {
+  for (const [color, width] of [[UI.crosshair.edge, 3], [UI.crosshair.line, 1.5]]) {
     ctx.strokeStyle = color
     ctx.lineWidth = width
     ctx.beginPath()
@@ -57,7 +59,7 @@ export function drawCrosshair(ctx, x, y) {
 // Everyone's score in a row, each in their color, centered at height y.
 function drawScores(ctx, snap, ui, X, Y, s, y) {
   const players = snap.players, gap = 1.6
-  ctx.font = `900 ${Math.round(0.8 * s)}px system-ui, sans-serif`
+  ctx.font = `900 ${Math.round(0.8 * s)}px ${FONT.ui}`
   ctx.textAlign = 'center'
   ctx.lineWidth = 0.14 * s
   ctx.lineJoin = 'round'
@@ -87,7 +89,7 @@ export function drawBanner(ctx, snap, ui, X, Y, s) {
   }
   if (!text) return
   ctx.textAlign = 'center'
-  ctx.font = `900 ${Math.round(1.1 * s)}px system-ui, sans-serif`
+  ctx.font = `900 ${Math.round(1.1 * s)}px ${FONT.ui}`
   ctx.lineWidth = 0.18 * s
   ctx.lineJoin = 'round'
   ctx.strokeStyle = ui.theme.sky[1]
@@ -95,7 +97,7 @@ export function drawBanner(ctx, snap, ui, X, Y, s) {
   ctx.fillStyle = color
   ctx.fillText(text, X(CONFIG.view.w / 2), Y(14.3))
   if (sub) {
-    ctx.font = `600 ${Math.round(0.45 * s)}px system-ui, sans-serif`
+    ctx.font = `600 ${Math.round(0.45 * s)}px ${FONT.ui}`
     ctx.lineWidth = 0.08 * s
     ctx.fillStyle = ui.theme.muted
     ctx.strokeText(sub, X(CONFIG.view.w / 2), Y(13.5))
@@ -109,7 +111,7 @@ export function drawDebug(ctx, X, Y, s, ui, XS) {
     ctx.lineWidth = 1
     for (const p of ui.game.players) {
       for (const r of p.debugRays) {
-        ctx.strokeStyle = r.hit ? '#1a9e3a' : '#c33'
+        ctx.strokeStyle = r.hit ? UI.debugRay.hit : UI.debugRay.miss
         ctx.beginPath()
         ctx.moveTo(X(r.from.x), Y(r.from.y))
         ctx.lineTo(X(r.to.x), Y(r.to.y))
@@ -118,7 +120,7 @@ export function drawDebug(ctx, X, Y, s, ui, XS) {
     }
   }
   ctx.fillStyle = ui.theme.ink
-  ctx.font = `${Math.round(0.36 * s)}px ui-monospace, monospace`
+  ctx.font = `${Math.round(0.36 * s)}px ${FONT.mono}`
   ctx.textAlign = 'left'
   ui.debugLines.forEach((t, i) => ctx.fillText(t, XS(0.5), Y(15.4 - i * 0.5)))
 }

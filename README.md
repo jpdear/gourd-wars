@@ -42,7 +42,8 @@ Plain JavaScript modules, built with [Vite](https://vite.dev). Physics:
 
 ```
 index.html            the page: canvas, menu screens, editor shell
-styles/               base, menus (and the logo), map editor, tuning panel
+styles/               base, menus (and the logo), map editor, tuning panel;
+                      tokens.css: every color and font they use
 src/
   main.js             starts the app
   version.js          the version (see Releasing)
@@ -59,7 +60,8 @@ src/
     cannons.js          gourd cannons (a map piece firing gourds)
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
-  render/             draws a frame from a snapshot (the same on the host and guests)
+  render/             draws a frame from a snapshot (the same on the host and guests);
+                      palette.js: every color and font the canvas uses
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu, tuning panel, map editor
   app/                runs it all in the page:

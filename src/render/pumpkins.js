@@ -2,18 +2,19 @@
 // Green when unripe, the type's own color when ripe, brown as it rots.
 // Everything about how a particular type looks is here, in tables by its mark or name: its shape
 // (BODIES) and decoration (MARKS), extras while it flies (IN_FLIGHT) and how it's held (HELD).
+// Colors: each type's own (game/pumpkinTypes.js) and GOURD (palette.js).
 
 import { CONFIG } from '../config.js'
 import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
 import { crowShape } from './crows.js'
+import { GOURD } from './palette.js'
 import { handOf } from './players.js'
 import { hexA, mixHex } from '../util/color.js'
 import { clamp, lerp } from '../util/math.js'
 
-const GREEN = { color: '#76a83f', rib: '#557d2a' }
-const BROWN = { color: '#7a5a32', rib: '#56401f' }
+const GREEN = GOURD.unripe, BROWN = GOURD.rotten
 
 export function pumpkinColors(type, ripeness, rot) {
   const t = clamp(ripeness, 0, 1), r = clamp(rot, 0, 1)
@@ -28,7 +29,7 @@ export function drawPatches(ctx, snap, X, Y, s) {
   snap.patches.forEach((_, i) => {
     const patch = patchView(snap, i)
     // leaves on the ground
-    ctx.fillStyle = '#4c7a2a'
+    ctx.fillStyle = GOURD.leaf
     for (const side of [-1, 1]) {
       ctx.beginPath()
       ctx.ellipse(X(patch.x + side * 0.28), Y(patch.y + 0.06), 0.2 * s, 0.07 * s, side * 0.4, 0, Math.PI * 2)
@@ -55,7 +56,7 @@ export function drawPatches(ctx, snap, X, Y, s) {
 
 // A Super Rare pumpkin on its patch: a bigger, faster-pulsing gold glow (the type's color at the
 // heart) with sparkles circling it. (x, y, r in pixels; s = pixels per meter)
-const GOLD = '#ffd54a'
+const GOLD = GOURD.superRare.gold
 function drawSuperRareGlow(ctx, x, y, r, s, type) {
   const now = Date.now()
   const pulse = 0.6 + 0.2 * Math.sin(now / 150)
@@ -69,7 +70,7 @@ function drawSuperRareGlow(ctx, x, y, r, s, type) {
   ctx.arc(x, y, outer, 0, Math.PI * 2)
   ctx.fill()
   // 4 twinkling four-point stars going round
-  ctx.fillStyle = '#fff6c8'
+  ctx.fillStyle = GOURD.superRare.sparkle
   for (let i = 0; i < 4; i++) {
     const a = now / 900 + (i * Math.PI) / 2
     const d = r + 0.45 * s, size = 0.09 * s * (0.6 + 0.4 * Math.sin(now / 120 + i * 1.7))
@@ -91,18 +92,18 @@ const MARKS = {
     ctx.stroke()
   },
   fuse: (ctx, r) => {
-    ctx.strokeStyle = '#3b3631'
+    ctx.strokeStyle = GOURD.fuse
     ctx.beginPath()
     ctx.moveTo(r * 0.1, -r * 1.1)
     ctx.quadraticCurveTo(r * 0.5, -r * 1.6, r * 0.7, -r * 1.4)
     ctx.stroke()
-    ctx.fillStyle = Math.sin(Date.now() / 60) > 0 ? '#ffd36b' : '#ff7a1a'   // spark
+    ctx.fillStyle = GOURD.spark[Math.sin(Date.now() / 60) > 0 ? 0 : 1]   // spark
     ctx.beginPath()
     ctx.arc(r * 0.72, -r * 1.42, Math.max(1.5, r * 0.16), 0, Math.PI * 2)
     ctx.fill()
   },
   ice: (ctx, r) => {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.fillStyle = GOURD.ice
     for (const [ox, oy] of [[-0.5, -0.3], [0.35, 0.1], [-0.1, 0.5]]) {
       ctx.beginPath()
       ctx.moveTo(ox * r, (oy - 0.18) * r); ctx.lineTo((ox + 0.1) * r, oy * r)
@@ -111,14 +112,14 @@ const MARKS = {
     }
   },
   vine: (ctx, r) => {
-    ctx.strokeStyle = '#3c7a22'
+    ctx.strokeStyle = GOURD.vine
     ctx.beginPath()
     ctx.moveTo(0, -r * 1.2)
     ctx.bezierCurveTo(r * 0.8, -r * 1.8, r * 1.2, -r * 0.8, r * 0.7, -r * 0.9)
     ctx.stroke()
   },
   speckle: (ctx, r) => {
-    ctx.fillStyle = '#3b3631'
+    ctx.fillStyle = GOURD.speckle
     for (const [ox, oy] of [[-0.5, -0.2], [0.3, -0.45], [0.55, 0.25], [-0.2, 0.45], [0.05, 0]]) {
       ctx.beginPath()
       ctx.arc(ox * r, oy * r, Math.max(1, r * 0.09), 0, Math.PI * 2)
@@ -126,7 +127,7 @@ const MARKS = {
     }
   },
   stars: (ctx, r) => {   // little four-point sparkles
-    ctx.fillStyle = '#f4efe6'
+    ctx.fillStyle = GOURD.stars
     for (const [ox, oy, k] of [[-0.45, -0.35, 0.3], [0.4, -0.15, 0.22], [0.05, 0.45, 0.26], [-0.5, 0.3, 0.16], [0.55, 0.5, 0.14]]) {
       const x = ox * r, y = oy * r, a = Math.max(1.5, k * r), b = a * 0.25
       ctx.beginPath()
@@ -136,7 +137,7 @@ const MARKS = {
     }
   },
   crosshair: (ctx, r) => {   // a red target
-    ctx.strokeStyle = '#d6332a'
+    ctx.strokeStyle = GOURD.crosshair
     ctx.lineWidth = Math.max(1, r * 0.12)
     ctx.beginPath()
     ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2)
@@ -145,18 +146,18 @@ const MARKS = {
     ctx.stroke()
   },
   antenna: (ctx, r) => {   // a thin aerial with a blinking tip, where the stem would be
-    ctx.strokeStyle = '#3b3631'
+    ctx.strokeStyle = GOURD.antenna
     ctx.beginPath()
     ctx.moveTo(0, -r * 0.95)
     ctx.lineTo(r * 0.15, -r * 1.75)
     ctx.stroke()
-    ctx.fillStyle = Math.sin(Date.now() / 90) > 0 ? '#fff3b0' : '#ff3b2a'
+    ctx.fillStyle = GOURD.antennaBlink[Math.sin(Date.now() / 90) > 0 ? 0 : 1]
     ctx.beginPath()
     ctx.arc(r * 0.15, -r * 1.8, Math.max(1.5, r * 0.18), 0, Math.PI * 2)
     ctx.fill()
   },
   string: (ctx, r) => {
-    ctx.strokeStyle = '#6b6358'
+    ctx.strokeStyle = GOURD.string
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(0, r)
@@ -178,7 +179,7 @@ function roundPumpkin(ctx, r, colors, { w = 1.08, h = 1, ribs = [], stem = true 
   ctx.ellipse(0, 0, r * 0.45, r * 0.98, 0, 0, Math.PI * 2)
   for (const [rw, rh] of ribs) { ctx.moveTo(r * rw, 0); ctx.ellipse(0, 0, r * rw, r * rh, 0, 0, Math.PI * 2) }   // (moveTo: no joining line)
   ctx.stroke()
-  ctx.fillStyle = '#4c7a2a'
+  ctx.fillStyle = GOURD.leaf
   if (stem) ctx.fillRect(-r * 0.12, -r * 1.25, r * 0.24, r * 0.4)
 }
 
@@ -240,7 +241,7 @@ const IN_FLIGHT = {
     const owner = snapPlayer(snap, pk.owner)
     if (!owner) return
     const [hx, hy] = handOf(owner)
-    ctx.strokeStyle = '#3c7a22'
+    ctx.strokeStyle = GOURD.vine
     ctx.lineWidth = 0.05 * s
     ctx.beginPath()
     ctx.moveTo(X(hx), Y(hy))
@@ -265,7 +266,7 @@ export function drawFlyingPumpkin(ctx, pk, snap, X, Y, s) {
 // Types held some other way than in the hand, by type name. hand: [x, y] of the front hand.
 const HELD = {
   balloon: (ctx, type, colors, [hx, hy], X, Y, s) => {   // by its string, floating above the hand
-    ctx.strokeStyle = '#6b6358'
+    ctx.strokeStyle = GOURD.string
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(X(hx), Y(hy))
@@ -284,7 +285,7 @@ export function drawHeldPumpkin(ctx, p, X, Y, s) {
   if (HELD[p.held]) HELD[p.held](ctx, type, colors, hand, X, Y, s)
   else drawPumpkin(ctx, X(hx), Y(hy), type.radius * (1 + 0.25 * p.charge) * s, 0, colors, type.mark)
   if (p.heldCracks) {
-    ctx.strokeStyle = '#3b3631'
+    ctx.strokeStyle = GOURD.crack
     ctx.lineWidth = 0.025 * s
     for (let i = 0; i < p.heldCracks; i++) {
       const a = i * 2.1 + 0.4, r = type.radius
@@ -332,7 +333,7 @@ function drawBoomerangGourd(ctx, r, colors) {
   }
   ctx.stroke()
   const ux = -tny, uy = tnx   // (on along the neck, past the tip)
-  ctx.strokeStyle = '#4c7a2a'
+  ctx.strokeStyle = GOURD.leaf
   ctx.lineWidth = Math.max(1.5, r * 0.13)
   ctx.lineCap = 'round'
   ctx.beginPath()
@@ -346,7 +347,7 @@ function drawBoomerangGourd(ctx, r, colors) {
 // y down): `r` px across its middle, 1.2 × that to its middle the long way. Its two halves are hinged at
 // the bottom: `open` from 0 (shut: a whole gourd with a zigzag seam) to 1 (each half fallen out to its
 // side, lying flat on the ground, red mouth and teeth facing up).
-const MOUTH_RED = '#c8383a', TOOTH = '#f3ecc4', WART = '#7f8a2c'
+const { mouth: MOUTH_RED, tooth: TOOTH, wart: WART } = GOURD.chomper
 const WARTS = [[0.55, -0.5], [0.35, 0.45], [0.7, 0.1], [0.3, -0.1]]   // (across × r, along × the long way from the middle; mirrored on the left)
 function chomperShape(ctx, r, open, colors) {
   const h = r * 1.2, tip = open * Math.PI / 2, lift = r * Math.sin(tip)   // (falling over, it ends up resting on its rind)
@@ -389,7 +390,7 @@ function chomperShape(ctx, r, open, colors) {
     ctx.fill()
     ctx.stroke()
     if (side > 0 && open < 0.3) {   // the stem, out of the middle of one side (lying open, it's underneath)
-      ctx.fillStyle = '#4c7a2a'
+      ctx.fillStyle = GOURD.leaf
       ctx.fillRect(r * 0.95, -h - r * 0.1, r * 0.34, r * 0.2)
     }
     ctx.restore()
@@ -435,15 +436,15 @@ function mineGourd(ctx, r, colors, lit) {
     ctx.arc(x * w, y * r, r * 0.08, 0, Math.PI * 2)
     ctx.fill()
   }
-  ctx.fillStyle = '#3d4a22'   // the stem
+  ctx.fillStyle = GOURD.mine.stem   // the stem
   ctx.fillRect(-r * 0.09, -r * 1.3, r * 0.18, r * 0.36)
   if (lit) {   // a red glow around its light
-    ctx.fillStyle = 'rgba(255, 60, 40, 0.35)'
+    ctx.fillStyle = GOURD.mine.glow
     ctx.beginPath()
     ctx.arc(0, -r * 1.36, r * 0.32, 0, Math.PI * 2)
     ctx.fill()
   }
-  ctx.fillStyle = lit ? '#ff3b2a' : '#6e1f1a'
+  ctx.fillStyle = lit ? GOURD.mine.lit : GOURD.mine.unlit
   ctx.beginPath()
   ctx.arc(0, -r * 1.36, r * 0.14, 0, Math.PI * 2)
   ctx.fill()
@@ -456,7 +457,7 @@ function drawLandmine(ctx, t, X, Y, s) {
   ctx.save()
   ctx.translate(X(t.x), Y(t.y))
   ctx.rotate(-t.angle)
-  ctx.fillStyle = '#6b4f32'   // the dirt it's dug into
+  ctx.fillStyle = GOURD.mine.dirt   // the dirt it's dug into
   ctx.beginPath()
   ctx.ellipse(0, 0, r * 1.7, r * 0.28, 0, Math.PI, Math.PI * 2)
   ctx.fill()
@@ -481,7 +482,7 @@ function drawBottleGourd(ctx, r, colors) {
   ctx.beginPath()
   ctx.ellipse(0, 0.3 * r, 0.3 * r, 0.64 * r, 0, -Math.PI * 0.35, Math.PI * 0.35)   // a rib down the big bulb
   ctx.stroke()
-  ctx.fillStyle = '#4c7a2a'
+  ctx.fillStyle = GOURD.leaf
   ctx.fillRect(-r * 0.08, -r * 1.12, r * 0.16, r * 0.26)   // the stem
 }
 
@@ -510,7 +511,7 @@ function drawSawSquash(ctx, r, colors) {
     ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
   }
   ctx.stroke()
-  ctx.fillStyle = '#4c7a2a'   // the stem nub
+  ctx.fillStyle = GOURD.leaf   // the stem nub
   ctx.beginPath()
   ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2)
   ctx.fill()
@@ -532,7 +533,7 @@ function drawFlameTrail(ctx, x, y, r, heading) {
   for (let i = 5; i >= 1; i--) {
     const flick = 0.85 + 0.3 * Math.sin(now / 40 + i * 2.1)
     const d = r * (0.6 + i * 0.55)
-    ctx.fillStyle = ['#fff3b0', '#ffd23f', '#ff9a2e', '#ff6a1f', '#e2381b'][i - 1]
+    ctx.fillStyle = GOURD.flameTrail[i - 1]
     ctx.globalAlpha = 0.9 - i * 0.12
     ctx.beginPath()
     ctx.arc(x + bx * d, y + by * d, r * (0.75 - i * 0.1) * flick, 0, Math.PI * 2)
@@ -549,7 +550,7 @@ export function drawLockOn(ctx, x, y, s) {
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(now / 600)
-  ctx.strokeStyle = '#e2381b'
+  ctx.strokeStyle = GOURD.lockOn
   ctx.lineWidth = Math.max(1.5, 0.06 * s)
   ctx.beginPath()
   for (let k = 0; k < 4; k++) {
@@ -565,13 +566,13 @@ export function drawLockOn(ctx, x, y, s) {
 export function drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s) {
   const cx = X(x), cy = Y(y)
   const w = r * (0.3 + 0.9 * t) * s
-  ctx.fillStyle = `rgba(20, 16, 12, ${0.15 + 0.35 * t})`
+  ctx.fillStyle = hexA(GOURD.airstrike.shadow, 0.15 + 0.35 * t)
   ctx.beginPath()
   ctx.ellipse(cx, cy, w, w * 0.3, 0, 0, Math.PI * 2)
   ctx.fill()
   const pulse = 1 + 0.12 * Math.sin(Date.now() / 70)
   const R = 0.45 * s * pulse
-  ctx.strokeStyle = '#d6332a'
+  ctx.strokeStyle = GOURD.airstrike.target
   ctx.lineWidth = Math.max(1.5, 0.06 * s)
   ctx.beginPath()
   ctx.arc(cx, cy, R, 0, Math.PI * 2)
@@ -580,7 +581,7 @@ export function drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s) {
     ctx.lineTo(cx + dx * R * 1.4, cy + dy * R * 1.4)
   }
   ctx.stroke()
-  ctx.fillStyle = '#d6332a'
+  ctx.fillStyle = GOURD.airstrike.target
   ctx.beginPath()
   ctx.arc(cx, cy, Math.max(1.5, 0.06 * s), 0, Math.PI * 2)
   ctx.fill()
@@ -592,7 +593,7 @@ export function drawBlackHole(ctx, x, y, r, X, Y, s) {
   const cx = X(x), cy = Y(y), t = Date.now() / 1000
   // each speck falls in from 3.5 r, speeding up as it goes, then starts over from a new direction
   // (u: 0 = far out, 1 = at the core)
-  ctx.strokeStyle = '#fff'
+  ctx.strokeStyle = GOURD.blackHole.speck
   ctx.lineWidth = Math.max(1.5, 0.05 * s)
   ctx.lineCap = 'round'
   for (let i = 0; i < 24; i++) {
@@ -610,13 +611,13 @@ export function drawBlackHole(ctx, x, y, r, X, Y, s) {
   }
   ctx.globalAlpha = 1
   const halo = ctx.createRadialGradient(cx, cy, r * s, cx, cy, r * 1.4 * s)
-  halo.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
-  halo.addColorStop(1, 'rgba(255, 255, 255, 0)')
+  halo.addColorStop(0, GOURD.blackHole.halo[0])
+  halo.addColorStop(1, GOURD.blackHole.halo[1])
   ctx.fillStyle = halo
   ctx.beginPath()
   ctx.arc(cx, cy, r * 1.4 * s, 0, Math.PI * 2)
   ctx.fill()
-  ctx.fillStyle = '#000'
+  ctx.fillStyle = GOURD.blackHole.core
   ctx.beginPath()
   ctx.arc(cx, cy, r * s, 0, Math.PI * 2)
   ctx.fill()

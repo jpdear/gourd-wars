@@ -1,8 +1,9 @@
 // EFFECTS — purely visual stuff (particles). Not part of the physics, so
-// each computer makes its own from the game's events.
+// each computer makes its own from the game's events. Their colors are in FX (palette.js), by event.
 
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
+import { FX } from './palette.js'
 import { pumpkinColors } from './pumpkins.js'
 import { lerp } from '../util/math.js'
 
@@ -54,24 +55,24 @@ function feathers(effects, x, y, n, speed) {
 // What each game event looks like, by event type (events with no entry show nothing).
 const EFFECTS = {
   boom: (fx, ev) => {
-    burst(fx, ev.x, ev.y, 40, ['#ff9a2e', '#e2571b', '#3b3631', '#ffd36b'], [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
-    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r, color: '#e2571b', age: 0, life: 0.35 })
+    burst(fx, ev.x, ev.y, 40, FX.boom.burst, [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
+    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r, color: FX.boom.ring, age: 0, life: 0.35 })
   },
   pierce: (fx, ev) => {   // a Buzzsaw cutting through someone (or a bale, a crow): chips of squash spraying on ahead of it
-    const t = PUMPKIN_TYPES[ev.typeName], chips = [t.rib, t.color, '#4f6a24', '#f6f1cf']   // (its ribs, its skin, dark rind, pale flesh)
+    const t = PUMPKIN_TYPES[ev.typeName], chips = [t.rib, t.color, FX.pierce.rind, FX.pierce.flesh]   // (its ribs, its skin, dark rind, pale flesh)
     spray(fx, ev.x, ev.y, 24, chips, [ev.dx, ev.dy], 0.6, [5, 12], [0.35, 0.65], [0.045, 0.08], 1.5)
     burst(fx, ev.x, ev.y, 10, chips, [1.5, 4], [0.25, 0.45], [0.035, 0.06])   // (and some falling off where it cut)
   },
-  snap: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#b9c24a', '#6b7524', '#c8383a', '#f3ecc4'], [2, 6], [0.25, 0.45], [0.03, 0.06], 1.5),   // a Chomper biting
-  wilt: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#9a9a3e', '#6b6a2c', '#a07a3a'], [0.5, 2], [0.5, 0.9], [0.03, 0.06], 1),     // a Chomper shriveling away
-  hole: (fx, ev) => burst(fx, ev.x, ev.y, 18, ['#4b2c84', '#a46bff', '#0b0614'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
-  swallow: (fx, ev) => burst(fx, ev.x, ev.y, 14, ['#a46bff', '#0b0614', '#f4efe6'], [0.5, 2], [0.2, 0.4], [0.03, 0.06]),
+  snap: (fx, ev) => burst(fx, ev.x, ev.y, 14, FX.snap, [2, 6], [0.25, 0.45], [0.03, 0.06], 1.5),   // a Chomper biting
+  wilt: (fx, ev) => burst(fx, ev.x, ev.y, 10, FX.wilt, [0.5, 2], [0.5, 0.9], [0.03, 0.06], 1),     // a Chomper shriveling away
+  hole: (fx, ev) => burst(fx, ev.x, ev.y, 18, FX.hole, [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
+  swallow: (fx, ev) => burst(fx, ev.x, ev.y, 14, FX.swallow, [0.5, 2], [0.2, 0.4], [0.03, 0.06]),
   collapse: (fx, ev) => {   // a hole closing: a last purple pulse
-    burst(fx, ev.x, ev.y, 24, ['#a46bff', '#f4efe6', '#4b2c84'], [3, 9], [0.3, 0.6], [0.03, 0.07])
-    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r * 2.5, color: '#a46bff', age: 0, life: 0.45 })
+    burst(fx, ev.x, ev.y, 24, FX.collapse.burst, [3, 9], [0.3, 0.6], [0.03, 0.07])
+    fx.rings.push({ x: ev.x, y: ev.y, r: ev.r * 2.5, color: FX.collapse.ring, age: 0, life: 0.45 })
   },
   shake: (fx, ev) => { fx.shake = { amount: Math.max(ev.amount, fx.shake ? fx.shake.amount : 0), age: 0, life: 0.45 } },
-  pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, '#f6e7c1'], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
+  pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, FX.seed], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
   feathers: (fx, ev) => feathers(fx, ev.x, ev.y, 7, 2.5),   // a crow knocked down
   peck: (fx, ev) => feathers(fx, ev.x, ev.y, 2, 1.8),       // a crow pecking at someone's head
   crowAway: (fx, ev) => {   // a crow flying off: a few feathers, and up and away it goes
@@ -80,19 +81,19 @@ const EFFECTS = {
     fx.birds.push({ x: ev.x, y: ev.y, vx: dir * 5, vy: 4, dir, age: 0, life: 2 })
   },
   cannon: (fx, ev) => {   // a gourd cannon firing: a flash and a puff of smoke out of the muzzle
-    burst(fx, ev.x, ev.y, 8, ['#ffd23f', '#ff8a1f'], [2, 6], [0.08, 0.18], [0.03, 0.06])
-    burst(fx, ev.x, ev.y, 14, ['#d8d4cc', '#b9b4aa', '#8f8a80'], [0.5, 2.5], [0.4, 0.9], [0.08, 0.16], 1)
+    burst(fx, ev.x, ev.y, 8, FX.cannon.flash, [2, 6], [0.08, 0.18], [0.03, 0.06])
+    burst(fx, ev.x, ev.y, 14, FX.cannon.smoke, [0.5, 2.5], [0.4, 0.9], [0.08, 0.16], 1)
   },
-  block: (fx, ev) => burst(fx, ev.x, ev.y, 12, ['#d9b25c', '#9c7a2e', '#3b3631'], [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
-  freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, ['#ffffff', '#dff4fc', '#9fd8f0'], [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
-  straw: (fx, ev) => burst(fx, ev.x, ev.y, 26, ['#e2b84a', '#c9982f', '#f3d77a', '#8a5a2b'], [2, 7], [0.4, 0.8], [0.04, 0.09], 2),
+  block: (fx, ev) => burst(fx, ev.x, ev.y, 12, FX.block, [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
+  freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, FX.freeze, [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
+  straw: (fx, ev) => burst(fx, ev.x, ev.y, 26, FX.straw, [2, 7], [0.4, 0.8], [0.04, 0.09], 2),
   burn: (fx, ev) => (ev.small
-    ? burst(fx, ev.x, ev.y, 4, ['#ff8a1f', '#ffd23f'], [1, 3], [0.2, 0.4], [0.03, 0.05], 3)
-    : burst(fx, ev.x, ev.y, 26, ['#ff8a1f', '#ffd23f', '#e2481b', '#3b3631'], [2, 6], [0.4, 0.9], [0.04, 0.09], 4)),
-  dust: (fx, ev) => burst(fx, ev.x, ev.y, 2, ['#c9bfb2', '#9a8f80'], [0.3, 1.2], [0.25, 0.45], [0.03, 0.06], 0.8),   // sliding down a wall
-  yank: (fx, ev) => burst(fx, ev.x, ev.y, 10, ['#5fae3c', '#3c7a22'], [2, 5], [0.25, 0.45], [0.03, 0.06]),
+    ? burst(fx, ev.x, ev.y, 4, FX.burn.small, [1, 3], [0.2, 0.4], [0.03, 0.05], 3)
+    : burst(fx, ev.x, ev.y, 26, FX.burn.big, [2, 6], [0.4, 0.9], [0.04, 0.09], 4)),
+  dust: (fx, ev) => burst(fx, ev.x, ev.y, 2, FX.dust, [0.3, 1.2], [0.25, 0.45], [0.03, 0.06], 0.8),   // sliding down a wall
+  yank: (fx, ev) => burst(fx, ev.x, ev.y, 10, FX.yank, [2, 5], [0.25, 0.45], [0.03, 0.06]),
   damage: (fx, ev) => {
-    fx.popups.push({ damage: true, x: ev.x + (Math.random() - 0.5) * 0.3, y: ev.y, text: `-${ev.amount}`, size: 0.34 + Math.min(ev.amount, 30) * 0.008, color: '#c8323a', age: 0, life: 0.8 })
+    fx.popups.push({ damage: true, x: ev.x + (Math.random() - 0.5) * 0.3, y: ev.y, text: `-${ev.amount}`, size: 0.34 + Math.min(ev.amount, 30) * 0.008, color: FX.damage, age: 0, life: 0.8 })
   },
   ko: (fx, ev) => {
     fx.popups.push({ x: ev.x, y: ev.y, text: 'KO!', size: 0.7, color: null, age: 0, life: 1.2 })   // (map's text color)
@@ -104,7 +105,7 @@ const EFFECTS = {
       fx.particles.push({
         x: ev.x, y: ev.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
         life: 0.15 + Math.random() * 0.15, age: 0,
-        r: 0.035 + Math.random() * 0.04, color: i % 3 ? '#f08a1c' : '#3b3631',
+        r: 0.035 + Math.random() * 0.04, color: i % 3 ? FX.hit.spark : FX.hit.dark,
       })
     }
   },
@@ -122,7 +123,7 @@ const EFFECTS = {
         x: ev.x, y: ev.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s + 2,
         life: 0.5 + Math.random() * 0.4, age: 0,
         r: (seed ? 0.04 : 0.05 + Math.random() * 0.07) * Math.max(0.5, Math.sqrt(size)),
-        color: seed ? '#f6e7c1' : (Math.random() < 0.5 ? type.color : type.rib),
+        color: seed ? FX.seed : (Math.random() < 0.5 ? type.color : type.rib),
       })
     }
   },

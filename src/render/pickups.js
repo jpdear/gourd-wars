@@ -1,11 +1,13 @@
 // Drawing what you could pick up with the harvest key (see game/pickups.js): a ring filling up around
 // whatever someone is pulling on, and your harvest key's name in a bubble over what you could pick
 // up from where you stand. (Where they are comes in the snapshot: [x, y, r] of the thing.)
+// Colors: PICKUP (palette.js).
 
 import { snapPlayer } from '../game/snapshot.js'
+import { FONT, PICKUP } from './palette.js'
 
 export function drawPickupHints(ctx, snap, localIndex, harvestKey, X, Y, s) {
-  ctx.strokeStyle = '#3b3631'
+  ctx.strokeStyle = PICKUP.ring
   ctx.lineWidth = 0.06 * s
   for (const p of snap.players) {
     if (p.dead || !p.harvestAt || p.harvest <= 0) continue
@@ -20,14 +22,14 @@ export function drawPickupHints(ctx, snap, localIndex, harvestKey, X, Y, s) {
   if (!me || me.dead || !me.pickup) return
   const [x, y, r] = me.pickup
   const bx = X(x), by = Y(y + r + 0.45), br = 0.24 * s
-  ctx.font = `bold ${Math.round((harvestKey.length > 1 ? 0.24 : 0.3) * s)}px system-ui, sans-serif`
+  ctx.font = `bold ${Math.round((harvestKey.length > 1 ? 0.24 : 0.3) * s)}px ${FONT.ui}`
   const half = Math.max(0, ctx.measureText(harvestKey).width / 2 - br * 0.6)
-  ctx.fillStyle = '#3b3631'
+  ctx.fillStyle = PICKUP.bubble
   ctx.beginPath()
   ctx.arc(bx - half, by, br, Math.PI / 2, Math.PI * 3 / 2)
   ctx.arc(bx + half, by, br, -Math.PI / 2, Math.PI / 2)
   ctx.fill()
-  ctx.fillStyle = '#f4efe6'
+  ctx.fillStyle = PICKUP.key
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(harvestKey, bx, by + 0.01 * s)

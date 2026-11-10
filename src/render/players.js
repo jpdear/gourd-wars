@@ -1,4 +1,5 @@
 // Drawing the stick figures (from snapshot data), plus what they hold and wear.
+// Colors: each player's own (from the snapshot) and PLAYER (palette.js).
 
 import { BODY, CONFIG } from '../config.js'
 import { BALE, TINE } from '../game/level.js'
@@ -6,6 +7,7 @@ import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
+import { PLAYER } from './palette.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
@@ -33,7 +35,7 @@ export function handOf(p) {
 // A Vine reeling a player in: pulled taut from their hand to where it stuck, with a knot there.
 export function drawGrappleVine(ctx, p, X, Y, s) {
   const [hx, hy] = handOf(p), [ax, ay] = p.grapple
-  ctx.strokeStyle = '#3c7a22'
+  ctx.strokeStyle = PLAYER.grappleVine
   ctx.lineWidth = 0.05 * s
   ctx.lineCap = 'round'
   ctx.beginPath()
@@ -108,7 +110,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
     if (travelled >= nextDot) nextDot += 0.45
   }
   ctx.fillStyle = flight.color
-  ctx.strokeStyle = 'rgba(30, 24, 20, 0.85)'
+  ctx.strokeStyle = PLAYER.sightEdge
   ctx.lineWidth = Math.max(1.5, 0.025 * s)
   dots.forEach(([x, y], i) => {
     ctx.globalAlpha = 0.6 * (1 - 0.35 * i / Math.max(dots.length, 1))   // fading a little along the way
@@ -121,7 +123,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
 }
 
 export function drawPlayer(ctx, p, crowned, X, Y, s) {
-  const color = p.frozen ? mixHex(p.color, '#cdeefa', 0.7) : p.color   // frozen: icy
+  const color = p.frozen ? mixHex(p.color, PLAYER.frozenTint, 0.7) : p.color   // frozen: icy
   ctx.strokeStyle = color
   ctx.fillStyle = color
   ctx.lineCap = 'round'
@@ -141,7 +143,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   ctx.arc(X(hx), Y(hy), BODY.headR * s, 0, Math.PI * 2)
   ctx.fill()
   if (p.frozen) {   // ice outline
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.strokeStyle = PLAYER.frozenEdge
     ctx.lineWidth = 0.03 * s
     ctx.stroke()
   }
@@ -155,7 +157,7 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
     }
   }
   if (p.floating) {   // a balloon carrying them off
-    ctx.strokeStyle = '#6b6358'
+    ctx.strokeStyle = PLAYER.balloonString
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(X(hx), Y(hy + BODY.headR))
@@ -167,14 +169,14 @@ export function drawPlayer(ctx, p, crowned, X, Y, s) {
   // eyes look the way you're facing; X eyes while ragdolled
   const ex = X(hx + p.facing * 0.07), ey = Y(hy + 0.03), er = 0.035 * s
   if (p.stunned) {
-    ctx.strokeStyle = '#fff'
+    ctx.strokeStyle = PLAYER.eye
     ctx.lineWidth = 0.025 * s
     ctx.beginPath()
     ctx.moveTo(ex - er, ey - er); ctx.lineTo(ex + er, ey + er)
     ctx.moveTo(ex + er, ey - er); ctx.lineTo(ex - er, ey + er)
     ctx.stroke()
   } else {
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = PLAYER.eye
     ctx.beginPath()
     ctx.arc(ex, ey, er, 0, Math.PI * 2)
     ctx.fill()
@@ -197,13 +199,13 @@ function drawCrown(ctx, head, X, Y, s) {
   ctx.beginPath()
   pts.forEach(([al, up], i) => { const [x, y] = P(al, up); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y) })
   ctx.closePath()
-  ctx.fillStyle = '#f7c531'
+  ctx.fillStyle = PLAYER.crown.gold
   ctx.fill()
-  ctx.strokeStyle = '#9a6b00'
+  ctx.strokeStyle = PLAYER.crown.edge
   ctx.lineWidth = Math.max(1, 0.025 * s)
   ctx.lineJoin = 'round'
   ctx.stroke()
-  ctx.fillStyle = '#d6303f'   // a jewel
+  ctx.fillStyle = PLAYER.crown.jewel   // a jewel
   const [jx, jy] = P(0, base + h * 0.32)
   ctx.beginPath()
   ctx.arc(jx, jy, 0.035 * s, 0, Math.PI * 2)
