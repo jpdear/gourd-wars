@@ -517,7 +517,7 @@ export function createEditor(canvas, view, hooks) {
         ctx.fill()
       }
     }
-    ctx.font = `bold ${Math.round(0.28 * s)}px ${FONT.ui}`
+    ctx.font = `bold ${Math.round(0.28 * s)}px ${FONT.system}`
     ctx.textAlign = 'center'
     for (const pt of def.patches) {
       if (!pt.only) continue
@@ -593,7 +593,7 @@ export function createEditor(canvas, view, hooks) {
       }
     }
     // help + where the cursor is, along the bottom
-    ctx.font = `${Math.round(0.32 * s)}px ${FONT.ui}`
+    ctx.font = `${Math.round(0.32 * s)}px ${FONT.system}`
     ctx.fillStyle = theme.muted
     ctx.strokeStyle = theme.sky[1]
     ctx.lineWidth = 3

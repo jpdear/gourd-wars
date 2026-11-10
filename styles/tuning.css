@@ -3,7 +3,7 @@
   display: none; position: fixed; top: 12px; right: 12px; width: 320px;
   max-height: calc(100vh - 24px); overflow-y: auto; box-sizing: border-box;
   padding: 10px 12px; border-radius: 8px; background: var(--panel-glass);
-  color: var(--panel-text); font: 12px var(--font-text); user-select: none;
+  color: var(--panel-text); font: 12px var(--font-system); user-select: none;
 }
 #tuning.open { display: block; }
 #tuning .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }

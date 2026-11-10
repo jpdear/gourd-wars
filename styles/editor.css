@@ -1,5 +1,5 @@
 /* The map editor: toolbar and side panel. (Colors and fonts: tokens.css.) */
-#editor { display: none; font: 13px var(--font-text); color: var(--panel-text); }
+#editor { display: none; font: 13px var(--font-system); color: var(--panel-text); }
 #editor.open { display: block; }
 #editor .bar {
   position: fixed; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;

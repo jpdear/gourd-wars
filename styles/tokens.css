@@ -3,9 +3,9 @@
    src/render/palette.js.) Loaded before the other stylesheets. */
 :root {
   /* fonts */
-  --font-display: 'Luckiest Guy', 'Arial Black', system-ui, sans-serif;   /* titles, headings, buttons */
-  --font-logo: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;          /* the main menu's logo */
-  --font-text: system-ui, sans-serif;
+  --font-display: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;   /* the logo, titles, buttons, big numbers */
+  --font-text: 'Fredoka', system-ui, sans-serif;                       /* labels, status lines, small print */
+  --font-system: system-ui, sans-serif;                                /* the map editor and tuning panels */
   --font-mono: ui-monospace, monospace;
 
   /* the page behind everything */

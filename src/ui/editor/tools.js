@@ -92,7 +92,7 @@ export function drawSpawnMarker(ctx, sp, i, X, Y, s) {
   ctx.arc(X(sp.x), Y(sp.y + 1.62), 0.22 * s, 0, Math.PI * 2)
   ctx.stroke()
   ctx.fillStyle = color
-  ctx.font = `bold ${Math.round(0.36 * s)}px ${FONT.ui}`
+  ctx.font = `bold ${Math.round(0.36 * s)}px ${FONT.system}`
   ctx.textAlign = 'center'
   ctx.fillText(String(i + 1), X(sp.x), Y(sp.y + 2.05))
   ctx.lineCap = 'butt'

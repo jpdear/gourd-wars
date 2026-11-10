@@ -1,7 +1,9 @@
-/* Menus: the card, pill buttons, and the main menu's logo. (Colors and fonts: tokens.css.) */
+/* Menus: the card, pill buttons, and the main menu's logo. (Colors and fonts: tokens.css.)
+   Fonts: the display font (Luckiest Guy) on the logo, titles, buttons and big numbers; the text font
+   (Fredoka) on labels, status lines and small print. */
 #menu {
   display: none; position: fixed; inset: 0; align-items: center; justify-content: center;
-  background: var(--scrim); font: 15px var(--font-text); color: var(--ink);
+  background: var(--scrim); font: 500 15px var(--font-text); color: var(--ink);
 }
 #menu.open { display: flex; }
 /* out of the game (main menu, joining, map editor list): just a backdrop, no arena behind the card */
@@ -36,10 +38,10 @@
   font: 400 32px/1.1 var(--font-display); letter-spacing: 0.15em; text-transform: uppercase;
 }
 #menu input:focus { outline: none; border-color: var(--input-focus); }
-#menu .status { min-height: 1.3em; margin: 0; color: var(--status); font-size: 13px; }
+#menu .status { min-height: 1.3em; margin: 0; color: var(--status); font-size: 13px; font-weight: 600; }
 #menu [data-text=host-status]:empty { display: none; }
-#menu .label { margin: 0; color: var(--muted); font: 400 15px/1.2 var(--font-display); letter-spacing: 0.04em; }
-#menu .label.note { font: 13px var(--font-text); letter-spacing: 0; }   /* (sentences read better in the plain font) */
+#menu .label { margin: 0; color: var(--muted); font: 600 15px/1.2 var(--font-text); }
+#menu .label.note { font-size: 13px; }
 #menu .match-settings { display: flex; flex-direction: column; gap: 6px; }
 #menu .seg { display: flex; gap: 4px; }
 #menu .seg button, #menu .map-grid button, #menu .pk-on { --edge: var(--seg-edge); background: var(--seg); color: var(--ink); }
@@ -63,11 +65,11 @@
 #menu .pk-on.on:hover { background: var(--toggle-on-hover); }
 #menu .pk-row .seg { width: 276px; }
 #menu .pk-row .seg button { flex: 1 1 auto; }   /* (sized to their labels: "Super Rare" is long) */
-#menu .pk-head { display: flex; align-items: center; gap: 6px; color: var(--muted); font: 400 13px/1 var(--font-display); letter-spacing: 0.04em; }
+#menu .pk-head { display: flex; align-items: center; gap: 6px; color: var(--muted); font: 600 13px/1 var(--font-text); }
 #menu .pk-head span:nth-child(2) { width: 56px; }
 #menu .pk-head span:nth-child(3) { width: 276px; }
 #menu[data-screen=pumpkins] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
-#menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font: 400 15px/1 var(--font-display); letter-spacing: 0.04em; }
+#menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font: 600 15px/1 var(--font-text); }
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
 #menu .bind-list { display: flex; flex-direction: column; gap: 6px; }
 #menu .toggle-row button.bind { width: 128px; }
@@ -92,7 +94,7 @@
 /* main menu: the logo across the top, big pill buttons right on the backdrop (no card) */
 #menu .logo {
   display: none; position: absolute; top: 7vh; left: 0; right: 0; text-align: center; pointer-events: none; white-space: nowrap;
-  font: 400 clamp(44px, 9vw, 124px)/1 var(--font-logo); letter-spacing: 0.03em; color: var(--pumpkin);
+  font: 400 clamp(44px, 9vw, 124px)/1 var(--font-display); letter-spacing: 0.03em; color: var(--pumpkin);
   -webkit-text-stroke: 0.08em var(--logo-edge); paint-order: stroke fill; text-shadow: 0 0.07em 0 var(--logo-edge);
 }
 #menu[data-screen=main] .logo { display: block; }
@@ -120,5 +122,5 @@
 #menu[data-screen=main] .screen button.primary { background: var(--primary); color: var(--white); }
 #menu[data-screen=main] .screen button.primary:hover { background: var(--primary-hover); }
 #menu[data-screen=main] .status { color: var(--status-on-dark); }
-#menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: var(--muted); font-size: 12px; }
+#menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: var(--muted); font-size: 12px; font-weight: 600; }
 #menu[data-screen=main] .version { display: block; }

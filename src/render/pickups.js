@@ -4,7 +4,7 @@
 // Colors: PICKUP (palette.js).
 
 import { snapPlayer } from '../game/snapshot.js'
-import { FONT, PICKUP } from './palette.js'
+import { PICKUP, font } from './palette.js'
 
 export function drawPickupHints(ctx, snap, localIndex, harvestKey, X, Y, s) {
   ctx.strokeStyle = PICKUP.ring
@@ -22,7 +22,7 @@ export function drawPickupHints(ctx, snap, localIndex, harvestKey, X, Y, s) {
   if (!me || me.dead || !me.pickup) return
   const [x, y, r] = me.pickup
   const bx = X(x), by = Y(y + r + 0.45), br = 0.24 * s
-  ctx.font = `bold ${Math.round((harvestKey.length > 1 ? 0.24 : 0.3) * s)}px ${FONT.ui}`
+  ctx.font = font('display', (harvestKey.length > 1 ? 0.24 : 0.3) * s)
   const half = Math.max(0, ctx.measureText(harvestKey).width / 2 - br * 0.6)
   ctx.fillStyle = PICKUP.bubble
   ctx.beginPath()
