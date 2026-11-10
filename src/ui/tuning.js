@@ -2,10 +2,12 @@
 // Sliders change the values live. Tweaks are saved in this browser so they
 // survive a reload; "Copy changes" puts them on the clipboard so you can
 // paste them into config.js / pumpkinTypes.js (or into a chat).
+// Also a Shading on/off switch at the top (just how this computer draws: for checking frame times).
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
+import { setShadingEnabled } from '../render/shading.js'
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
 const TUNING_ROOTS = { CONFIG, PUMPKIN_TYPES }
@@ -289,7 +291,10 @@ export function createTuningPanel(game) {
   const saveView = () => saveJSON(STORAGE_KEYS.tuningView, view)
 
   panel.innerHTML = '<div class="head"><b>Tuning</b><span>double-click a name to reset it</span></div>' +
+    '<label class="check"><input type="checkbox" data-act="shading" checked> Shading</label>' +
     '<div class="note">The host controls physics settings.</div>'
+  const shading = panel.querySelector('[data-act=shading]')
+  shading.addEventListener('change', () => { setShadingEnabled(shading.checked); shading.blur() })
   const tabBar = document.createElement('div')
   tabBar.className = 'tabs'
   panel.appendChild(tabBar)
@@ -402,7 +407,7 @@ export function createTuningPanel(game) {
     // The guest doesn't run physics, so its sliders would do nothing.
     setEnabled: enabled => {
       panel.classList.toggle('disabled', !enabled)
-      for (const el of panel.querySelectorAll('input, [data-act=reset]')) el.disabled = !enabled
+      for (const el of panel.querySelectorAll('.row input, [data-act=reset]')) el.disabled = !enabled
     },
   }
 }

@@ -8,6 +8,8 @@
 #tuning.open { display: block; }
 #tuning .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 #tuning .head span { color: var(--panel-faint); font-size: 11px; }
+#tuning .check { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; cursor: pointer; }
+#tuning .check input { margin: 0; accent-color: var(--panel-on); }
 #tuning .tabs { display: flex; gap: 4px; margin: 6px 0 4px; }
 #tuning .tabs button { padding: 5px 2px; font-size: 11px; background: var(--panel-tab); }
 #tuning .tabs button.on { background: var(--panel-on); color: var(--panel-deep); font-weight: 600; }

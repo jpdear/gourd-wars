@@ -159,6 +159,7 @@
   - A white dot (`#ffffff`) of radius `0.05 m`, set forward `0.07 m` along `facing` and up `0.03 m` from the head center.
   - A **pupil** (`#1d1a2a`) of radius `0.026 m`, nudged another `0.018 m` forward.
   - **Stunned:** white X eyes (two strokes, width `0.025–0.03 m`, half-size `0.035 m`), as now.
+  - **Eyes follow the aim (added 2026-11-10 at the user's request):** the eye sits `0.065 m` from the head's center (and `0.015 m` up) toward where that player aims (`p.aim` in the snapshot, sent for everyone), always on the front of the head, and it stops at `25°` below level and `50°` above (so it never sits on the bottom or top of the head); the pupil points right at the aim, inside the eye. Code: `lookDir` and `drawFace` in `src/render/players.js`.
 - **States** (all flat, no outlines):
   - **Frozen:** the color mixed 70% toward `#cdeefa`, as now. Remove the white stroked outline and add two small white diamonds on the head instead (like the Frost gourd's mark).
   - **Glued:** goo blobs in the Splat Pie color on the feet, as now.

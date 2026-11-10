@@ -16,7 +16,7 @@ import { MAP_SHIFT, ease, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups, hudSurface } from './hud.js'
 import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
-import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
+import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
 import { drawPickupHints } from './pickups.js'
@@ -70,7 +70,8 @@ export function render(ctx, view, snap, effects, ui) {
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
-    for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), X, Y, s)
+    drawContactShadows(ctx, snap, map, map.theme, X, Y, s)
+    for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), map.theme, X, Y, s)
     for (const t of snap.traps) if (t.bite) drawTrap(ctx, t, X, Y, s)   // (clamped on someone)
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
     for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)

@@ -38,12 +38,12 @@ export const font = (role, px, weight = role === 'text' ? 500 : 400) => `${weigh
 // The stick figures and what they wear.
 export const PLAYER = freeze({
   eye: '#fff',                          // (also the X eyes)
+  pupil: '#1d1a2a',
   frozenTint: '#cdeefa',                // mixed into their color while frozen
-  frozenEdge: 'rgba(255, 255, 255, 0.9)',
+  frost: '#ffffff',                     // (the diamonds on a frozen head)
   balloonString: '#6b6358',
   crown: { gold: '#f7c531', edge: '#9a6b00', jewel: '#d6303f' },
   grappleVine: '#3c7a22',
-  sightEdge: 'rgba(30, 24, 20, 0.85)',
 })
 
 // Pumpkins: ripeness tints, patches, marks, and the extras some types draw.
@@ -127,7 +127,7 @@ export const CROW = freeze({
 })
 
 // Stars circling something dazed (a crow, a player).
-export const DIZZY = freeze({ star: '#f7c531', edge: '#9a6b00' })
+export const DIZZY = freeze({ star: '#f7c531' })
 
 // The map editor's marks over the map (ui/editor).
 export const EDITOR = freeze({

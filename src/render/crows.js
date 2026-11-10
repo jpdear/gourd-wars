@@ -195,19 +195,17 @@ export function drawCrow(ctx, c, X, Y, s) {
   ctx.restore()
 }
 
-// Little yellow stars circling over something dazed.
+// Little yellow stars circling over something dazed (flat: no edge).
 export function drawDizzyStars(ctx, x, y, s) {
   const t = time() * 3
   ctx.fillStyle = DIZZY.star
-  ctx.strokeStyle = DIZZY.edge
-  ctx.lineWidth = Math.max(1, 0.012 * s)
   for (let i = 0; i < 3; i++) {
     const a = t + i * 2.1, depth = Math.sin(a)   // (going round: smaller at the back)
     star(ctx, x + Math.cos(a) * 0.24 * s, y + depth * 0.06 * s, (0.06 + 0.015 * depth) * s, t * 2 + i)
   }
 }
 
-// A five-pointed star centered at (x, y), r px to its points, turned by `turn` radians.
+// A filled five-pointed star centered at (x, y), r px to its points, turned by `turn` radians.
 export function star(ctx, x, y, r, turn = 0) {
   ctx.beginPath()
   for (let i = 0; i < 10; i++) {
@@ -216,7 +214,6 @@ export function star(ctx, x, y, r, turn = 0) {
   }
   ctx.closePath()
   ctx.fill()
-  ctx.stroke()
 }
 
 // Clinging to a face: the body tipped up (tilt), the head bent down at the neck so the beak points at

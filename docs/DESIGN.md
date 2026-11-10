@@ -125,7 +125,8 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 
 ## Look
 - Simple graphics: stick figures made of lines and circles, pumpkins as circles with ribs and a stem.
-- Each player has their own color (Blue, Red, Green, Yellow), never orange so they don't blend in with the pumpkins.
+- Each player has their own bright color (Blue, Red, Green, Yellow), never orange so they don't blend in with the pumpkins.
+- Everyone's eye looks where they're aiming (the snapshot carries each player's aim), so you can see who's aiming at you.
 
 ## Tech
 - **Physics:** Planck.js (Box2D port).

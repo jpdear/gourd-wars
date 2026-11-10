@@ -61,7 +61,7 @@ src/
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
   render/             draws a frame from a snapshot (the same on the host and guests);
-                      palette.js: every color and font the canvas uses
+                      palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu (and its title art), tuning panel, map editor
   app/                runs it all in the page:

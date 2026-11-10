@@ -18,6 +18,7 @@ export function makeSnapshot(game) {
       slot: p.index,
       color: p.color,
       facing: p.facing,
+      aim: [r3(p.aim.x), r3(p.aim.y)],           // where they're aiming (their eyes look there)
       stunned: p.stunned && !game.transition,   // (no X eyes while just being carried)
       dazed: p.dazed && !game.transition,       // (stars circling their head: limp or dizzy)
       dead: p.dead,
@@ -114,7 +115,7 @@ export function interpolateSnapshots(a, b, t) {
       const pa = a.players.find(q => q.slot === pb.slot)   // (by slot: people come and go)
       // don't blend across a respawn (it would slide across the screen)
       if (!pa || pa.dead !== pb.dead || Math.hypot(pa.parts[0][0] - pb.parts[0][0], pa.parts[0][1] - pb.parts[0][1]) > 3) return pb
-      return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)) }
+      return { ...pb, parts: pb.parts.map((q, k) => lerpPart(pa.parts[k], q)), aim: [lerp(pa.aim[0], pb.aim[0], t), lerp(pa.aim[1], pb.aim[1], t)] }
     }),
     pumpkins: byId(a.pumpkins, b.pumpkins, moved),
     bales: byId(a.bales, b.bales, moved),

@@ -143,5 +143,5 @@ export const BODY = {
 
 // Up to 4 players, each in a slot (0 = the host). The slot picks the color, spawn and score.
 export const MAX_PLAYERS = 4
-export const PLAYER_COLORS = ['#2b6cff', '#e8384f', '#1fa35c', '#e0a800']
+export const PLAYER_COLORS = ['#1f8bff', '#ff3d5e', '#16c46c', '#ffc21a']
 export const PLAYER_COLOR_NAMES = ['Blue', 'Red', 'Green', 'Yellow']   // "Blue wins!"
