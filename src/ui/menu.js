@@ -1,4 +1,4 @@
-// MENU (the HTML card in #menu)
+// MENU (the HTML card in #menu, plus the main menu's title art: see titleArt.js)
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
@@ -6,9 +6,11 @@ import { CROW_RATES, CROW_RATE_LABELS } from '../game/crows.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
+import { createTitleArt } from './titleArt.js'
 
 export function createMenu(onAction) {
   const root = document.getElementById('menu')
+  createTitleArt(root)
   let screen = 'main'
   root.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]')

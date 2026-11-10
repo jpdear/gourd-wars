@@ -63,7 +63,7 @@ src/
   render/             draws a frame from a snapshot (the same on the host and guests);
                       palette.js: every color and font the canvas uses
   net/                connections (links.js) and the message format (protocol.js)
-  ui/                 the HTML parts: menu, tuning panel, map editor
+  ui/                 the HTML parts: menu (and its title art), tuning panel, map editor
   app/                runs it all in the page:
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do

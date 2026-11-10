@@ -1,4 +1,5 @@
-/* Menus: the card, pill buttons, and the main menu's logo. (Colors and fonts: tokens.css.)
+/* Menus: the card, pill buttons, the main menu's logo and title art. Colors: the main palette, Pumpkin & Bark
+   (tokens.css). Flat: no gradients, no blurry shadows; buttons and the card sit on a solid ledge.
    Fonts: the display font (Luckiest Guy) on the logo, titles, buttons and big numbers; the text font
    (Fredoka) on labels, status lines and small print. */
 #menu {
@@ -6,12 +7,15 @@
   background: var(--scrim); font: 500 15px var(--font-text); color: var(--ink);
 }
 #menu.open { display: flex; }
-/* out of the game (main menu, joining, map editor list): just a backdrop, no arena behind the card */
-#menu.solid { background: radial-gradient(ellipse at 50% 35%, var(--backdrop-glow) 0%, var(--backdrop) 55%, var(--backdrop-edge) 100%); }
+/* out of the game (main menu, joining, map editor list): just a flat backdrop, no arena behind the card */
+#menu.solid { background: var(--bark); }
+/* the main menu's title art: shapes and gourds drawn on a canvas behind everything (see ui/titleArt.js) */
+#menu .menu-art { display: none; position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; cursor: default; }
+#menu[data-screen=main] .menu-art { display: block; }
 #menu .card {
-  width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 24px;
+  position: relative; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 24px;
   max-height: calc(100vh - 32px); overflow-y: auto;
-  border-radius: 12px; background: var(--card); box-shadow: 0 10px 40px var(--card-shadow); text-align: center;
+  border-radius: 14px; background: var(--paper); box-shadow: 0 8px 0 var(--paper-edge); text-align: center;
 }
 #menu h1 {
   margin: 0 0 18px; font: 400 36px/1.1 var(--font-display); letter-spacing: 0.03em; color: var(--pumpkin);
@@ -21,32 +25,33 @@
 #menu .screen.active { display: flex; }
 /* pill buttons that sit on a little ledge (--edge) and press down into it */
 #menu button {
-  --edge: var(--button-edge);
+  --edge: var(--ink-edge);
   padding: 14px 20px 10px; border: 0; border-radius: 999px; cursor: pointer;
-  background: var(--button); color: var(--card); font: 400 18px/1 var(--font-display); letter-spacing: 0.04em;
+  background: var(--ink); color: var(--paper); font: 400 18px/1 var(--font-display); letter-spacing: 0.04em;
   box-shadow: 0 4px 0 var(--edge); transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
 }
-#menu button:hover { background: var(--button-hover); transform: translateY(-1px); box-shadow: 0 5px 0 var(--edge); }
+#menu button:hover { background: var(--ink-hover); transform: translateY(-1px); box-shadow: 0 5px 0 var(--edge); }
 #menu button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
-#menu button.primary { --edge: var(--primary-edge); background: var(--primary); color: var(--white); }
-#menu button.primary:hover { background: var(--primary-hover); }
+#menu button.primary { --edge: var(--pumpkin-edge); background: var(--pumpkin); color: var(--white); }
+#menu button.primary:hover { background: var(--pumpkin-hover); }
 #menu button.quiet, #menu button.quiet:hover, #menu button.quiet:active { background: transparent; color: var(--muted); box-shadow: none; transform: none; }
 #menu button.quiet:hover { color: var(--ink); }
 #menu .code { font: 400 56px/1.1 var(--font-display); letter-spacing: 0.12em; color: var(--ink); }
 #menu input {
-  padding: 12px 10px 8px; border: 2px solid var(--input-border); border-radius: 999px; background: var(--input); text-align: center;
+  padding: 12px 10px 8px; border: 2px solid var(--paper-edge); border-radius: 999px; background: var(--paper); color: var(--ink); text-align: center;
   font: 400 32px/1.1 var(--font-display); letter-spacing: 0.15em; text-transform: uppercase;
 }
-#menu input:focus { outline: none; border-color: var(--input-focus); }
-#menu .status { min-height: 1.3em; margin: 0; color: var(--status); font-size: 13px; font-weight: 600; }
+#menu input:focus { outline: none; border-color: var(--pumpkin); }
+#menu .status { min-height: 1.3em; margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
 #menu [data-text=host-status]:empty { display: none; }
 #menu .label { margin: 0; color: var(--muted); font: 600 15px/1.2 var(--font-text); }
 #menu .label.note { font-size: 13px; }
 #menu .match-settings { display: flex; flex-direction: column; gap: 6px; }
 #menu .seg { display: flex; gap: 4px; }
-#menu .seg button, #menu .map-grid button, #menu .pk-on { --edge: var(--seg-edge); background: var(--seg); color: var(--ink); }
-#menu .seg button:hover, #menu .map-grid button:hover, #menu .pk-on:hover { background: var(--seg-hover); }
-#menu .seg button.on, #menu .map-grid button.on { --edge: var(--button-edge); background: var(--button); color: var(--card); }
+#menu .seg button, #menu .map-grid button, #menu .pk-on { --edge: var(--paper-edge-edge); background: var(--paper-edge); color: var(--ink); }
+#menu .seg button:hover, #menu .map-grid button:hover, #menu .pk-on:hover { background: var(--paper-edge-hover); }
+#menu .seg button.on, #menu .map-grid button.on { --edge: var(--ink-edge); background: var(--ink); color: var(--paper); }
+#menu .seg button.on:hover, #menu .map-grid button.on:hover { background: var(--ink-hover); }
 #menu .seg button { flex: 1; padding: 9px 4px 6px; font-size: 14px; }
 #menu .stepper { display: flex; align-items: center; justify-content: center; gap: 12px; }
 #menu .stepper button { width: 36px; height: 36px; padding: 0; font: 600 20px/1 var(--font-text); }
@@ -61,8 +66,8 @@
 #menu .pk-name { flex: 1; text-align: left; white-space: nowrap; }
 #menu .pk-row button { padding: 8px 6px 5px; font-size: 13px; }
 #menu .pk-on { flex: none; width: 56px; }
-#menu .pk-on.on { --edge: var(--toggle-on-edge); background: var(--toggle-on); color: var(--white); }
-#menu .pk-on.on:hover { background: var(--toggle-on-hover); }
+#menu .pk-on.on { --edge: var(--accent-edge); background: var(--accent); color: var(--white); }
+#menu .pk-on.on:hover { background: var(--accent-hover); }
 #menu .pk-row .seg { width: 276px; }
 #menu .pk-row .seg button { flex: 1 1 auto; }   /* (sized to their labels: "Super Rare" is long) */
 #menu .pk-head { display: flex; align-items: center; gap: 6px; color: var(--muted); font: 600 13px/1 var(--font-text); }
@@ -73,25 +78,26 @@
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
 #menu .bind-list { display: flex; flex-direction: column; gap: 6px; }
 #menu .toggle-row button.bind { width: 128px; }
-#menu .toggle-row button.bind.waiting { --edge: var(--waiting-edge); background: var(--primary); color: var(--white); }
-#menu .toggle-row button.bind.unbound { color: var(--warn-text); }
+#menu .toggle-row button.bind.waiting { --edge: var(--pumpkin-edge); background: var(--pumpkin); color: var(--white); }
+#menu .toggle-row button.bind.unbound { color: var(--hit); }
 #menu .pk-row.off .pk-name, #menu .pk-row.off .seg { opacity: 0.35; }
 #menu textarea {
-  box-sizing: border-box; width: 100%; padding: 8px; border: 2px solid var(--input-border); border-radius: 8px; resize: vertical;
+  box-sizing: border-box; width: 100%; padding: 8px; border: 2px solid var(--paper-edge); border-radius: 8px; resize: vertical; background: var(--paper); color: var(--ink);
   font: 12px var(--font-mono); word-break: break-all;
 }
-#menu textarea:focus { outline: none; border-color: var(--input-focus); }
+#menu textarea:focus { outline: none; border-color: var(--pumpkin); }
 #menu .my-maps { display: flex; flex-direction: column; gap: 8px; }
-#menu .my-map { padding: 8px; border-radius: 8px; background: var(--card-inset); text-align: left; }
+#menu .my-map { padding: 8px; border-radius: 8px; background: var(--paper-2); text-align: left; }
 #menu .my-map-name { margin-bottom: 6px; font-weight: 600; overflow-wrap: anywhere; }
-#menu .my-map-name .warn { color: var(--warn-text); font-size: 12px; font-weight: 400; }
+#menu .my-map-name .warn { color: var(--hit); font-size: 12px; font-weight: 400; }
 #menu .my-map-buttons { display: flex; gap: 5px; }
 #menu .my-map-buttons button { flex: 1; padding: 8px 2px 5px; font-size: 13px; }
 #menu button:disabled, #menu button:disabled:hover { opacity: 0.35; cursor: default; transform: none; box-shadow: 0 4px 0 var(--edge); }
-#menu button.danger { --edge: var(--danger-edge); background: var(--danger); }
-#menu button.danger:hover { background: var(--danger-hover); }
+#menu button.danger { --edge: var(--hit-edge); background: var(--hit); color: var(--white); }
+#menu button.danger:hover { background: var(--hit-hover); }
 
-/* main menu: the logo across the top, big pill buttons right on the backdrop (no card) */
+/* main menu: the logo across the top, big pill buttons right on the backdrop (no card): light ones, the
+   main one in pumpkin */
 #menu .logo {
   display: none; position: absolute; top: 7vh; left: 0; right: 0; text-align: center; pointer-events: none; white-space: nowrap;
   font: 400 clamp(44px, 9vw, 124px)/1 var(--font-display); letter-spacing: 0.03em; color: var(--pumpkin);
@@ -117,10 +123,10 @@
 #menu[data-screen=main] .card { width: min(300px, calc(100vw - 32px)); margin-top: 18vh; background: transparent; box-shadow: none; }
 #menu[data-screen=main] h1 { display: none; }
 #menu[data-screen=main] .screen { gap: 14px; }
-#menu[data-screen=main] .screen button { padding: 16px 24px 12px; font-size: 22px; background: var(--card); color: var(--ink); }
+#menu[data-screen=main] .screen button { --edge: var(--paper-edge); padding: 16px 24px 12px; font-size: 22px; background: var(--paper); color: var(--ink); }
 #menu[data-screen=main] .screen button:hover { background: var(--white); }
-#menu[data-screen=main] .screen button.primary { background: var(--primary); color: var(--white); }
-#menu[data-screen=main] .screen button.primary:hover { background: var(--primary-hover); }
-#menu[data-screen=main] .status { color: var(--status-on-dark); }
-#menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: var(--muted); font-size: 12px; font-weight: 600; }
+#menu[data-screen=main] .screen button.primary { --edge: var(--pumpkin-edge); background: var(--pumpkin); color: var(--white); }
+#menu[data-screen=main] .screen button.primary:hover { background: var(--pumpkin-hover); }
+#menu[data-screen=main] .status { color: var(--muted-on-bark); }
+#menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: var(--muted-on-bark); font-size: 12px; font-weight: 600; }
 #menu[data-screen=main] .version { display: block; }

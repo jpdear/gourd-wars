@@ -11,49 +11,34 @@
   /* the page behind everything */
   --page: #24211d;
 
-  /* menus: backdrop and card */
-  --scrim: rgba(36, 33, 29, 0.55);          /* over the game */
-  --backdrop-glow: #4a3c2c;                 /* out of the game: a soft glow... */
-  --backdrop: #2e2822;
-  --backdrop-edge: #1e1b18;                 /* ...fading out to the edges */
-  --card: #f4efe6;
-  --card-shadow: rgba(0, 0, 0, 0.35);
-  --card-inset: #e9e2d6;                    /* a My Maps row */
+  /* the main palette, Pumpkin & Bark (the menus; see docs/RESTYLE_PLAN.md 4.1) */
+  --bark: #2e2620;                          /* the menu backdrop */
+  --bark-2: #3a3029;                        /* raised shapes on bark (the title screen's circles) */
+  --bark-3: #463a31;                        /* hover and buttons on bark panels */
+  --ink: #2e2620;                           /* text and dark buttons */
+  --ink-edge: #16110d;                      /* the ledge under dark buttons */
+  --paper: #f6efe3;                         /* cards, light buttons */
+  --paper-edge: #d9cbb5;                    /* the ledge under paper */
+  --muted: #8a7b69;                         /* labels and small print on paper */
+  --muted-on-bark: #b6a895;                 /* small print on bark */
+  --pumpkin: #f28c28;                       /* the logo, the main button */
+  --pumpkin-edge: #b05a10;
+  --logo-edge: #1c1511;                     /* the stroke and drop under the logo and titles */
+  --accent: #5fae3c;                        /* toggles that are on */
+  --accent-edge: #3c7a22;
+  --hit: #e8384f;                           /* danger buttons */
+  --hit-edge: #a22737;
+  --scrim: rgba(46, 38, 32, 0.55);          /* dims the game behind the Esc menu */
   --white: #fff;
 
-  /* menus: text */
-  --ink: #3b3631;
-  --muted: #8a8073;                         /* labels, small print, quiet buttons */
-  --status: #6b6358;
-  --status-on-dark: #e2d9cc;                /* the main menu's status line */
-  --warn-text: #c0392b;                     /* an unbound key, a map that needs fixing */
-
-  /* the logo and card titles */
-  --pumpkin: #f28c28;
-  --logo-edge: #2a1d10;
-
-  /* menu buttons: a color, its hover, and the ledge under it */
-  --button: #3b3631;
-  --button-hover: #4d4741;
-  --button-edge: #1a1612;
-  --primary: #e07a1a;
-  --primary-hover: #f28c28;
-  --primary-edge: #9c4f0c;
-  --waiting-edge: #8a4a0c;                  /* a key bind waiting for its new key */
-  --seg: #e2d9cc;                           /* segmented buttons, map grid, toggles that are off */
-  --seg-hover: #d6ccbd;
-  --seg-edge: #c2b6a5;
-  --toggle-on: #5a8f3c;
-  --toggle-on-hover: #67a046;
-  --toggle-on-edge: #3a6326;
-  --danger: #a8402f;
-  --danger-hover: #c24d39;
-  --danger-edge: #6b2418;
-
-  /* menu inputs */
-  --input: #fff;
-  --input-border: #c9bfb2;
-  --input-focus: #e07a1a;
+  /* made from the main palette: hovers (a little lighter, or darker on paper), and a few in-betweens */
+  --ink-hover: color-mix(in srgb, var(--ink), white 10%);
+  --pumpkin-hover: color-mix(in srgb, var(--pumpkin), white 12%);
+  --accent-hover: color-mix(in srgb, var(--accent), white 12%);
+  --hit-hover: color-mix(in srgb, var(--hit), white 12%);
+  --paper-edge-hover: color-mix(in srgb, var(--paper-edge), var(--ink) 8%);
+  --paper-edge-edge: color-mix(in srgb, var(--paper-edge), var(--ink) 25%);   /* the ledge under paper-edge buttons */
+  --paper-2: color-mix(in srgb, var(--paper), var(--paper-edge));               /* a row on a card (My Maps) */
   --dot-ring: rgba(0, 0, 0, 0.25);          /* round each pumpkin's color dot */
 
   /* dark panels: the map editor and the tuning panel */
@@ -73,6 +58,7 @@
   --panel-note: #4a3a28;
   --panel-dot-ring: rgba(0, 0, 0, 0.35);
   --panel-ok: #9fd47a;
+  --panel-danger: #a8402f;
   --panel-bad: #ffb36e;
 
   /* the map editor's checks */

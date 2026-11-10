@@ -16,7 +16,7 @@
 #editor button.spawn .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px var(--panel-dot-ring); }
 #editor button.primary { background: var(--panel-primary); color: var(--panel-deep); font-weight: 600; }
 #editor button.primary:hover { background: var(--panel-on); }
-#editor button.danger { background: var(--danger); }
+#editor button.danger { background: var(--panel-danger); }
 #editor button:disabled { opacity: 0.4; cursor: default; }
 #editor .panel {
   overflow-x: hidden; position: fixed; right: 0; bottom: 0; top: 44px; width: 250px; overflow-y: auto; box-sizing: border-box;
