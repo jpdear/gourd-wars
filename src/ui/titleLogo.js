@@ -72,7 +72,7 @@ const PUFFS = [
 // Seeds and rind chunks, stuck mid-air where they flew: [angle (turns), distance (em), size (em), kind, final turn (rad)].
 const BITS = [
   [0.06, 1.1, 0.07, 'seed', 0.4], [0.2, 1.3, 0.06, 'chunk', 1.2], [0.33, 1.05, 0.07, 'seed', -0.6],
-  [0.42, 1.4, 0.06, 'seed', 0.9], [0.55, 1.2, 0.08, 'chunk', -1.1], [0.66, 1.15, 0.065, 'seed', 1.8],
+  [0.42, 1.4, 0.06, 'seed', 0.9], [0.66, 1.15, 0.065, 'seed', 1.8],
   [0.78, 1.35, 0.07, 'seed', -0.3], [0.9, 1.15, 0.07, 'chunk', 0.5],
 ]
 
