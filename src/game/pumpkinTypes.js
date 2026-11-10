@@ -246,6 +246,25 @@ export const PUMPKIN_TYPES = {
       if (!pk.used) game.events.push({ type: 'wilt', x: r3(p.x), y: r3(p.y) })
     },
   },
+  landmine: {   // a squat dark gourd: comes down on a floor, sinks halfway in and blows up whoever steps on it (see traps.js)
+    name: 'Landmine', color: '#4f5530', rib: '#2c301a', mark: 'mine',
+    radius: 0.2, density: 2, restitution: 0.3, breakAfterHits: 4,   // (off walls and ceilings it bounces on, a few times)
+    damage: 8, knockback: 3, stun: 0.5, breakEvent: null,           // (thrown straight into someone: just a small pop)
+    // armTime: s sinking in before it's set (a thrown pumpkin still sets it off); life: s it waits before it
+    // fizzles; reach: how close (m) a part of someone (or a thrown pumpkin) has to come; size: how big it's
+    // drawn (m, across its middle); blast (see explode in powers.js), blastHeight: m above the floor it
+    // comes from; launch: m/s straight up for whoever stepped on it, on top of the blast
+    trap: {
+      armTime: 0.6, life: 20, reach: 0.25, size: 0.17,
+      blast: { radius: 1.8, damage: 25, knockback: 18, stun: 1.2 }, blastHeight: 0.5, launch: 8,
+    },
+    onHitWorld: (game, pk) => plantTrap(game, pk),
+    onHitBale: (game, pk) => plantTrap(game, pk),
+    onBreak: (game, pk) => {   // (broken without planting: a small pop)
+      const p = pk.body.getPosition()
+      if (!pk.used) game.events.push({ type: 'pop', x: r3(p.x), y: r3(p.y), color: pk.type.color })
+    },
+  },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots
 

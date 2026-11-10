@@ -10,6 +10,7 @@ import { COLLIDE, CONFIG } from '../config.js'
 import { knockDownCrow } from './crows.js'
 import { damageBale, inFire, shoveBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
+import { pumpkinBroke } from './traps.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { clamp, r3 } from '../util/math.js'
 
@@ -121,6 +122,7 @@ export function breakPumpkin(game, p) {
   if (p.broken) return
   splat(game, p)
   if (p.type.onBreak) p.type.onBreak(game, p)
+  pumpkinBroke(game, p)   // (right at a Landmine: it goes off)
 }
 
 function splat(game, p) {

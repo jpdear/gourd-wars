@@ -59,8 +59,8 @@ export function makeSnapshot(game) {
         frozen: b.frozenTimer > 0, sticky: b.stickyTimer > 0, floating: b.floatTimer > 0,
       }
     }),
-    // open: 0 shut .. 1 lying wide open; bite: biting someone (its x, y: on them) (see traps.js)
-    traps: game.traps.map(t => ({ id: t.id, x: r3(t.x), y: r3(t.y), angle: r3(wrapAngle(t.angle)), open: r3(trapOpen(t)), bite: !!t.victim })),
+    // kind: its pumpkin type; open: 0 shut (or just landed) .. 1 set; bite: a Chomper biting someone (its x, y: on them) (see traps.js)
+    traps: game.traps.map(t => ({ id: t.id, kind: t.kind, x: r3(t.x), y: r3(t.y), angle: r3(wrapAngle(t.angle)), open: r3(trapOpen(t)), bite: !!t.victim })),
     holes: game.holes.map(h => ({ id: h.id, x: r3(h.x), y: r3(h.y), r: r3(h.r) })),   // r: the core's radius
     // down: knocked down (else flying over); dir: which way it faces
     crows: game.crows.map(c => {

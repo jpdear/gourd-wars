@@ -243,6 +243,19 @@ const TUNABLES = [
       [T_ + 'chomper.trap.reach', 0.05, 0.6, 0.01, 'reach (m)'],
       [T_ + 'chomper.trap.size', 0.1, 0.5, 0.01, 'size (m)'],
     ]],
+    ['Landmine', [
+      [T_ + 'landmine.trap.blast.radius', 0.5, 5, 0.1, 'blast radius'],
+      [T_ + 'landmine.trap.blast.damage', 0, 100, 1, 'blast dmg'],
+      [T_ + 'landmine.trap.blast.knockback', 0, 50, 0.5, 'blast knockback'],
+      [T_ + 'landmine.trap.blast.stun', 0, 3, 0.05, 'blast stun'],
+      [T_ + 'landmine.trap.blastHeight', 0, 1.5, 0.05, 'blast height (m)'],
+      [T_ + 'landmine.trap.launch', 0, 30, 0.5, 'launch (stepper)'],
+      [T_ + 'landmine.trap.armTime', 0, 3, 0.05, 'setting (s)'],
+      [T_ + 'landmine.trap.life', 1, 60, 1, 'fizzles after (s)'],
+      [T_ + 'landmine.trap.reach', 0.05, 0.6, 0.01, 'reach (m)'],
+      [T_ + 'landmine.damage', 0, 50, 1, 'direct hit dmg'],
+      [T_ + 'landmine.trap.size', 0.1, 0.5, 0.01, 'size (m)'],
+    ]],
   ]],
 ]
 

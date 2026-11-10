@@ -16,7 +16,7 @@ import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
 import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
-import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawChomper, drawLockOn, drawPatches } from './pumpkins.js'
+import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
@@ -63,12 +63,12 @@ export function render(ctx, view, snap, effects, ui) {
     for (const c of snap.crows) drawCrow(ctx, c, X, Y, s)
     drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
-    for (const t of snap.traps) if (!t.bite) drawChomper(ctx, t, X, Y, s)   // (on the floor: under whoever steps in it)
+    for (const t of snap.traps) if (!t.bite) drawTrap(ctx, t, X, Y, s)   // (on the floor: under whoever steps on it)
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), X, Y, s)
-    for (const t of snap.traps) if (t.bite) drawChomper(ctx, t, X, Y, s)   // (clamped on someone)
+    for (const t of snap.traps) if (t.bite) drawTrap(ctx, t, X, Y, s)   // (clamped on someone)
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
     for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)

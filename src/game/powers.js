@@ -6,12 +6,14 @@ import { breakBale, damageBale, skyDrop } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
+import { blastTraps } from './traps.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
 // straight outward, harder the closer it was; splats pumpkins still on their patches.
 export function explode(game, x, y, blast, power) {
   game.events.push({ type: 'boom', x: r3(x), y: r3(y), r: blast.radius })
+  blastTraps(game, x, y, blast.radius)   // (a Landmine it reaches goes off too)
   const away = pos => {
     const dx = pos.x - x, dy = pos.y - y, d = Math.hypot(dx, dy)
     return { d, f: 1 - d / blast.radius, dx: d > 0.01 ? dx / d : 0, dy: d > 0.01 ? dy / d : 1 }

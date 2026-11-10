@@ -196,6 +196,7 @@ const BODIES = {
   boomerang: (ctx, r, colors) => drawBoomerangGourd(ctx, r, colors),
   saw: (ctx, r, colors) => drawSawSquash(ctx, r, colors),
   bottle: (ctx, r, colors) => drawBottleGourd(ctx, r, colors),
+  mine: (ctx, r, colors) => mineGourd(ctx, r, colors, false),   // (thrown or held: its light off)
   chomper: (ctx, r, colors) => { ctx.rotate(-Math.PI / 2); ctx.translate(0, 1.2 * r); chomperShape(ctx, r, 0, colors) },   // (thrown or held: shut, lying on its side)
   crow: (ctx, r) => crowShape(ctx, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
   cluster: (ctx, r, colors) => {   // three little gourds stuck together
@@ -396,14 +397,74 @@ function chomperShape(ctx, r, open, colors) {
   ctx.lineJoin = 'miter'
 }
 
-// A planted Chomper from the snapshot ({ x, y, angle, open, bite }), standing on its spot: on the floor,
-// its halves falling open to lie flat; biting someone, shut tight around their foot (or whatever it bit).
-export function drawChomper(ctx, t, X, Y, s) {
+// A planted gourd from the snapshot ({ kind, x, y, angle, open, bite }), by its kind.
+const TRAP_LOOKS = { chomper: drawChomper, landmine: drawLandmine }
+export const drawTrap = (ctx, t, X, Y, s) => TRAP_LOOKS[t.kind](ctx, t, X, Y, s)
+
+// A planted Chomper, standing on its spot: on the floor, its halves falling open to lie flat; biting
+// someone, shut tight around their foot.
+function drawChomper(ctx, t, X, Y, s) {
   const r = PUMPKIN_TYPES.chomper.trap.size * s   // (lying open it's ~1 m end to end)
   ctx.save()
   ctx.translate(X(t.x), Y(t.y))
   ctx.rotate(-t.angle)
   chomperShape(ctx, r, t.open, PUMPKIN_TYPES.chomper)
+  ctx.restore()
+}
+
+// A Landmine's gourd (around 0, 0; canvas y down): squat and dark, ribbed, a few knobs, and a stubby
+// stem with a light on the end (`lit`: glowing red).
+function mineGourd(ctx, r, colors, lit) {
+  const w = r * 1.25
+  ctx.fillStyle = colors.color
+  ctx.strokeStyle = colors.rib
+  ctx.lineWidth = Math.max(1, r * 0.1)
+  ctx.beginPath()
+  ctx.ellipse(0, 0, w, r, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+  ctx.lineWidth = Math.max(1, r * 0.07)
+  ctx.beginPath()   // ribs
+  ctx.ellipse(0, 0, w * 0.4, r * 0.97, 0, 0, Math.PI * 2)
+  ctx.moveTo(w * 0.8, 0)
+  ctx.ellipse(0, 0, w * 0.8, r * 0.99, 0, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fillStyle = colors.rib   // knobs
+  for (const [x, y] of [[-0.6, -0.45], [0.25, -0.65], [0.62, -0.2], [-0.2, -0.15]]) {
+    ctx.beginPath()
+    ctx.arc(x * w, y * r, r * 0.08, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = '#3d4a22'   // the stem
+  ctx.fillRect(-r * 0.09, -r * 1.3, r * 0.18, r * 0.36)
+  if (lit) {   // a red glow around its light
+    ctx.fillStyle = 'rgba(255, 60, 40, 0.35)'
+    ctx.beginPath()
+    ctx.arc(0, -r * 1.36, r * 0.32, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = lit ? '#ff3b2a' : '#6e1f1a'
+  ctx.beginPath()
+  ctx.arc(0, -r * 1.36, r * 0.14, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// A planted Landmine: a little mound of dirt, the gourd sinking into the floor as it sets (open 0 → 1:
+// sitting on it → half buried); once it's set, its light blinks.
+function drawLandmine(ctx, t, X, Y, s) {
+  const r = PUMPKIN_TYPES.landmine.trap.size * s
+  ctx.save()
+  ctx.translate(X(t.x), Y(t.y))
+  ctx.rotate(-t.angle)
+  ctx.fillStyle = '#6b4f32'   // the dirt it's dug into
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.7, r * 0.28, 0, Math.PI, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()   // (only what's above the floor shows)
+  ctx.rect(-r * 3, -r * 4, r * 6, r * 4)
+  ctx.clip()
+  ctx.translate(0, -r + t.open * r * 0.85)
+  mineGourd(ctx, r, PUMPKIN_TYPES.landmine, t.open >= 1 && (Date.now() / 1000 * 2.5) % 1 < 0.35)
   ctx.restore()
 }
 
