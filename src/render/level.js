@@ -9,7 +9,7 @@ import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { LEVEL } from './palette.js'
 import { drawPumpkin } from './pumpkins.js'
 
-export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floating }, X, Y, s) {
+export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floating }, X, Y, s, shade) {
   if (floating) {   // the balloon carrying it, drawn upright above it
     ctx.strokeStyle = LEVEL.bale.balloonString
     ctx.lineWidth = 1
@@ -17,7 +17,7 @@ export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floatin
     ctx.moveTo(X(x), Y(y + BALE.h / 2))
     ctx.lineTo(X(x), Y(y + BALE.h / 2 + 0.55))
     ctx.stroke()
-    drawPumpkin(ctx, X(x), Y(y + BALE.h / 2 + 0.75), 0.22 * s, 0, PUMPKIN_TYPES.balloon)
+    drawPumpkin(ctx, X(x), Y(y + BALE.h / 2 + 0.75), 0.22 * s, 0, PUMPKIN_TYPES.balloon, null, shade)
   }
   const w = BALE.w * s, h = BALE.h * s
   ctx.save()

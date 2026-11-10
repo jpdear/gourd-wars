@@ -1,7 +1,8 @@
 // Every pumpkin type. Numbers are at full power (a fast, ripe throw); throwing softer or
 // picking it green scales damage and knockback down.
-//   name, color, rib, mark   how it looks (mark = its shape and decoration; anything else special about
-//                            how a type looks, in flight or held, is in render/pumpkins.js)
+//   name, color, rib, mark   how it looks: color (its body), rib (a darker color for its side lobes and
+//                            details), mark (its shape and decoration; anything else special about how a
+//                            type looks, in flight or held, is in render/pumpkins.js)
 //   radius, density, restitution, friction, gravityScale
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
@@ -171,7 +172,7 @@ export const PUMPKIN_TYPES = {
     },
   },
   homing: {
-    name: 'Homing', color: '#d83a2c', rib: '#9a2219', mark: 'antenna',
+    name: 'Homing', color: '#4f7fc4', rib: '#2f5590', mark: 'antenna',   // (a steel-blue rocket: see BODIES in render/pumpkins.js)
     radius: 0.22, density: 2, restitution: 0.2, refSpeed: 8,   // (homing counts as a full-speed hit; picked green still hits softer)
     damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1,
     // A little missile (see updateHoming in powers.js): `delay` s after leaving your hand it locks onto the
@@ -217,7 +218,7 @@ export const PUMPKIN_TYPES = {
     throwSpeed: { min: 18, max: 30 }, spin: 30, pierces: true,
   },
   daze: {   // a bottle gourd, tumbling end over end: whoever it bonks goes limp, then gets up dizzy
-    name: 'Dizzy Gourd', color: '#c99a5b', rib: '#86602f', mark: 'bottle',
+    name: 'Dizzy Gourd', color: '#a8693a', rib: '#6e4220', mark: 'bottle',
     radius: 0.2, density: 2, restitution: 0.2, spin: 14,
     damage: 10, knockback: 4, stun: 0.5, breakAfterHits: 1,
     // limp: s knocked limp; dizzy: s more after getting up, left/right swapped (see Player.daze);

@@ -1,6 +1,6 @@
-/* Menus: the card, pill buttons, the main menu's logo and title art. Colors: the main palette, Pumpkin & Bark
+/* Menus: the card, pill buttons, the main menu's title art (its canvas: the logo is drawn on it, see ui/titleLogo.js). Colors: the main palette, Pumpkin & Bark
    (tokens.css). Flat: no gradients, no blurry shadows; buttons and the card sit on a solid ledge.
-   Fonts: the display font (Luckiest Guy) on the logo, titles, buttons and big numbers; the text font
+   Fonts: the display font (Luckiest Guy) on titles, buttons and big numbers; the text font
    (Fredoka) on labels, status lines and small print. */
 #menu {
   display: none; position: fixed; inset: 0; align-items: center; justify-content: center;
@@ -9,7 +9,7 @@
 #menu.open { display: flex; }
 /* out of the game (main menu, joining, map editor list): just a flat backdrop, no arena behind the card */
 #menu.solid { background: var(--bark); }
-/* the main menu's title art: shapes and gourds drawn on a canvas behind everything (see ui/titleArt.js) */
+/* the main menu's title art: shapes, gourds and the logo drawn on a canvas behind everything (see ui/titleArt.js) */
 #menu .menu-art { display: none; position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; cursor: default; }
 #menu[data-screen=main] .menu-art { display: block; }
 #menu .card {
@@ -96,30 +96,8 @@
 #menu button.danger { --edge: var(--hit-edge); background: var(--hit); color: var(--white); }
 #menu button.danger:hover { background: var(--hit-hover); }
 
-/* main menu: the logo across the top, big pill buttons right on the backdrop (no card): light ones, the
+/* main menu: the logo across the top (on the title art), big pill buttons right on the backdrop (no card): light ones, the
    main one in pumpkin */
-#menu .logo {
-  display: none; position: absolute; top: 7vh; left: 0; right: 0; text-align: center; pointer-events: none; white-space: nowrap;
-  font: 400 clamp(44px, 9vw, 124px)/1 var(--font-display); letter-spacing: 0.03em; color: var(--pumpkin);
-  -webkit-text-stroke: 0.08em var(--logo-edge); paint-order: stroke fill; text-shadow: 0 0.07em 0 var(--logo-edge);
-}
-#menu[data-screen=main] .logo { display: block; }
-/* the wobble: eases out from level right as the last letter lands, then sways side to side, only slowing at the
-   ends (the delays are set where the letters are made) */
-#menu .logo .wobble { display: inline-block; will-change: transform; animation: logo-sway-in 0.9s ease-in-out both, logo-sway 1.8s ease-in-out infinite alternate; }
-#menu .logo .ch { display: inline-block; will-change: transform; animation: logo-drop 0.8s ease-in both; }
-#menu .logo .gap { display: inline-block; width: 0.3em; }
-@keyframes logo-drop {
-  0% { transform: translateY(-80vh) rotate(-8deg); }
-  55% { transform: translateY(0) rotate(0); }
-  70% { transform: translateY(-0.22em); }
-  85% { transform: translateY(0); }
-  93% { transform: translateY(-0.05em); }
-  100% { transform: none; }
-}
-@keyframes logo-sway-in { from { transform: rotate(0deg); } to { transform: rotate(-2deg); } }
-@keyframes logo-sway { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
-@media (prefers-reduced-motion: reduce) { #menu .logo .ch, #menu .logo .wobble { animation: none; } }
 #menu[data-screen=main] .card { width: min(300px, calc(100vw - 32px)); margin-top: 18vh; background: transparent; box-shadow: none; }
 #menu[data-screen=main] h1 { display: none; }
 #menu[data-screen=main] .screen { gap: 14px; }

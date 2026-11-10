@@ -46,30 +46,33 @@ export const PLAYER = freeze({
   grappleVine: '#3c7a22',
 })
 
-// Pumpkins: ripeness tints, patches, marks, and the extras some types draw.
+// Pumpkins: ripeness tints, patches, shared parts and marks, and the extras some types draw.
 export const GOURD = freeze({
   unripe: { color: '#76a83f', rib: '#557d2a' },
   rotten: { color: '#7a5a32', rib: '#56401f' },
-  leaf: '#4c7a2a',                      // (patch leaves and stems)
+  patchLeaf: '#4c7a2a',                 // (the leaves on the ground round a patch)
+  stem: '#4f8a34',
+  leaf: '#76b046',                      // (on the stem; the Vine's too)
+  dark: '#3b3631',                      // (a fuse, an antenna, a rocket's nozzle)
   superRare: { gold: '#ffd54a', sparkle: '#fff6c8' },
-  fuse: '#3b3631',
-  spark: ['#ffd36b', '#ff7a1a'],        // (the fuse's spark flickers between these)
-  ice: 'rgba(255, 255, 255, 0.9)',
+  spark: ['#ff9a2e', '#ffe08a', '#ffc94d', '#ffe08a'],   // (a fuse's spark burst: the big star, the small one, the spark lines, the flying dots)
+  ice: '#ffffff',
   vine: '#3c7a22',                      // (its curl, and the trail back to the thrower)
-  speckle: '#3b3631',
   stars: '#f4efe6',
   crosshair: '#d6332a',
-  antenna: '#3b3631',
   antennaBlink: ['#fff3b0', '#ff3b2a'],
   string: '#6b6358',
-  crack: '#3b3631',                     // (a Big Gourd shield's cracks)
   chomper: { mouth: '#c8383a', tooth: '#f3ecc4', wart: '#7f8a2c' },
-  mine: { stem: '#3d4a22', glow: 'rgba(255, 60, 40, 0.35)', lit: '#ff3b2a', unlit: '#6e1f1a', dirt: '#6b4f32' },
+  mine: { stem: '#3d4a22', glow: 'rgba(255, 70, 50, 0.35)', lit: '#ff3b2a', unlit: '#6e1f1a', dirt: '#6b4f32' },
   flameTrail: ['#fff3b0', '#ffd23f', '#ff9a2e', '#ff6a1f', '#e2381b'],   // (nearest the gourd first)
   lockOn: '#e2381b',
   airstrike: { shadow: '#14100c', target: '#d6332a' },
   blackHole: { speck: '#fff', halo: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0)'], core: '#000' },
 })
+
+// Until every map has its own shade tint (theme.shade) and contact shadow color (theme.shadow): these.
+export const shadeOf = theme => theme.shade || '#d6cfc4'
+export const shadowOf = theme => theme.shadow || 'rgba(0, 0, 0, 0.15)'
 
 // Effects, by game event (see EFFECTS in effects.js).
 export const FX = freeze({
@@ -128,6 +131,14 @@ export const CROW = freeze({
 
 // Stars circling something dazed (a crow, a player).
 export const DIZZY = freeze({ star: '#f7c531' })
+
+// The main menu's logo (ui/titleLogo.js): the splat behind the pumpkin that hit it, the puffs round it
+// (by heat, like a blast's: see docs/RESTYLE_PLAN.md 4.4) and its seeds.
+export const TITLE = freeze({
+  splat: '#c4630f',
+  puff: { hot: '#ffe08a', warm: '#ffb347', cool: '#ff7f3f' },
+  seed: '#f6e7c1',
+})
 
 // The map editor's marks over the map (ui/editor).
 export const EDITOR = freeze({

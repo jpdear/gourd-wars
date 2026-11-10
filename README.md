@@ -42,7 +42,7 @@ Plain JavaScript modules, built with [Vite](https://vite.dev). Physics:
 
 ```
 index.html            the page: canvas, menu screens, editor shell
-styles/               base, menus (and the logo), map editor, tuning panel;
+styles/               base, menus, map editor, tuning panel;
                       tokens.css: every color and font they use
 src/
   main.js             starts the app
@@ -63,7 +63,7 @@ src/
   render/             draws a frame from a snapshot (the same on the host and guests);
                       palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
   net/                connections (links.js) and the message format (protocol.js)
-  ui/                 the HTML parts: menu (and its title art), tuning panel, map editor
+  ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
   app/                runs it all in the page:
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do
