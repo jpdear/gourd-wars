@@ -8,7 +8,7 @@ import { pumpkinColors } from './pumpkins.js'
 import { lerp } from '../util/math.js'
 
 export function createEffects() {
-  // popups: floating text (damage numbers, KO!); rings: expanding circles (blasts, a Black Hole closing)
+  // popups: floating text (damage numbers, KO!; look: how hud.js draws it); rings: expanding circles (blasts, a Black Hole closing)
   // shake: { amount (m), age, life } fading screen shake (an airdrop landing), or null
   // birds: crows flying off { x, y, vx, vy, dir, age, life }; feathers: drifting down { x, y, vx, vy, turn, spin, sway, age, life }
   return { particles: [], popups: [], rings: [], birds: [], feathers: [], shake: null }
@@ -93,10 +93,10 @@ const EFFECTS = {
   dust: (fx, ev) => burst(fx, ev.x, ev.y, 2, FX.dust, [0.3, 1.2], [0.25, 0.45], [0.03, 0.06], 0.8),   // sliding down a wall
   yank: (fx, ev) => burst(fx, ev.x, ev.y, 10, FX.yank, [2, 5], [0.25, 0.45], [0.03, 0.06]),
   damage: (fx, ev) => {
-    fx.popups.push({ damage: true, x: ev.x + (Math.random() - 0.5) * 0.3, y: ev.y, text: `-${ev.amount}`, size: 0.34 + Math.min(ev.amount, 30) * 0.008, color: FX.damage, age: 0, life: 0.8 })
+    fx.popups.push({ damage: true, x: ev.x + (Math.random() - 0.5) * 0.3, y: ev.y, text: `-${ev.amount}`, size: 0.34 + Math.min(ev.amount, 30) * 0.008, look: 'damage', age: 0, life: 0.8 })
   },
   ko: (fx, ev) => {
-    fx.popups.push({ x: ev.x, y: ev.y, text: 'KO!', size: 0.7, color: null, age: 0, life: 1.2 })   // (map's text color)
+    fx.popups.push({ x: ev.x, y: ev.y, text: 'KO!', size: 0.7, look: 'ko', age: 0, life: 1.2 })
   },
   hit: (fx, ev) => {   // punch impact: a quick burst of sparks
     for (let i = 0; i < 10; i++) {

@@ -12,14 +12,13 @@ import { SCYTHE_START } from '../game/level.js'
 import { leaders } from '../game/match.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { snapPlayer } from '../game/snapshot.js'
-import { MAP_SHIFT, transitionCamera } from '../game/transition.js'
+import { MAP_SHIFT, ease, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
-import { drawBanner, drawCrosshair, drawDebug, drawHud } from './hud.js'
+import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups, hudSurface } from './hud.js'
 import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
 import { drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
-import { font } from './palette.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
 import { lerp } from '../util/math.js'
@@ -47,7 +46,9 @@ export function render(ctx, view, snap, effects, ui) {
   if (shake) ctx.translate((Math.random() * 2 - 1) * shake * s, (Math.random() * 2 - 1) * shake * s)
 
   const map = snap ? mapDef(snap.map) : MAPS.patch
-  const theme = ui.theme = map.theme   // (the HUD and banner read their text colors from it)
+  ui.theme = map.theme   // (the debug lines read their color from it)
+  // ink or paper for the HUD's chips, fading from the old map's to the new one's during a pan
+  ui.surface = hudSurface(map.theme, tr ? mapDef(tr.from).theme : null, tr ? ease(tr.t) : 1)
   if (tr) {   // the map we're leaving, one screen to the left
     const old = mapDef(tr.from), XO = x => X(x - MAP_SHIFT)
     drawMapBase(ctx, old, XO, Y, s, null)
@@ -63,7 +64,7 @@ export function render(ctx, view, snap, effects, ui) {
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s)
     drawPatches(ctx, snap, X, Y, s)
     for (const c of snap.crows) drawCrow(ctx, c, X, Y, s)
-    drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, X, Y, s)
+    drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, ui.surface, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
     for (const t of snap.traps) if (!t.bite) drawTrap(ctx, t, X, Y, s)   // (on the floor: under whoever steps on it)
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s)
@@ -98,15 +99,7 @@ export function render(ctx, view, snap, effects, ui) {
     ctx.stroke()
   }
   ctx.globalAlpha = 1
-  ctx.textAlign = 'center'
-  for (const t of effects.popups) {
-    if (t.damage && !ui.debug && !ui.damageNumbers) continue   // damage numbers: only if you turned them on (or with the tuning panel)
-    ctx.globalAlpha = 1 - Math.pow(t.age / t.life, 2)
-    ctx.fillStyle = t.color || theme.ink
-    ctx.font = font('display', t.size * s)
-    ctx.fillText(t.text, X(t.x), Y(t.y))
-  }
-  ctx.globalAlpha = 1
+  drawPopups(ctx, effects, ui, X, Y, s)   // (in the world: they shake with it)
   ctx.restore()   // (the shake)
 
   if (ui.overlay) { ui.overlay(ctx, X, Y, s); ctx.restore(); return }
@@ -116,12 +109,7 @@ export function render(ctx, view, snap, effects, ui) {
     drawBanner(ctx, snap, ui, XS, Y, s)
   }
 
-  if (ui.message) {
-    ctx.textAlign = 'center'
-    ctx.font = font('display', 0.5 * s)
-    ctx.fillStyle = theme.ink
-    ctx.fillText(ui.message, XS(CONFIG.view.w / 2), Y(12.6))
-  }
+  drawMessage(ctx, ui.message, ui.surface, XS, Y, s)
   if (ui.crosshair && ui.aim) drawCrosshair(ctx, XS(ui.aim.x), Y(ui.aim.y))
   ctx.restore()
 }

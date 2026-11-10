@@ -9,10 +9,16 @@ const freeze = o => {
   return Object.freeze(o)
 }
 
-// Text and marks over the game (HUD, debug, the crosshair).
+// Text and marks over the game (HUD, debug, the crosshair): the main palette, Pumpkin & Bark (the same
+// as the menus' in styles/tokens.css), plus a few debug colors.
 export const UI = freeze({
-  paper: '#f4efe6',
-  ink: '#3b3631',
+  ink: '#2e2620',
+  inkEdge: '#16110d',     // (the ledge under ink chips)
+  paper: '#f6efe3',
+  paperEdge: '#d9cbb5',   // (the ledge under paper chips and tiles)
+  pumpkin: '#f28c28',     // (KO!, a draw)
+  logoEdge: '#1c1511',    // (the outline and drop under banners)
+  hit: '#e8384f',         // (damage numbers)
   healthTrack: 'rgba(59, 54, 49, 0.15)',   // (debug health bars: the empty part)
   crosshair: { edge: 'rgba(30, 24, 20, 0.85)', line: '#fff' },
   debugRay: { hit: '#1a9e3a', miss: '#c33' },
@@ -82,7 +88,6 @@ export const FX = freeze({
   burn: { small: ['#ff8a1f', '#ffd23f'], big: ['#ff8a1f', '#ffd23f', '#e2481b', '#3b3631'] },
   dust: ['#c9bfb2', '#9a8f80'],
   yank: ['#5fae3c', '#3c7a22'],
-  damage: '#c8323a',
   hit: { spark: '#f08a1c', dark: '#3b3631' },
 })
 
@@ -123,9 +128,6 @@ export const CROW = freeze({
 
 // Stars circling something dazed (a crow, a player).
 export const DIZZY = freeze({ star: '#f7c531', edge: '#9a6b00' })
-
-// The harvest ring and the harvest-key bubble (pickups.js).
-export const PICKUP = freeze({ ring: UI.ink, bubble: UI.ink, key: UI.paper })
 
 // The map editor's marks over the map (ui/editor).
 export const EDITOR = freeze({

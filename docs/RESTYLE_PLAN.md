@@ -98,6 +98,8 @@
 - Toggle that's on: `accent` with white text and an `accentEdge` ledge
 - Danger button: `hit` with white text and a `hitEdge` ledge
 
+**HUD chips change per map (decided 2026-11-10, after step 4):** the user found paper chips hard to see on light maps and the ink harvest bubble hard to see on dark ones. So the chips, score tiles, the harvest-key bubble and the harvest ring are **ink (with paper text, on an `inkEdge` ledge) on maps with a light sky, and paper (with ink text, on a `paperEdge` ledge) on dark ones**. During the pan to the next map they fade from one look to the other along with the camera; the text flips between ink and paper halfway. Code: `hudSurface` in `src/render/hud.js` ("light" = the sky's brightness over 140 of 255). Damage numbers (paper outline) and banners (dark outline) are the same on every map.
+
 **Logo, headings and banners:** Luckiest Guy with a `0.08em` stroke in `logoEdge` (`-webkit-text-stroke` plus `paint-order: stroke fill`) and a `0.07em` drop (`text-shadow: 0 0.07em 0 logoEdge`). The logo fill is `pumpkin`.
 
 ### 4.2 Fonts
