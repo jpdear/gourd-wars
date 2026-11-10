@@ -1,0 +1,961 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Gourd Wars restyle mockup (reference only, not game code). Copied from the art-direction session on 2026-11-09. See docs/restyle/mockups/README.md. -->
+<title>Gourd Wars Gourd Colors</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@400;600;700&display=swap">
+<style>
+  /* Layout: one column. Picks at the top, then the lineup (a card per gourd, auto-filling columns), then the game-size check on every map. */
+  :root {
+    --paper: #f3f2ee; --ink: #26231f; --muted: #6e685f; --accent: #cf5419;
+    --panel: #e8e6e0; --line: #d4d0c7; --on: #fbfaf7;
+    --display: 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif;
+    --body: 'Figtree', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #181715; --ink: #ecebe6; --muted: #a29d94; --accent: #f08547;
+      --panel: #22211e; --line: #36342f; --on: #2c2a26; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #181715; --ink: #ecebe6; --muted: #a29d94; --accent: #f08547;
+    --panel: #22211e; --line: #36342f; --on: #2c2a26; color-scheme: dark;
+  }
+  body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+  .wrap {
+    max-width: 1180px; margin: 0 auto;
+    padding-block: 32px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 36px;
+  }
+  .eyebrow { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  h1 { margin: 4px 0 8px; font-family: var(--display); font-weight: 800; font-size: clamp(30px, 4.6vw, 44px); line-height: 1.05; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.2; text-wrap: balance; }
+  .lede, .sub { margin: 0; color: var(--muted); max-width: 70ch; }
+  .sub { font-size: 14px; margin-top: 2px; }
+  section { display: grid; gap: 14px; min-width: 0; }
+
+  .picks-box { display: grid; gap: 10px; background: var(--panel); border-radius: 14px; padding: 14px 16px; }
+  .picks-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+  .picks-box h2 { font-family: var(--body); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .picks li { font-size: 14px; padding: 3px 11px; border-radius: 999px; background: var(--on); border: 1px solid var(--line); }
+  .picks li span { color: var(--muted); }
+  .picks li.unset { color: var(--muted); border-style: dashed; background: transparent; }
+  #picks-text { margin: 0; font-size: 13px; color: var(--muted); user-select: all; overflow-wrap: anywhere; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 6px 15px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .btn:focus-visible, .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .lineup { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 14px; }
+  .card { display: grid; gap: 8px; align-content: start; min-width: 0; background: var(--panel); border-radius: 14px; padding: 12px; }
+  .card-head h3 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.25; }
+  .card-head p { margin: 0; font-size: 13px; color: var(--muted); }
+  .opts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .opt {
+    appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer; min-width: 0;
+    display: grid; gap: 5px; align-content: start; padding: 5px 5px 7px; border-radius: 10px;
+    border: 2px solid transparent; background: var(--on);
+  }
+  .opt:hover { border-color: var(--line); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); }
+  .opt.fixed { cursor: default; grid-column: 1 / -1; }
+  .opt.fixed:hover { border-color: transparent; }
+  .opt canvas { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; display: block; border-radius: 7px; }
+  .opt.fixed canvas { aspect-ratio: 8 / 3; }
+  .opt-name { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 0 2px; font-size: 13px; font-weight: 700; }
+  .opt-name em { font-style: normal; font-size: 12px; color: var(--accent); visibility: hidden; }
+  .opt[aria-pressed="true"] .opt-name em { visibility: visible; }
+  .chips { display: inline-flex; gap: 3px; }
+  .chips i { display: block; width: 14px; height: 14px; border-radius: 4px; outline: 1px solid var(--line); outline-offset: -1px; }
+  .why { margin: 0; font-size: 13px; line-height: 1.35; color: var(--muted); }
+  .why b { color: var(--ink); }
+
+  .strips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); gap: 16px 14px; }
+  figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  figcaption { font-size: 14px; color: var(--muted); }
+  figcaption b { color: var(--ink); }
+  .strip { width: 100%; max-width: 100%; aspect-ratio: 16 / 7; display: block; border-radius: 10px; }
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Gourd Wars · gourd colors</p>
+    <h1>Every gourd, easy to tell apart</h1>
+    <p class="lede">Round 2. Colors now follow your picks: Homing is steel blue and Dizzy Gourd is darker brown, and everything else keeps its color. Jack-o'-Boom's fuse now throws sparks. Splat Pie: the original, or the original with a fluted edge. Six gourds have a redesign pitch: a new shape that shows what the gourd does. Pick one design for each, then check the game-size section at the bottom. This is a mockup only. The game hasn't changed.</p>
+  </header>
+
+  <section class="picks-box" aria-label="Your picks">
+    <div class="picks-top">
+      <h2>Your picks</h2>
+      <div class="btns">
+        <button class="btn" id="all-now" type="button">All current</button>
+        <button class="btn" id="all-tuned" type="button">All new</button>
+        <button class="btn primary" id="copy" type="button">Copy picks</button>
+      </div>
+    </div>
+    <ul class="picks" id="picks"></ul>
+    <p id="picks-text"></p>
+  </section>
+
+  <section>
+    <div><h2>The lineup</h2><p class="sub">Gourds with a design choice come first. The rest keep their look.</p></div>
+    <div class="lineup" id="lineup"></div>
+  </section>
+
+  <section>
+    <div><h2>At game size, on your maps</h2><p class="sub">Each map shows the gourds twice against the sky and twice against the hills. The top row of each pair is the <b>current</b> design. The bottom row is your <b>picks</b>, using the new design for any you haven't picked yet. They're drawn about as big as they'd be on a 1080p screen.</p></div>
+    <div class="strips" id="strips"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const TAU = Math.PI * 2
+  const CLASSIC = { color: '#f28c28', rib: '#c4630f' }
+  const BOUNCY = { color: '#ffb84a', rib: '#d98a1c' }
+  const BOOM_COL = { color: '#e2571b', rib: '#8c2f0b' }
+  const HOT = ['#ffe08a', '#ffb347', '#ff7f3f']
+  const HILLS = [[1.2, 2.2, 1.1], [4.6, 2.6, 1.5]]   // [center x, x radius, height] on y = 0.6
+  const VIEWS = { whole: { x0: 0, y0: 0, w: 6 }, close: { x0: 1.2, y0: 0.5, w: 4.4 }, detail: { x0: 1.0, y0: 1.0, w: 3.6 } }
+  const PERIOD = 2.4, BOOM = [3.45, 0.85], FREEZE = 0.24, THUMB_T = 0.22
+
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))
+  const mix = (a, b, t) => '#' + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, '0')).join('')
+  const rnd = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x) }
+  const clamp01 = x => Math.max(0, Math.min(1, x))
+  const smooth = x => { x = clamp01(x); return x * x * (3 - 2 * x) }
+  const easeOutBack = x => 1 + 2.70158 * (x - 1) ** 3 + 1.70158 * (x - 1) ** 2
+  const easeOut = x => 1 - (1 - clamp01(x)) ** 3
+  const lerp = (a, b, k) => a + (b - a) * k
+
+  // ================= THE OPTIONS =================
+  const PALETTES = {
+    harvest: { name: 'Harvest', desc: 'Warm cream and sage. The flat vector panel you liked.',
+      sky: '#f3ead9', bands: ['#ebd2ac', '#efdcbd', '#f3e7d2', '#f6efe3'], sun: '#f8d68e', hills: ['#d6e2bd', '#bdd29a', '#a3c27c'],
+      ground: '#4f4038', grass: '#7aac45', cloud: '#fbf8f1', smoke: '#d9d0c3', tint: '#dcc6ae', shadow: 'rgba(79,64,56,0.16)', drop: '#4f4038', dropA: 0.2 },
+    midday: { name: 'Midday', desc: 'Clear blue sky and fresh green. Bright and friendly.',
+      sky: '#cfe8f3', bands: ['#9dcfe9', '#b4dbef', '#cbe6f3', '#e0f1f8'], sun: '#fff1a8', hills: ['#bfe0a3', '#97cc78', '#79b85c'],
+      ground: '#5e4636', grass: '#4fa23a', cloud: '#ffffff', smoke: '#eef0ec', tint: '#b7cdd8', shadow: 'rgba(40,60,70,0.16)', drop: '#2f4a5a', dropA: 0.2 },
+    dusk: { name: 'Dusk', desc: 'Lavender sky and purple hills. Orange pumpkins glow against it.',
+      sky: '#e2c6da', bands: ['#9f89c4', '#bea2cd', '#dcc0d8', '#f4d6c4'], sun: '#ffe0ae', hills: ['#b49ac8', '#8c77b0', '#6c5e98'],
+      ground: '#352b4a', grass: '#5b8a63', cloud: '#f1e2ec', smoke: '#e3d0dc', tint: '#c4aacb', shadow: 'rgba(40,30,70,0.2)', drop: '#2c2148', dropA: 0.24 },
+    night: { name: 'Night', desc: 'Dark blue with a moon. Players and pumpkins stand out the most.', stars: true,
+      sky: '#202b46', bands: ['#121a2e', '#18223b', '#1f2a46', '#283656'], sun: '#f2ead2', hills: ['#2f3f63', '#26344f', '#1e2b44'],
+      ground: '#15151f', grass: '#3c6a4c', cloud: '#2c3a5c', smoke: '#5a6680', tint: '#8a93b3', shadow: 'rgba(0,0,0,0.32)', drop: '#05070f', dropA: 0.35 },
+    fog: { name: 'Fog', desc: 'Soft grey-greens. A quiet world, so the players do the shouting.',
+      sky: '#e6e8e3', bands: ['#d3d8d0', '#dce0d9', '#e5e7e2', '#eeefeb'], sun: '#f2dcb4', hills: ['#d0d7cd', '#b8c4b5', '#9fb09c'],
+      ground: '#55594f', grass: '#869b78', cloud: '#f4f5f2', smoke: '#d6d9d2', tint: '#c6ccc3', shadow: 'rgba(50,55,50,0.16)', drop: '#3a3f38', dropA: 0.2 },
+    autumn: { name: 'Autumn', desc: 'Mustard and rust hills. The most seasonal, but pumpkins blend in more.',
+      sky: '#eee3c8', bands: ['#e5cd9b', '#e9d8b0', '#eee2c6', '#f3ebd8'], sun: '#fff3d2', hills: ['#e2c17a', '#cf9a52', '#b06a3c'],
+      ground: '#432a20', grass: '#8f8a3a', cloud: '#f8f1e0', smoke: '#dccfb7', tint: '#d8c09c', shadow: 'rgba(67,42,32,0.18)', drop: '#432a20', dropA: 0.22 },
+  }
+  const TEAMS = {
+    current: { name: 'Current', desc: 'The colors in the game now.', c: ['#2b6cff', '#e8384f', '#1fa35c', '#e0a800'] },
+    bright: { name: 'Bright', desc: 'Same hues with more punch.', c: ['#1f8bff', '#ff3d5e', '#16c46c', '#ffc21a'] },
+    soft: { name: 'Soft', desc: 'Lighter and gentler.', c: ['#5d8ff0', '#f07383', '#52bf8c', '#f2c35a'] },
+    deep: { name: 'Deep', desc: 'Darker and richer.', c: ['#2448b5', '#bf2a40', '#167a48', '#c48600'] },
+    offset: { name: 'Off-primary', desc: 'Teal, magenta, lime, violet. No player looks like a pumpkin.', c: ['#139c9c', '#d4358b', '#6fb52a', '#7a5cf0'] },
+  }
+  const SHADES = {
+    none: { name: 'None', desc: 'Pure flat. Every shape is one color.' },
+    twotone: { name: 'Two-tone', desc: 'A hard-edged darker side, away from the light.' },
+    drop: { name: 'Drop shadow', desc: 'Players and pumpkins cast a flat shadow behind them.' },
+    both: { name: 'Both', desc: 'Two-tone plus drop shadow.' },
+  }
+  const SHAPES = {
+    rounded: { name: 'Rounded', desc: 'Soft curves everywhere, like the panel you liked.' },
+    geo: { name: 'Geometric', desc: 'Hexagon pumpkins, octagon heads, pointed hills, square hands and feet.' },
+    minimal: { name: 'Minimal', desc: 'The fewest shapes: plain round pumpkins, dot eyes, pill clouds.' },
+  }
+  const FXS = {
+    puffs: { name: 'Puffs', desc: 'A cloud of flat puffs that cools from yellow to smoke.' },
+    rings: { name: 'Rings', desc: 'Shock rings that spread out and thin away.' },
+    burst: { name: 'Starburst', desc: 'A spiky flash with rays shooting out.' },
+    debris: { name: 'Debris', desc: 'Triangles, squares and dots flying everywhere.' },
+  }
+  const BGS = {
+    simple: { name: 'Simple', desc: 'Sun and two hills.' },
+    layered: { name: 'Layered', desc: 'More hill layers, clouds and trees, for depth.' },
+    banded: { name: 'Banded sky', desc: 'The sky in flat stripes, with a big low sun.' },
+    patch: { name: 'Pumpkin patch', desc: 'A fence and rows of pumpkins in the distance.' },
+  }
+  const AXES = [
+    { key: 'pal', title: 'Palette', blurb: 'Sky, hills and ground. Players and pumpkins keep their colors.', view: 'whole', options: PALETTES,
+      swatch: o => [o.sky, o.hills[0], o.hills[1], o.grass, o.ground] },
+    { key: 'team', title: 'Player colors', blurb: 'The scene shows players 1, 2 and 4. All four are in the swatches.', view: 'close', options: TEAMS, swatch: o => o.c },
+    { key: 'shade', title: 'Shading', blurb: 'How much depth the shapes get. None of these add shine or outlines.', view: 'detail', options: SHADES },
+    { key: 'shape', title: 'Shapes', blurb: 'The basic shape language of players, pumpkins and the world.', view: 'detail', options: SHAPES },
+    { key: 'fx', title: 'Blast', blurb: 'How a Jack-o\'-Boom explosion looks. The same style would carry over to other effects.', view: 'close', options: FXS },
+    { key: 'bg', title: 'Background', blurb: 'How much is going on behind the fight.', view: 'whole', options: BGS },
+  ]
+  const DEFAULTS = { pal: 'harvest', team: 'current', shade: 'none', shape: 'rounded', fx: 'puffs', bg: 'simple' }
+  const resolve = pk => ({ pal: PALETTES[pk.pal], team: TEAMS[pk.team], shade: pk.shade, shape: pk.shape, fx: pk.fx, bg: pk.bg })
+
+  // ================= THE SCENE (world units, y up) =================
+  const chain = (p, a1, a2, l1, l2) => { const k = [p[0] + Math.cos(a1) * l1, p[1] + Math.sin(a1) * l1]; return [p, k, [k[0] + Math.cos(a2) * l2, k[1] + Math.sin(a2) * l2]] }
+  function skeleton(kind, t) {
+    const hip = [0, 0], neck = [0, 0.62], sh = [0, 0.58], S = Math.sin, A = 0.34, L = 0.45
+    if (kind === 'flail') return {
+      hip, neck,
+      armB: chain(sh, 2.6 + 0.5 * S(t * 13), 3.0 + 0.7 * S(t * 13 + 0.8), A, A),
+      armF: chain(sh, 0.5 + 0.5 * S(t * 11 + 2), 0.1 + 0.8 * S(t * 11 + 3), A, A),
+      legB: chain(hip, -2.2 + 0.35 * S(t * 12), -2.5 + 0.6 * S(t * 12 + 1), L, L),
+      legF: chain(hip, -0.9 + 0.35 * S(t * 10 + 2), -0.5 + 0.6 * S(t * 10 + 3), L, L),
+    }
+    if (kind === 'run') {
+      const ph = t * 9, th = q => -Math.PI / 2 + 0.75 * S(q), shin = q => th(q) - 0.3 - 0.9 * (0.5 + 0.5 * S(q + 1.7))
+      return {
+        hip, neck,
+        armB: chain(sh, 2.0 + 0.45 * S(t * 17), 1.5 + 0.8 * S(t * 17 + 1), A, A),
+        armF: chain(sh, 1.2 + 0.45 * S(t * 15 + 2), 1.8 + 0.8 * S(t * 15 + 3), A, A),
+        legB: chain(hip, th(ph + Math.PI), shin(ph + Math.PI), L, L),
+        legF: chain(hip, th(ph), shin(ph), L, L),
+      }
+    }
+    const b = 0.04 * S(t * 3)
+    return {
+      hip, neck,
+      armB: chain(sh, -2.5 + b, -2.0 + b, A, A),
+      armF: chain(sh, 0.55 + b, 0.35 + b, A, A),
+      legB: chain(hip, -2.05, -1.95, L, L),
+      legF: chain(hip, -1.15, -1.4, L, L),
+    }
+  }
+  function rig(sk, center, rot) {
+    const cs = Math.cos(rot), sn = Math.sin(rot)
+    const T = ([x, y]) => { y -= 0.35; return [center[0] + x * cs - y * sn, center[1] + x * sn + y * cs] }
+    return { hip: T(sk.hip), neck: T(sk.neck), armB: sk.armB.map(T), armF: sk.armF.map(T), legB: sk.legB.map(T), legF: sk.legF.map(T), up: [-sn, cs], rot }
+  }
+  function scene(t) {
+    const players = [
+      { idx: 0, dizzy: true, ...rig(skeleton('flail', t), [2.6, 2.5 + 0.08 * Math.sin(t * 2)], t * 3.2) },
+      { idx: 1, ...rig(skeleton('run', t), [4.85, 1.7 + 0.04 * Math.abs(Math.sin(t * 9))], -0.3) },
+      { idx: 3, ...rig(skeleton('throw', t), [0.85, 1.77 + 0.015 * Math.sin(t * 3)], 0.1) },
+    ]
+    const a = ((t % PERIOD) + PERIOD) % PERIOD
+    const pumpkins = [
+      { at: [1.65, 1.95 + 0.05 * Math.sin(t * 3)], ang: t * 7, col: CLASSIC, r: 0.22 },
+      { at: [5.5, 2.85 + 0.05 * Math.sin(t * 2.5)], ang: -t * 5, col: BOUNCY, r: 0.2 },
+    ]
+    const shards = a < 1.1 ? Array.from({ length: 9 }, (_, i) => {
+      const ang = 0.35 + i / 8 * (Math.PI - 0.7) + (rnd(i) - 0.5) * 0.3, sp = 2.2 + rnd(i + 0.5) * 1.6
+      return { at: [BOOM[0] + Math.cos(ang) * sp * a, BOOM[1] + 0.2 + Math.sin(ang) * sp * a - 3 * a * a], ang: a * (8 + i), size: 0.06 + rnd(i + 0.2) * 0.04, seed: i % 3 === 0, i }
+    }) : []
+    return { players, pumpkins, shards, a }
+  }
+  const right = p => [p.up[1], -p.up[0]]
+  const headAt = (p, r) => [p.neck[0] + p.up[0] * (r + 0.02), p.neck[1] + p.up[1] * (r + 0.02)]
+  const PUFFS = Array.from({ length: 11 }, (_, i) => ({ ang: i ? rnd(i + 40) * TAU : 0, d: i ? 0.15 + rnd(i + 41) * 0.45 : 0, r: 0.22 + rnd(i + 42) * 0.2, hot: i ? 1 - 0.6 * rnd(i + 43) : 1 }))
+  function puffsAt(a) {
+    const grow = easeOutBack(Math.min(1, a / 0.22)), fade = 1 - smooth((a - 0.6) / 0.9)
+    return PUFFS.map(p => ({
+      x: BOOM[0] + Math.cos(p.ang) * p.d * (1 + a * 0.8),
+      y: BOOM[1] + 0.25 + Math.sin(p.ang) * p.d * (0.8 + a * 0.6) * 0.8 + a * 0.45,
+      r: p.r * grow * fade * (1 + a * 0.3), heat: Math.max(0, p.hot - a * 1.3),
+    })).filter(q => q.r > 0.01).sort((q, w) => q.heat - w.heat)
+  }
+  const DEBRIS = Array.from({ length: 24 }, (_, i) => ({ ang: 0.15 + rnd(i + 70) * (Math.PI - 0.3), sp: 2.4 + rnd(i + 71) * 4, size: 0.05 + rnd(i + 72) * 0.06, kind: i % 3, col: i % 5, spin: 4 + rnd(i + 73) * 8 }))
+  const STARS = Array.from({ length: 18 }, (_, i) => ({ x: rnd(i + 90) * 6, y: 2.0 + rnd(i + 91) * 1.6, r: 0.014 + rnd(i + 92) * 0.018 }))
+
+  // ================= SHAPE HELPERS (pixel space) =================
+  const circle = (c, x, y, r) => { c.beginPath(); c.arc(x, y, Math.max(0.1, r), 0, TAU) }
+  function poly(c, x, y, rx, ry, n, rot = 0) {
+    c.beginPath()
+    for (let i = 0; i < n; i++) { const a = rot + i / n * TAU; c.lineTo(x + Math.cos(a) * rx, y + Math.sin(a) * ry) }
+    c.closePath()
+  }
+  const blob = (c, x, y, r, form, rot = 0) => form === 'geo' ? poly(c, x, y, r, r, 6, rot) : circle(c, x, y, r)
+  function star(c, x, y, r, turn, n = 5, inner = 0.45) {
+    c.beginPath()
+    for (let i = 0; i < n * 2; i++) { const a = turn - Math.PI / 2 + i * Math.PI / n, d = i % 2 ? r * inner : r; c.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d) }
+    c.closePath()
+  }
+  function chunk(c, x, y, r, ang, i) {
+    c.beginPath()
+    for (let k = 0; k < 5; k++) { const a = ang + k / 5 * TAU, d = r * (0.65 + rnd(i * 10 + k) * 0.5); c.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d) }
+    c.closePath()
+  }
+
+  // ================= DEPTH: two-tone and drop shadows, done on an offscreen layer =================
+  const L = document.createElement('canvas').getContext('2d')
+  const LIGHT = (() => { const x = 1, y = 1.15, n = Math.hypot(x, y); return [x / n, y / n] })()   // shadow side: down-right
+  function layerPass(ctx, box, paint, op, alpha = 1) {
+    const W = Math.min(ctx.canvas.width, L.canvas.width), H = Math.min(ctx.canvas.height, L.canvas.height)
+    const x0 = Math.max(0, Math.floor(box[0])), y0 = Math.max(0, Math.floor(box[1]))
+    const x1 = Math.min(W, Math.ceil(box[2])), y1 = Math.min(H, Math.ceil(box[3]))
+    if (x1 <= x0 || y1 <= y0) return
+    const w = x1 - x0, h = y1 - y0
+    L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-over'; L.globalAlpha = 1
+    L.save(); L.beginPath(); L.rect(x0, y0, w, h); L.clip(); L.clearRect(x0, y0, w, h)
+    paint(L)
+    L.restore()
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha
+    ctx.drawImage(L.canvas, x0, y0, w, h, x0, y0, w, h)
+    ctx.restore()
+  }
+  // One thing in the scene: sil(c, fill) draws its silhouette in one color, draw(c) draws it for real.
+  function thing(ctx, P, { sil, draw, box, shift, dir = LIGHT, drop = true, after }) {
+    const twotone = P.shade === 'twotone' || P.shade === 'both'
+    if (drop && (P.shade === 'drop' || P.shade === 'both')) {
+      const dx = shift * 1.1, dy = shift * 1.35
+      layerPass(ctx, [box[0], box[1], box[2] + dx, box[3] + dy], c => { c.translate(dx, dy); sil(c, P.pal.drop) }, 'source-over', P.pal.dropA)
+    }
+    draw(ctx)
+    if (twotone) layerPass(ctx, box, c => {
+      sil(c, P.pal.tint)
+      c.globalCompositeOperation = 'destination-out'; c.translate(-shift * dir[0], -shift * dir[1]); sil(c, '#000')
+    }, 'multiply')
+    if (after) after(ctx)
+  }
+
+  // ================= PUMPKINS =================
+  const PUMPKIN_FORMS = {
+    rounded(c, r, col, f) {
+      f('#4f8a34'); c.beginPath(); c.roundRect(-r * 0.1, -r * 1.32, r * 0.2, r * 0.5, r * 0.08); c.fill()
+      f('#76b046'); c.beginPath(); c.ellipse(r * 0.3, -r * 1.1, r * 0.24, r * 0.1, -0.5, 0, TAU); c.fill()
+      f(mix(col.color, col.rib, 0.45))
+      for (const side of [-1, 1]) { c.beginPath(); c.ellipse(side * r * 0.42, 0, r * 0.66, r * 0.95, 0, 0, TAU); c.fill() }
+      f(col.color); c.beginPath(); c.ellipse(0, 0, r * 0.58, r, 0, 0, TAU); c.fill()
+    },
+    geo(c, r, col, f) {
+      f('#4f8a34'); c.fillRect(-r * 0.1, -r * 1.32, r * 0.2, r * 0.5)
+      f('#76b046'); c.beginPath(); c.moveTo(r * 0.08, -r * 1.12); c.lineTo(r * 0.34, -r * 1.34); c.lineTo(r * 0.58, -r * 1.1); c.lineTo(r * 0.32, -r * 0.98); c.closePath(); c.fill()
+      f(mix(col.color, col.rib, 0.45))
+      for (const side of [-1, 1]) { poly(c, side * r * 0.42, 0, r * 0.68, r * 0.97, 6); c.fill() }
+      f(col.color); poly(c, 0, 0, r * 0.6, r * 1.02, 6); c.fill()
+    },
+    minimal(c, r, col, f) {
+      f('#4f8a34'); c.fillRect(-r * 0.09, -r * 1.26, r * 0.18, r * 0.45)
+      f(col.color); c.beginPath(); c.ellipse(0, 0, r * 1.06, r, 0, 0, TAU); c.fill()
+    },
+  }
+  function pumpkin(c, x, y, r, ang, col, form, one) {
+    c.save(); c.translate(x, y); c.rotate(-ang)
+    PUMPKIN_FORMS[form](c, r, col, k => { c.fillStyle = one || k })
+    c.restore()
+  }
+
+  // ================= PLAYERS =================
+  function limb(c, pts, X, Y) { c.beginPath(); c.moveTo(X(pts[0][0]), Y(pts[0][1])); for (let i = 1; i < pts.length; i++) c.lineTo(X(pts[i][0]), Y(pts[i][1])) }
+  function playerBody(c, p, v, form, col, one) {
+    const { s, X, Y } = v, geo = form === 'geo'
+    c.lineCap = geo ? 'square' : 'round'; c.lineJoin = geo ? 'miter' : 'round'
+    c.strokeStyle = one || mix(col, '#000000', 0.18); c.lineWidth = 0.11 * s
+    for (const ch of [p.legB, p.armB]) { limb(c, ch, X, Y); c.stroke() }
+    c.strokeStyle = one || col
+    limb(c, p.legF, X, Y); c.stroke()
+    c.lineWidth = 0.16 * s; limb(c, [p.hip, p.neck], X, Y); c.stroke()
+    c.lineWidth = 0.11 * s; limb(c, p.armF, X, Y); c.stroke()
+    const [hx, hy] = headAt(p, 0.17)
+    c.fillStyle = one || col
+    if (geo) poly(c, X(hx), Y(hy), 0.178 * s, 0.178 * s, 8, -p.rot + Math.PI / 8)
+    else circle(c, X(hx), Y(hy), 0.17 * s)
+    c.fill()
+  }
+  function playerEyes(c, p, v, form) {
+    const { s, X, Y } = v, [hx, hy] = headAt(p, 0.17), [rx, ry] = right(p)
+    const ex = X(hx + rx * 0.07 + p.up[0] * 0.03), ey = Y(hy + ry * 0.07 + p.up[1] * 0.03)
+    if (p.dizzy) {
+      c.strokeStyle = '#ffffff'; c.lineWidth = 0.03 * s; c.lineCap = form === 'geo' ? 'square' : 'round'
+      const d = 0.033 * s; c.beginPath()
+      c.moveTo(ex - d, ey - d); c.lineTo(ex + d, ey + d); c.moveTo(ex + d, ey - d); c.lineTo(ex - d, ey + d); c.stroke()
+      return
+    }
+    c.fillStyle = '#ffffff'
+    if (form === 'minimal') { circle(c, ex, ey, 0.04 * s); c.fill(); return }
+    if (form === 'geo') { c.fillRect(ex - 0.045 * s, ey - 0.045 * s, 0.09 * s, 0.09 * s); c.fillStyle = '#1d1a2a'; c.fillRect(ex - 0.005 * s, ey - 0.04 * s, 0.045 * s, 0.045 * s); return }
+    circle(c, ex, ey, 0.05 * s); c.fill()
+    c.fillStyle = '#1d1a2a'; circle(c, ex + rx * 0.018 * s, ey - ry * 0.018 * s, 0.026 * s); c.fill()
+  }
+  function playerBox(p, v) {
+    const pts = [p.hip, p.neck, ...p.armB, ...p.armF, ...p.legB, ...p.legF, headAt(p, 0.17)]
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]), pad = 0.3
+    return [v.X(Math.min(...xs) - pad), v.Y(Math.max(...ys) + pad), v.X(Math.max(...xs) + pad), v.Y(Math.min(...ys) - pad)]
+  }
+
+  // ================= BACKGROUND =================
+  function hillPath(c, v, cx, rx, ry, base, form) {
+    const { s, X, Y } = v
+    c.beginPath()
+    if (form === 'geo') {
+      c.moveTo(X(cx - rx), Y(base)); c.lineTo(X(cx - rx * 0.2), Y(base + ry)); c.lineTo(X(cx + rx * 0.14), Y(base + ry * 0.88)); c.lineTo(X(cx + rx), Y(base))
+    } else c.ellipse(X(cx), Y(base), rx * s, ry * s, 0, Math.PI, TAU)
+    c.closePath()
+  }
+  function hill(ctx, v, P, cx, rx, ry, base, color) {
+    const sil = (c, f) => { c.fillStyle = f; hillPath(c, v, cx, rx, ry, base, P.shape); c.fill() }
+    thing(ctx, P, { sil, draw: c => sil(c, color), box: [v.X(cx - rx) - 4, v.Y(base + ry) - 4, v.X(cx + rx) + 4, v.Y(base) + 1], shift: 0.16 * v.s, dir: [1, 0], drop: false })
+  }
+  function cloud(c, v, x, y, w, form, fill) {
+    const { s, X, Y } = v, h = w * 0.26
+    c.fillStyle = fill
+    if (form === 'minimal') { c.beginPath(); c.roundRect(X(x - w / 2), Y(y + h), w * s, h * s, h * s / 2); c.fill(); return }
+    if (form === 'geo') {
+      c.fillRect(X(x - w / 2), Y(y + h), w * s, h * s)
+      c.fillRect(X(x - w * 0.22), Y(y + h * 2), w * 0.42 * s, h * s)
+      return
+    }
+    c.beginPath(); c.roundRect(X(x - w / 2), Y(y + h), w * s, h * s, h * s / 2); c.fill()
+    circle(c, X(x - w * 0.12), Y(y + h), w * 0.22 * s); c.fill()
+    circle(c, X(x + w * 0.14), Y(y + h * 0.9), w * 0.17 * s); c.fill()
+  }
+  function tree(ctx, v, P, x, base, h) {
+    const { s, X, Y } = v, form = P.shape, leaf = mix(P.pal.hills[2], P.pal.ground, 0.22), trunk = mix(P.pal.ground, P.pal.hills[2], 0.3)
+    const sil = (c, one) => {
+      c.fillStyle = one || trunk; c.fillRect(X(x - 0.025), Y(base + h * 0.5), 0.05 * s, h * 0.5 * s)
+      c.fillStyle = one || leaf
+      if (form === 'geo') { c.beginPath(); c.moveTo(X(x - h * 0.28), Y(base + h * 0.3)); c.lineTo(X(x), Y(base + h * 1.1)); c.lineTo(X(x + h * 0.28), Y(base + h * 0.3)); c.closePath() }
+      else if (form === 'minimal') { c.beginPath(); c.roundRect(X(x - h * 0.2), Y(base + h * 1.05), h * 0.4 * s, h * 0.65 * s, h * 0.2 * s) }
+      else circle(c, X(x), Y(base + h * 0.72), h * 0.3 * s)
+      c.fill()
+    }
+    thing(ctx, P, { sil, draw: c => sil(c), box: [X(x - h * 0.4), Y(base + h * 1.2), X(x + h * 0.4), Y(base)], shift: 0.05 * s, drop: false })
+  }
+  const BACKDROPS = {   // the extras each background adds; all of them get the sky, sun, two hills and the slab
+    simple: {},
+    layered: {
+      behind(ctx, v, P) {
+        const far = mix(P.pal.hills[0], P.pal.sky, 0.5)
+        for (const [cx, rx, ry] of [[0.3, 1.5, 1.35], [2.7, 1.7, 1.2], [5.6, 1.6, 1.5]]) hill(ctx, v, P, cx, rx, ry, 0.6, far)
+        cloud(ctx, v, 1.75, 3.05, 0.75, P.shape, P.pal.cloud)
+        cloud(ctx, v, 4.35, 3.3, 0.55, P.shape, P.pal.cloud)
+      },
+      front(ctx, v, P) {
+        for (const [cx, rx, ry] of [[2.75, 0.95, 0.38], [5.35, 0.8, 0.32]]) hill(ctx, v, P, cx, rx, ry, 0.6, P.pal.hills[2])
+        for (const [x, h] of [[0.55, 0.62], [3.05, 0.55], [3.32, 0.42], [5.55, 0.6]]) tree(ctx, v, P, x, 0.6, h)
+      },
+    },
+    banded: {},
+    patch: {
+      front(ctx, v, P) {
+        const { s, X, Y } = v, field = mix(P.pal.hills[1], P.pal.grass, 0.35), fence = mix(P.pal.ground, P.pal.sky, 0.4)
+        ctx.fillStyle = field; ctx.fillRect(0, Y(0.95), v.w, (0.35 + 0.02) * s)
+        const little = (x, y, r) => pumpkin(ctx, X(x), Y(y), r * s, 0, { color: mix(CLASSIC.color, field, 0.25), rib: mix(CLASSIC.rib, field, 0.25) }, P.shape)
+        for (let i = 0; i < 13; i++) little(0.25 + i * 0.47 + rnd(i + 50) * 0.12, 0.86, 0.045 + rnd(i + 51) * 0.015)
+        ctx.fillStyle = fence
+        for (let x = 0.15; x < 6; x += 0.42) ctx.fillRect(X(x), Y(1.02), 0.045 * s, 0.42 * s)
+        ctx.fillRect(0, Y(0.94), v.w, 0.035 * s); ctx.fillRect(0, Y(0.79), v.w, 0.035 * s)
+        for (let i = 0; i < 9; i++) little(0.4 + i * 0.68 + rnd(i + 60) * 0.15, 0.68, 0.06 + rnd(i + 61) * 0.02)
+      },
+    },
+  }
+  function background(ctx, v, P) {
+    const { s, X, Y } = v, pal = P.pal, bd = BACKDROPS[P.bg]
+    if (P.bg === 'banded') {
+      const cuts = [0, 0.2, 0.42, 0.66, 1]
+      pal.bands.forEach((b, i) => { ctx.fillStyle = b; ctx.fillRect(0, cuts[i] * v.h, v.w, (cuts[i + 1] - cuts[i]) * v.h + 1) })
+    } else { ctx.fillStyle = pal.sky; ctx.fillRect(0, 0, v.w, v.h) }
+    if (pal.stars) { ctx.fillStyle = pal.sun; for (const st of STARS) { blob(ctx, X(st.x), Y(st.y), st.r * s, P.shape); ctx.fill() } }
+    ctx.fillStyle = pal.sun
+    const [sx, sy, sr] = P.bg === 'banded' ? [3.9, 1.05, 1.0] : [0.55, 3.0, 0.36]
+    if (P.shape === 'geo') poly(ctx, X(sx), Y(sy), sr * s, sr * s, 10, 0.3); else circle(ctx, X(sx), Y(sy), sr * s)
+    ctx.fill()
+    if (bd.behind) bd.behind(ctx, v, P)
+    hill(ctx, v, P, ...HILLS[1], 0.6, pal.hills[0])
+    if (P.bg !== 'patch') hill(ctx, v, P, ...HILLS[0], 0.6, pal.hills[1])
+    if (bd.front) bd.front(ctx, v, P)
+    ctx.fillStyle = pal.ground; ctx.fillRect(X(0.3), Y(0.6), 5.4 * s, 1.2 * s)
+    ctx.fillStyle = pal.grass; ctx.fillRect(X(0.3), Y(0.6), 5.4 * s, 0.16 * s)
+  }
+
+  // ================= BLASTS =================
+  const heatCol = (h, pal) => h > 0.66 ? HOT[0] : h > 0.33 ? HOT[1] : h > 0.12 ? HOT[2] : pal.smoke
+  function smokeTail(ctx, v, a, P) {
+    ctx.fillStyle = P.pal.smoke
+    for (const q of puffsAt(a)) if (q.heat < 0.3) { blob(ctx, v.X(q.x), v.Y(q.y), q.r * v.s * 0.75, P.shape, q.x); ctx.fill() }
+  }
+  const BLASTS = {
+    puffs(ctx, v, a, P) {
+      const { s, X, Y } = v
+      if (a < 0.35) {
+        const k = a / 0.35
+        ctx.globalAlpha = (1 - k) * 0.8; ctx.fillStyle = '#ffffff'
+        circle(ctx, X(BOOM[0]), Y(BOOM[1] + 0.25), lerp(0.3, 2.3, Math.sqrt(k)) * s); ctx.fill(); ctx.globalAlpha = 1
+      }
+      for (const q of puffsAt(a)) { ctx.fillStyle = heatCol(q.heat, P.pal); blob(ctx, X(q.x), Y(q.y), q.r * s, P.shape, q.x); ctx.fill() }
+    },
+    rings(ctx, v, a, P) {
+      const { s, X, Y } = v, cx = X(BOOM[0]), cy = Y(BOOM[1] + 0.25)
+      smokeTail(ctx, v, a, P)
+      if (a < 0.2) { ctx.fillStyle = HOT[0]; blob(ctx, cx, cy, lerp(0.55, 0.1, a / 0.2) * s, P.shape); ctx.fill() }
+      for (let i = 0; i < 3; i++) {
+        const k = (a - i * 0.07) / 0.6
+        if (k <= 0 || k >= 1) continue
+        ctx.strokeStyle = HOT[i]; ctx.lineWidth = Math.max(1, 0.22 * (1 - k) * s)
+        blob(ctx, cx, cy, lerp(0.25, 1.5 + i * 0.3, easeOut(k)) * s, P.shape, i * 0.3); ctx.stroke()
+      }
+    },
+    burst(ctx, v, a, P) {
+      const { s, X, Y } = v, cx = X(BOOM[0]), cy = Y(BOOM[1] + 0.25), k = a / 0.45
+      smokeTail(ctx, v, a, P)
+      if (k >= 1) return
+      const R = easeOutBack(Math.min(1, a / 0.1)) * (1 - smooth((a - 0.18) / 0.27)) * 1.25 * s
+      if (R > 1) {
+        ctx.fillStyle = HOT[1]; star(ctx, cx, cy, R, 0.2, 10, 0.55); ctx.fill()
+        ctx.fillStyle = HOT[0]; star(ctx, cx, cy, R * 0.6, -0.1, 10, 0.55); ctx.fill()
+      }
+      ctx.strokeStyle = HOT[2]; ctx.lineCap = P.shape === 'geo' ? 'butt' : 'round'; ctx.lineWidth = Math.max(1, 0.07 * (1 - k) * s)
+      ctx.beginPath()
+      for (let i = 0; i < 14; i++) {
+        const ang = i / 14 * TAU + 0.1, d0 = lerp(0.45, 1.9, 1 - (1 - k) ** 2), d1 = d0 + 0.5 * (1 - k)
+        ctx.moveTo(cx + Math.cos(ang) * d0 * s, cy - Math.sin(ang) * d0 * s); ctx.lineTo(cx + Math.cos(ang) * d1 * s, cy - Math.sin(ang) * d1 * s)
+      }
+      ctx.stroke(); ctx.lineCap = 'butt'
+    },
+    debris(ctx, v, a, P) {
+      const { s, X, Y } = v
+      smokeTail(ctx, v, a, P)
+      if (a < 0.16) { ctx.fillStyle = HOT[0]; blob(ctx, X(BOOM[0]), Y(BOOM[1] + 0.25), lerp(0.75, 0.2, a / 0.16) * s, P.shape); ctx.fill() }
+      if (a > 1.2) return
+      const cols = [HOT[0], HOT[1], HOT[2], BOOM_COL.color, P.pal.smoke]
+      for (const d of DEBRIS) {
+        const x = X(BOOM[0] + Math.cos(d.ang) * d.sp * a), y = Y(BOOM[1] + 0.25 + Math.sin(d.ang) * d.sp * a - 4.5 * a * a)
+        const sz = d.size * (1 - smooth((a - 0.7) / 0.5)) * s
+        if (sz < 0.5) continue
+        ctx.fillStyle = cols[d.col]
+        if (d.kind === 2) circle(ctx, x, y, sz * 0.8); else poly(ctx, x, y, sz, sz, d.kind ? 4 : 3, a * d.spin)
+        ctx.fill()
+      }
+    },
+  }
+
+  // ================= ONE FRAME =================
+  function render(ctx, v, t, P) {
+    const { s, X, Y } = v, S = scene(t), a = S.a, form = P.shape
+    background(ctx, v, P)
+    BLASTS[P.fx](ctx, v, a, P)
+    for (const sh of S.shards) { ctx.fillStyle = sh.seed ? '#f6e7c1' : (sh.i % 2 ? BOOM_COL.color : '#b8441a'); chunk(ctx, X(sh.at[0]), Y(sh.at[1]), sh.size * s, sh.ang, sh.i); ctx.fill() }
+    ctx.fillStyle = P.pal.shadow
+    for (const x of [4.75, 0.82]) { ctx.beginPath(); ctx.ellipse(X(x), Y(0.63), 0.34 * s, 0.045 * s, 0, 0, TAU); ctx.fill() }
+    for (const p of S.players) {
+      const col = P.team.c[p.idx]
+      thing(ctx, P, {
+        sil: (c, f) => playerBody(c, p, v, form, col, f), draw: c => playerBody(c, p, v, form, col),
+        box: playerBox(p, v), shift: 0.04 * s, after: c => playerEyes(c, p, v, form),
+      })
+    }
+    for (const pk of S.pumpkins) {
+      const x = X(pk.at[0]), y = Y(pk.at[1]), r = pk.r * s, R = r * 1.7
+      thing(ctx, P, {
+        sil: (c, f) => pumpkin(c, x, y, r, pk.ang, pk.col, form, f), draw: c => pumpkin(c, x, y, r, pk.ang, pk.col, form),
+        box: [x - R, y - R, x + R, y + R], shift: 0.045 * s,
+      })
+    }
+  }
+
+
+  // ================= THE GOURDS =================
+  // col: the colors you picked. designs: the choices for its look (the first is what the game has now,
+  // unless the current look is being replaced outright). fixed: a change you asked for, no choice.
+  const GOURDS = [
+    { key: 'pie', name: 'Splat Pie', does: 'Gooey. Glues people in place.', r: 0.22, col: { color: '#f3dfb0', rib: '#c79a54' }, current: { body: 'pie' },
+      designs: [{ id: 'now', name: 'Original' }, { id: 'fluted', name: 'Fluted edge', body: 'pieFluted', why: 'The same flat pie, with a scalloped crust all the way around, like a crimped pie edge.' }] },
+    { key: 'frost', name: 'Frost', does: 'Freezes what it hits.', r: 0.22, col: { color: '#9fd8f0', rib: '#5aa9cc' }, current: { mark: 'ice' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Icicles', body: 'frost', why: 'A frosted cap that drips, and icicles hanging off the bottom.' }] },
+    { key: 'blackhole', name: 'Black Hole', does: 'Opens a black hole.', r: 0.22, col: { color: '#4b2c84', rib: '#2a1752' }, current: { mark: 'stars' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Swirl', mark: 'swirl', under: 'halo', why: 'A spiral like a vortex, and a purple glow so it shows on dark maps.' }] },
+    { key: 'dizzy', name: 'Dizzy Gourd', does: 'Makes people dizzy.', r: 0.2, col: { color: '#a8693a', rib: '#6e4220' }, current: { body: 'bottle' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Swirly stripes', body: 'bottle', mark: 'woozy', why: 'Wavy stripes around the bottle, so it looks dizzy before it does anything.' }] },
+    { key: 'homing', name: 'Homing', does: 'Chases the nearest player.', r: 0.22, col: { color: '#4f7fc4', rib: '#2f5590' }, current: { body: 'antenna', mark: 'antenna' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Rocket', body: 'rocket', mark: 'antenna', why: 'Tail fins and a nozzle, like a little missile.' }] },
+    { key: 'landmine', name: 'Landmine', does: 'A buried trap that blows up.', r: 0.2, col: { color: '#4f5530', rib: '#2c301a' }, current: { body: 'mine' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Hazard band', body: 'mine', mark: 'hazard', why: 'A yellow and black warning band and a glowing red light. Shows on dark maps.' }] },
+    { key: 'spitter', name: 'Seed Spitter', does: 'Fires a spray of seeds.', r: 0.22, col: { color: '#a8c94a', rib: '#6f8f2a' }, current: { mark: 'speckle' },
+      designs: [{ id: 'now', name: 'Current' }, { id: 'new', name: 'Spout', body: 'spout', mark: 'spout', why: 'A spout on its side with seeds popping out, so you can tell it shoots.' }] },
+    { key: 'boom', name: 'Jack-o\'-Boom', does: 'Explodes.', r: 0.22, col: { color: '#e2571b', rib: '#8c2f0b' }, current: { mark: 'fuseOld' },
+      fixed: { mark: 'fuse', note: 'Updated: the fuse now throws sparks.' } },
+    { key: 'classic', name: 'Classic', does: 'A plain, solid hit.', r: 0.22, col: { color: '#f28c28', rib: '#c4630f' }, current: {} },
+    { key: 'bouncy', name: 'Bouncy', does: 'Bounces off everything.', r: 0.2, col: { color: '#ffb84a', rib: '#d98a1c' }, current: { mark: 'bands' } },
+    { key: 'cluster', name: 'Gourd Cluster', does: 'Splits into three minis mid-air.', r: 0.24, col: { color: '#d6a03a', rib: '#8f6a1f' }, current: { body: 'cluster' } },
+    { key: 'vine', name: 'Vine', does: 'A grappling hook.', r: 0.2, col: { color: '#5fae3c', rib: '#3c7a22' }, current: { mark: 'vine' } },
+    { key: 'biggourd', name: 'Big Gourd', does: 'Huge and heavy. Also a shield.', r: 0.38, col: { color: '#d9b25c', rib: '#9c7a2e' }, current: { body: 'gourd' } },
+    { key: 'balloon', name: 'Balloon Gourd', does: 'Floats.', r: 0.22, col: { color: '#c7a8e8', rib: '#8e6cc0' }, current: { mark: 'string' } },
+    { key: 'airstrike', name: 'Airstrike', does: 'Calls in an airdrop.', r: 0.22, col: { color: '#6b7a3a', rib: '#47522a' }, current: { mark: 'crosshair' } },
+    { key: 'boomerang', name: 'Boomerang', does: 'Comes back to you.', r: 0.22, col: { color: '#f2c230', rib: '#b88a12' }, current: { body: 'boomerang' } },
+    { key: 'buzzsaw', name: 'Buzzsaw', does: 'Cuts straight through.', r: 0.22, col: { color: '#d4e38f', rib: '#7d9343' }, current: { body: 'saw' } },
+    { key: 'chomper', name: 'Chomper', does: 'A trap that bites.', r: 0.2, col: { color: '#b9c24a', rib: '#6b7524', wart: '#7f8a2c' }, current: { body: 'chomper' } },
+  ]
+  // ================= FLAT GOURD SHAPES (in the gourd's own frame, canvas y down) =================
+  const STEM = '#4f8a34', LEAF = '#76b046', DARK = '#3b3631'
+  const lobeCol = col => mix(col.color, col.rib, 0.45)
+  function lobed(c, r, col, f, { w = 1, h = 1, wide = false, stem = true } = {}) {
+    if (stem) {
+      f(STEM); c.beginPath(); c.roundRect(-r * 0.1, -r * 1.32 * h, r * 0.2, r * 0.5, r * 0.08); c.fill()
+      f(LEAF); c.beginPath(); c.ellipse(r * 0.3, -r * 1.1 * h, r * 0.24, r * 0.1, -0.5, 0, TAU); c.fill()
+    }
+    f(lobeCol(col))
+    if (wide) {
+      for (const s of [-1, 1]) { c.beginPath(); c.ellipse(s * r * 0.62 * w, 0, r * 0.5 * w, r * 0.92 * h, 0, 0, TAU); c.fill() }
+      f(mix(col.color, col.rib, 0.22))
+      for (const s of [-1, 1]) { c.beginPath(); c.ellipse(s * r * 0.32 * w, 0, r * 0.55 * w, r * 0.97 * h, 0, 0, TAU); c.fill() }
+      f(col.color); c.beginPath(); c.ellipse(0, 0, r * 0.42 * w, r * h, 0, 0, TAU); c.fill()
+      return
+    }
+    for (const s of [-1, 1]) { c.beginPath(); c.ellipse(s * r * 0.42 * w, 0, r * 0.66 * w, r * 0.95 * h, 0, 0, TAU); c.fill() }
+    f(col.color); c.beginPath(); c.ellipse(0, 0, r * 0.58 * w, r * h, 0, 0, TAU); c.fill()
+  }
+  function boomerangAt(r, t) {
+    const x = lerp(lerp(-0.85, 0, t), lerp(0, 0.85, t), t) * r, y = lerp(lerp(0.5, -1.6, t), lerp(-1.6, 0.5, t), t) * r
+    const tx = 1.7, ty = 4.2 * (2 * t - 1), d = Math.hypot(tx, ty)
+    return [x, y, ty / d, -tx / d]
+  }
+  const BODY = {
+    round: (c, r, col, f) => lobed(c, r, col, f),
+    antenna: (c, r, col, f) => lobed(c, r, col, f, { stem: false }),
+    gourd: (c, r, col, f) => lobed(c, r, col, f, { w: 1.12, h: 0.95, wide: true }),
+    cluster: (c, r, col, f) => { for (const [ox, oy] of [[-0.45, 0.2], [0.45, 0.2], [0, -0.38]]) { c.save(); c.translate(ox * r, oy * r); lobed(c, r * 0.58, col, f); c.restore() } },
+    pie: (c, r, col, f) => {
+      f(col.rib); c.beginPath(); c.ellipse(0, 0, r * 1.15, r * 0.7, 0, 0, TAU); c.fill()
+      f(col.color); c.beginPath(); c.ellipse(0, -r * 0.05, r * 0.92, r * 0.5, 0, 0, TAU); c.fill()
+      f(mix(col.rib, '#000000', 0.1))
+      for (const ox of [-0.4, 0, 0.4]) { c.beginPath(); c.roundRect(ox * r - r * 0.05, -r * 0.24, r * 0.1, r * 0.34, r * 0.05); c.fill() }
+    },
+    boomerang: (c, r, col, f, one) => {
+      const [bx, by] = boomerangAt(r, 0.05), [tx, ty, tnx, tny] = boomerangAt(r, 1)
+      f(col.color)
+      c.beginPath()
+      const N = 14, edge = []
+      for (let i = 0; i <= N; i++) { const [x, y, nx, ny] = boomerangAt(r, lerp(0.08, 1, i / N)), w = lerp(0.34, 0.19, i / N) * r; edge.push([x + nx * w, y + ny * w, x - nx * w, y - ny * w]) }
+      edge.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); for (let i = N; i >= 0; i--) c.lineTo(edge[i][2], edge[i][3]); c.closePath(); c.fill()
+      c.beginPath(); c.arc(bx, by, 0.44 * r, 0, TAU); c.fill()
+      c.beginPath(); c.arc(tx, ty, 0.19 * r, 0, TAU); c.fill()
+      if (!one) {   // a darker ridge along the outside of the bend
+        f(lobeCol(col)); c.beginPath()
+        for (let i = 0; i <= 12; i++) { const [x, y, nx, ny] = boomerangAt(r, lerp(0.12, 0.85, i / 12)), w = lerp(0.3, 0.18, i / 12) * r; i ? c.lineTo(x + nx * w, y + ny * w) : c.moveTo(x + nx * w, y + ny * w) }
+        for (let i = 12; i >= 0; i--) { const [x, y, nx, ny] = boomerangAt(r, lerp(0.12, 0.85, i / 12)), w = lerp(0.12, 0.06, i / 12) * r; c.lineTo(x + nx * w, y + ny * w) }
+        c.closePath(); c.fill()
+      }
+      const ux = -tny, uy = tnx
+      c.strokeStyle = one || STEM; c.lineWidth = Math.max(1.5, r * 0.13); c.lineCap = 'round'
+      c.beginPath(); c.moveTo(tx, ty); c.quadraticCurveTo(tx + ux * 0.4 * r, ty + uy * 0.4 * r, tx + (ux * 0.3 + tnx * 0.35) * r, ty + (uy * 0.3 + tny * 0.35) * r); c.stroke()
+      c.lineCap = 'butt'
+    },
+    saw: (c, r, col, f) => {
+      f(col.color); c.beginPath()
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, next = (i + 1) / 10 * TAU; c.lineTo(Math.cos(a) * r * 0.86, Math.sin(a) * r * 0.86); c.lineTo(Math.cos(next - 0.12) * r * 1.15, Math.sin(next - 0.12) * r * 1.15) }
+      c.closePath(); c.fill()
+      f(mix(col.color, col.rib, 0.4)); c.beginPath()
+      for (let i = 0; i <= 20; i++) { const a = i / 20 * TAU, rr = r * (i % 2 ? 0.5 : 0.62); c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) }
+      c.closePath(); c.fill()
+      f(col.color); c.beginPath(); c.arc(0, 0, r * 0.42, 0, TAU); c.fill()
+      f(STEM); c.beginPath(); c.arc(0, 0, r * 0.16, 0, TAU); c.fill()
+    },
+    bottle: (c, r, col, f) => {
+      f(STEM); c.beginPath(); c.roundRect(-r * 0.08, -r * 1.12, r * 0.16, r * 0.3, r * 0.05); c.fill()
+      f(lobeCol(col)); c.beginPath(); c.arc(0, 0.3 * r, 0.68 * r, 0, TAU); c.fill()
+      f(col.color); c.beginPath(); c.ellipse(0, 0.3 * r, 0.38 * r, 0.67 * r, 0, 0, TAU); c.fill()
+      c.beginPath(); c.arc(0, -0.48 * r, 0.42 * r, 0, TAU); c.fill()
+    },
+    mine: (c, r, col, f) => {
+      const w = r * 1.25
+      f('#3d4a22'); c.fillRect(-r * 0.09, -r * 1.3, r * 0.18, r * 0.36)
+      f('#6e1f1a'); c.beginPath(); c.arc(0, -r * 1.36, r * 0.14, 0, TAU); c.fill()
+      f(lobeCol(col)); c.beginPath(); c.ellipse(0, 0, w, r, 0, 0, TAU); c.fill()
+      f(mix(col.color, col.rib, 0.2)); c.beginPath(); c.ellipse(0, 0, w * 0.78, r * 0.98, 0, 0, TAU); c.fill()
+      f(col.color); c.beginPath(); c.ellipse(0, 0, w * 0.4, r * 0.97, 0, 0, TAU); c.fill()
+      f(col.rib); for (const [x, y] of [[-0.6, -0.45], [0.25, -0.65], [0.62, -0.2], [-0.2, -0.15]]) { c.beginPath(); c.arc(x * w, y * r, r * 0.08, 0, TAU); c.fill() }
+    },
+    chomper: (c, r, col, f) => {   // shut, lying on its side: a long warty gourd with a toothy seam
+      f(STEM); c.fillRect(r * 1.15, -r * 0.1, r * 0.32, r * 0.2)
+      f(lobeCol(col)); c.beginPath(); c.ellipse(0, 0, r * 1.25, r, 0, 0, TAU); c.fill()
+      f(col.color); c.beginPath(); c.ellipse(0, 0, r * 1.22, r * 0.55, 0, 0, TAU); c.fill()
+      f('#c8383a'); c.fillRect(-r * 1.05, -r * 0.04, r * 2.1, r * 0.08)
+      f('#f3ecc4'); c.beginPath()
+      const n = 7, step = 2 * r / n
+      for (let i = 0; i < n; i++) { const x0 = -r + i * step, d = i % 2 ? 1 : -1; c.moveTo(x0, 0); c.lineTo(x0 + step / 2, d * r * 0.22); c.lineTo(x0 + step, 0); c.closePath() }
+      c.fill()
+      f(col.wart || mix(col.color, '#000000', 0.25))
+      for (const [x, y] of [[-0.6, -0.62], [0.2, -0.75], [0.75, -0.45], [-0.3, 0.68], [0.5, 0.62]]) { c.beginPath(); c.arc(x * r, y * r, r * 0.09, 0, TAU); c.fill() }
+    },
+  }
+  const MARK = {
+    bands: (c, r, col) => {
+      c.save(); c.beginPath(); c.ellipse(0, 0, r * 1.08, r, 0, 0, TAU); c.clip()
+      c.fillStyle = col.rib; for (const oy of [-0.42, 0.42]) c.fillRect(-r * 1.2, (oy - 0.08) * r, r * 2.4, r * 0.16)
+      c.restore()
+    },
+    fuse: (c, r) => {
+      c.strokeStyle = DARK; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
+      c.beginPath(); c.moveTo(r * 0.1, -r * 1.1); c.quadraticCurveTo(r * 0.5, -r * 1.6, r * 0.7, -r * 1.4); c.stroke(); c.lineCap = 'butt'
+      c.fillStyle = '#ff9a2e'; c.beginPath(); c.arc(r * 0.72, -r * 1.42, Math.max(1.5, r * 0.2), 0, TAU); c.fill()
+      c.fillStyle = '#ffe08a'; c.beginPath(); c.arc(r * 0.72, -r * 1.42, Math.max(1, r * 0.1), 0, TAU); c.fill()
+    },
+    ice: (c, r) => {
+      c.fillStyle = '#ffffff'
+      for (const [ox, oy] of [[-0.5, -0.3], [0.35, 0.1], [-0.1, 0.5]]) { c.beginPath(); c.moveTo(ox * r, (oy - 0.2) * r); c.lineTo((ox + 0.11) * r, oy * r); c.lineTo(ox * r, (oy + 0.2) * r); c.lineTo((ox - 0.11) * r, oy * r); c.fill() }
+    },
+    vine: (c, r) => {
+      c.strokeStyle = '#3c7a22'; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
+      c.beginPath(); c.moveTo(0, -r * 1.2); c.bezierCurveTo(r * 0.8, -r * 1.8, r * 1.2, -r * 0.8, r * 0.7, -r * 0.9); c.stroke(); c.lineCap = 'butt'
+      c.fillStyle = LEAF; c.beginPath(); c.ellipse(-r * 0.32, -r * 1.12, r * 0.24, r * 0.1, 0.5, 0, TAU); c.fill()
+    },
+    speckle: (c, r, col) => {
+      c.fillStyle = mix(col.rib, '#000000', 0.45)
+      for (const [ox, oy] of [[-0.5, -0.2], [0.3, -0.45], [0.55, 0.25], [-0.2, 0.45], [0.05, 0]]) { c.beginPath(); c.arc(ox * r, oy * r, Math.max(1, r * 0.09), 0, TAU); c.fill() }
+    },
+    stars: (c, r) => {
+      c.fillStyle = '#f4efe6'
+      for (const [ox, oy, k] of [[-0.45, -0.35, 0.3], [0.4, -0.15, 0.22], [0.05, 0.45, 0.26], [-0.5, 0.3, 0.16], [0.55, 0.5, 0.14]]) {
+        const x = ox * r, y = oy * r, a = Math.max(1.5, k * r), b = a * 0.25
+        c.beginPath(); c.moveTo(x, y - a); c.lineTo(x + b, y - b); c.lineTo(x + a, y); c.lineTo(x + b, y + b); c.lineTo(x, y + a); c.lineTo(x - b, y + b); c.lineTo(x - a, y); c.lineTo(x - b, y - b); c.fill()
+      }
+    },
+    crosshair: (c, r) => {
+      c.strokeStyle = '#d6332a'; c.lineWidth = Math.max(1, r * 0.12)
+      c.beginPath(); c.arc(0, 0, r * 0.45, 0, TAU); c.moveTo(-r * 0.75, 0); c.lineTo(r * 0.75, 0); c.moveTo(0, -r * 0.75); c.lineTo(0, r * 0.75); c.stroke()
+    },
+    antenna: (c, r) => {
+      c.strokeStyle = DARK; c.lineWidth = Math.max(1, r * 0.08)
+      c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(r * 0.15, -r * 1.75); c.stroke()
+      c.fillStyle = '#ff3b2a'; c.beginPath(); c.arc(r * 0.15, -r * 1.8, Math.max(1.5, r * 0.18), 0, TAU); c.fill()
+    },
+    string: (c, r) => {
+      c.strokeStyle = '#6b6358'; c.lineWidth = Math.max(1, r * 0.05)
+      c.beginPath(); c.moveTo(0, r); c.quadraticCurveTo(r * 0.3, r * 1.6, 0, r * 2.2); c.stroke()
+      c.fillStyle = lobeCol({ color: '#c7a8e8', rib: '#8e6cc0' }); c.beginPath(); c.moveTo(-r * 0.1, r * 1.12); c.lineTo(r * 0.1, r * 1.12); c.lineTo(0, r * 0.95); c.fill()
+    },
+  }
+
+  // ---- round 2: new looks ----
+  MARK.fuseOld = MARK.fuse
+  MARK.fuse = (c, r) => {   // a fuse that throws sparks
+    c.strokeStyle = DARK; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
+    c.beginPath(); c.moveTo(r * 0.1, -r * 1.1); c.quadraticCurveTo(r * 0.45, -r * 1.55, r * 0.66, -r * 1.36); c.stroke()
+    const sx = r * 0.7, sy = -r * 1.42
+    c.fillStyle = '#ff9a2e'; star(c, sx, sy, r * 0.42, 0.2, 7, 0.38); c.fill()
+    c.fillStyle = '#ffe08a'; star(c, sx, sy, r * 0.24, -0.1, 7, 0.42); c.fill()
+    c.strokeStyle = '#ffc94d'; c.lineWidth = Math.max(1, r * 0.06)
+    c.beginPath()
+    for (const [a, d0, d1] of [[-1.2, 0.5, 0.75], [-0.3, 0.5, 0.82], [0.6, 0.5, 0.7], [-2.1, 0.5, 0.68], [2.6, 0.48, 0.62]]) { c.moveTo(sx + Math.cos(a) * d0 * r, sy + Math.sin(a) * d0 * r); c.lineTo(sx + Math.cos(a) * d1 * r, sy + Math.sin(a) * d1 * r) }
+    c.stroke(); c.lineCap = 'butt'
+    c.fillStyle = '#ffe08a'
+    for (const [dx, dy, rr] of [[0.95, -0.9, 0.06], [0.3, -1.95, 0.05], [1.15, -1.55, 0.045]]) { c.beginPath(); c.arc(dx * r, dy * r, Math.max(0.8, rr * r), 0, TAU); c.fill() }
+  }
+  const CRUST = col => mix(col.rib, '#ffffff', 0.25)
+  BODY.pieDish = (c, r, col, f) => {   // a pie seen from a little above: tin, fluted crust, filling
+    f(mix(col.rib, '#000000', 0.15))
+    c.beginPath(); c.moveTo(-r * 1.1, 0); c.lineTo(r * 1.1, 0); c.lineTo(r * 0.92, r * 0.5); c.ellipse(0, r * 0.5, r * 0.92, r * 0.22, 0, 0, Math.PI); c.closePath(); c.fill()
+    f(col.rib); c.beginPath(); c.moveTo(-r * 1.1, 0); c.lineTo(r * 1.1, 0); c.lineTo(r * 1.0, r * 0.26); c.ellipse(0, r * 0.26, r * 1.0, r * 0.2, 0, 0, Math.PI); c.closePath(); c.fill()
+    f(CRUST(col)); c.beginPath(); c.ellipse(0, 0, r * 1.12, r * 0.44, 0, 0, TAU); c.fill()
+    for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; c.beginPath(); c.arc(Math.cos(a) * r * 1.08, Math.sin(a) * r * 0.42, r * 0.12, 0, TAU); c.fill() }
+    f(col.color); c.beginPath(); c.ellipse(0, -r * 0.01, r * 0.88, r * 0.31, 0, 0, TAU); c.fill()
+  }
+  BODY.pieFluted = (c, r, col, f) => {   // the original flat pie, with a crimped edge
+    f(col.rib)
+    c.beginPath(); c.ellipse(0, 0, r * 1.08, r * 0.64, 0, 0, TAU); c.fill()
+    for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; c.beginPath(); c.arc(Math.cos(a) * r * 1.08, Math.sin(a) * r * 0.64, r * 0.13, 0, TAU); c.fill() }
+    f(col.color); c.beginPath(); c.ellipse(0, -r * 0.03, r * 0.86, r * 0.46, 0, 0, TAU); c.fill()
+    f(mix(col.rib, '#000000', 0.1))
+    for (const ox of [-0.4, 0, 0.4]) { c.beginPath(); c.roundRect(ox * r - r * 0.05, -r * 0.22, r * 0.1, r * 0.32, r * 0.05); c.fill() }
+  }
+  MARK.cream = (c, r) => {
+    c.fillStyle = '#fffaf0'
+    for (const [x, y, rr] of [[-0.48, -0.08, 0.26], [0.45, -0.06, 0.24], [-0.15, -0.2, 0.32], [0.18, -0.22, 0.3], [0, -0.45, 0.24], [0.02, -0.66, 0.12]]) { c.beginPath(); c.arc(x * r, y * r, rr * r, 0, TAU); c.fill() }
+    c.fillStyle = '#ece3d0'
+    for (const [x, y, rr] of [[-0.38, 0.06, 0.12], [0.35, 0.08, 0.1]]) { c.beginPath(); c.arc(x * r, y * r, rr * r, 0, TAU); c.fill() }
+  }
+  MARK.lattice = (c, r, col) => {
+    c.save(); c.beginPath(); c.ellipse(0, -r * 0.01, r * 0.88, r * 0.31, 0, 0, TAU); c.clip()
+    c.fillStyle = CRUST(col)
+    for (let k = -3; k <= 3; k++) {
+      c.save(); c.translate(k * r * 0.34, 0); c.rotate(0.55); c.fillRect(-r * 0.06, -r * 0.8, r * 0.12, r * 1.6); c.restore()
+      c.save(); c.translate(k * r * 0.34, 0); c.rotate(-0.55); c.fillRect(-r * 0.06, -r * 0.8, r * 0.12, r * 1.6); c.restore()
+    }
+    c.restore()
+  }
+  BODY.frost = (c, r, col, f) => {
+    lobed(c, r, col, f)
+    f('#eaf7fd')
+    for (const [x, w] of [[-0.42, 0.13], [0, 0.15], [0.4, 0.12]]) { c.beginPath(); c.moveTo((x - w) * r, r * 0.86); c.lineTo(x * r, r * (1.42 - Math.abs(x) * 0.4)); c.lineTo((x + w) * r, r * 0.86); c.closePath(); c.fill() }
+    c.save(); c.beginPath(); c.ellipse(0, 0, r * 1.09, r, 0, 0, TAU); c.clip()
+    f('#f4fbff'); c.fillRect(-r * 1.2, -r * 1.1, r * 2.4, r * 0.75)
+    for (const [x, d] of [[-0.85, 0.12], [-0.55, 0.3], [-0.25, 0.14], [0.05, 0.38], [0.35, 0.16], [0.65, 0.28], [0.95, 0.12]]) { c.beginPath(); c.ellipse(x * r, -r * 0.35, r * 0.15, r * (0.1 + d * 0.5), 0, 0, TAU); c.fill() }
+    c.restore()
+  }
+  MARK.swirl = (c, r) => {
+    c.strokeStyle = '#c9b5ff'; c.lineWidth = Math.max(1, r * 0.11); c.lineCap = 'round'
+    c.beginPath()
+    for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 3.2, d = r * (0.06 + i / 40 * 0.6); i ? c.lineTo(Math.cos(a) * d, Math.sin(a) * d * 0.95) : c.moveTo(Math.cos(a) * d, Math.sin(a) * d) }
+    c.stroke(); c.lineCap = 'butt'
+  }
+  const UNDER = {
+    halo: (c, r) => {
+      c.fillStyle = 'rgba(140, 105, 255, 0.28)'
+      for (const k of [1.55, 1.3]) { c.beginPath(); c.arc(0, 0, r * k, 0, TAU); c.fill() }
+    },
+  }
+  MARK.woozy = (c, r) => {
+    c.save()
+    c.beginPath(); c.arc(0, 0.3 * r, 0.68 * r, 0, TAU); c.arc(0, -0.48 * r, 0.42 * r, 0, TAU); c.clip()
+    c.strokeStyle = 'rgba(255, 236, 205, 0.55)'; c.lineWidth = r * 0.13
+    for (let k = -3; k <= 4; k++) { const y = k * r * 0.34; c.beginPath(); c.moveTo(-r, y - r * 0.18); c.bezierCurveTo(-r * 0.4, y + r * 0.22, r * 0.3, y - r * 0.32, r, y + r * 0.08); c.stroke() }
+    c.restore()
+  }
+  BODY.rocket = (c, r, col, f) => {
+    f(col.rib)
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * r * 0.6, r * 0.3); c.lineTo(s * r * 1.12, r * 1.02); c.lineTo(s * r * 0.4, r * 0.82); c.closePath(); c.fill() }
+    f(DARK); c.beginPath(); c.roundRect(-r * 0.24, r * 0.82, r * 0.48, r * 0.24, r * 0.06); c.fill()
+    lobed(c, r, col, f, { stem: false })
+  }
+  MARK.hazard = (c, r) => {
+    const w = r * 1.25
+    c.save(); c.beginPath(); c.ellipse(0, 0, w, r, 0, 0, TAU); c.clip()
+    c.fillStyle = '#f2c230'; c.fillRect(-w, -r * 0.14, 2 * w, r * 0.3)
+    c.fillStyle = '#1f201b'
+    for (let x = -w - r * 0.3; x < w; x += r * 0.3) { c.beginPath(); c.moveTo(x, r * 0.16); c.lineTo(x + r * 0.15, r * 0.16); c.lineTo(x + r * 0.3, -r * 0.14); c.lineTo(x + r * 0.15, -r * 0.14); c.closePath(); c.fill() }
+    c.restore()
+    c.fillStyle = 'rgba(255, 70, 50, 0.35)'; c.beginPath(); c.arc(0, -r * 1.36, r * 0.36, 0, TAU); c.fill()
+    c.fillStyle = '#ff3b2a'; c.beginPath(); c.arc(0, -r * 1.36, r * 0.18, 0, TAU); c.fill()
+  }
+  BODY.spout = (c, r, col, f) => {
+    f(col.rib); c.beginPath(); c.roundRect(r * 0.7, -r * 0.2, r * 0.5, r * 0.4, r * 0.1); c.fill()
+    lobed(c, r, col, f)
+  }
+  MARK.spout = (c, r, col) => {
+    MARK.speckle(c, r, col)
+    c.fillStyle = '#2b2216'; c.beginPath(); c.ellipse(r * 1.2, 0, r * 0.08, r * 0.15, 0, 0, TAU); c.fill()
+    for (const [x, y, a] of [[1.5, -0.12, -0.3], [1.78, 0.06, 0.2], [1.62, 0.26, 0.5]]) {
+      c.fillStyle = '#fff6dc'; c.beginPath(); c.ellipse(x * r, y * r, r * 0.11, r * 0.075, a, 0, TAU); c.fill()
+      c.fillStyle = '#3d2f14'; c.beginPath(); c.ellipse(x * r, y * r, r * 0.08, r * 0.05, a, 0, TAU); c.fill()
+    }
+  }
+  // A gourd at (x, y) px, radius r px, in a given look ({ body, mark, under }), with two-tone shading (P.pal.tint)
+  function drawGourd(ctx, P, look, col, x, y, r, ang = 0) {
+    const inFrame = fn => c => { c.save(); c.translate(x, y); c.rotate(-ang); fn(c); c.restore() }
+    const body = (c, one) => BODY[look.body || 'round'](c, r, col, k => { c.fillStyle = one || k }, one)
+    if (look.under) inFrame(c => UNDER[look.under](c, r))(ctx)
+    thing(ctx, P, {
+      sil: (c, one) => inFrame(cc => body(cc, one))(c),
+      draw: inFrame(c => body(c)),
+      after: look.mark ? inFrame(c => MARK[look.mark](c, r, col)) : null,
+      box: [x - r * 2.2, y - r * 2.4, x + r * 2.2, y + r * 2.4], shift: r * 0.2,
+    })
+  }
+  // ================= YOUR MAPS (from the map themes you picked) =================
+  const MAPS = [
+    { name: 'The Patch', sky: ['#cfe8f3'], hills: ['#bfe0a3', '#97cc78'], ground: '#5e4636', grass: '#4fa23a', tint: '#b7cdd8' },
+    { name: 'Hay Loft', sky: ['#e2c79d'], stripes: '#d8ba8c', hills: ['#e9c25a', '#d8ba8c'], ground: '#6b4423', grass: '#a8743c', tint: '#d9bf9a' },
+    { name: 'Scarecrow Field', sky: ['#f0a07a', '#f5b486', '#f8c796'], hills: ['#c98f5a', '#a8693f'], ground: '#5c3d24', grass: '#c9a227', tint: '#e3b48f' },
+    { name: 'Pitchfork Pit', sky: ['#e2c6da'], hills: ['#b49ac8', '#8c77b0'], ground: '#352b4a', grass: '#5b8a63', tint: '#c4aacb' },
+    { name: 'Bonfire Camp', sky: ['#202b46'], hills: ['#2f3f63', '#26344f'], ground: '#15151f', grass: '#3c6a4c', tint: '#8a93b3' },
+    { name: 'Testing Grounds', sky: ['#f4efe6'], grid: '#e6dccb', hills: ['#efe7da', '#e6dccb'], ground: '#3b3631', grass: '#5a8f3c', tint: '#e0d4c2' },
+    { name: 'Winter', sky: ['#cbb7d6'], hills: ['#e6d9ec', '#f4eef6'], ground: '#4f4a66', grass: '#fdfbfd', tint: '#c9b6d6' },
+    { name: 'Lava', sky: ['#240c0a', '#331310', '#481a12'], hills: ['#2b110d', '#1e0b09'], ground: '#2b1d1a', grass: '#4a2e26', tint: '#a07068' },
+    { name: 'Synthwave', sky: ['#1a0f3a', '#35185e', '#5e1f78'], hills: ['#2a1250', '#3c1a6b'], ground: '#1d1238', grass: '#2ef2ff', tint: '#a58ad0' },
+    { name: 'Graveyard', sky: ['#3a2f4f'], hills: ['#4b3d63', '#43375a'], ground: '#241c2e', grass: '#4f6b3a', tint: '#9a8fb3' },
+  ]
+
+
+  // ================= PAGE =================
+  const CHOICE = GOURDS.filter(g => g.designs)
+  const picks = {}
+  try { const sv = JSON.parse(localStorage.getItem('gw-gourd-designs') || 'null'); if (sv) for (const g of CHOICE) if (g.designs.some(d => d.id === sv[g.key])) picks[g.key] = sv[g.key] } catch (e) {}
+  const lookOf = (g, d) => !d || d.id === 'now' ? g.current : { body: d.body || g.current.body, mark: d.mark, under: d.under }
+  const defaultDesign = g => g.designs.find(d => d.id !== 'now')
+  const afterLook = g => g.fixed ? { body: g.current.body, mark: g.fixed.mark }
+    : g.designs ? lookOf(g, g.designs.find(d => d.id === picks[g.key]) || defaultDesign(g)) : g.current
+  const CARD_P = { pal: { tint: '#dcc8b0', drop: '#000000', dropA: 0 }, shade: 'twotone' }
+  const CARD_BG = '#f6efe3'   // (the main palette's paper)
+
+  const dprOf = () => Math.min(window.devicePixelRatio || 1, 2)
+  function fit(c, ratio) {
+    const w = Math.max(1, Math.round(c.clientWidth * dprOf()))
+    if (c.clientWidth && c.width !== w) { c.width = w; c.height = Math.round(w / ratio) }
+    if (L.canvas.width < c.width || L.canvas.height < c.height) { L.canvas.width = Math.max(L.canvas.width, c.width); L.canvas.height = Math.max(L.canvas.height, c.height) }
+    return c.getContext('2d')
+  }
+  function drawCard(c, g, look, ratio) {
+    const ctx = fit(c, ratio)
+    ctx.fillStyle = CARD_BG; ctx.fillRect(0, 0, c.width, c.height)
+    const r = c.height * 0.22 * Math.sqrt(g.r / 0.22)
+    drawGourd(ctx, CARD_P, look, g.col, c.width / 2 - (look.mark === 'spout' ? r * 0.4 : 0), c.height * 0.55, r)
+  }
+  function drawStrip(c, mp) {
+    const ctx = fit(c, 16 / 7), W = c.width, H = c.height, dpr = dprOf()
+    const skyH = H * 0.5, hillTop = H * 0.5, groundTop = H * 0.9
+    mp.sky.forEach((col, i) => { ctx.fillStyle = col; ctx.fillRect(0, skyH * i / mp.sky.length, W, skyH / mp.sky.length + 1) })
+    if (mp.grid) { ctx.strokeStyle = mp.grid; ctx.lineWidth = 1; ctx.beginPath(); for (let x = 0; x < W; x += 18 * dpr) { ctx.moveTo(x, 0); ctx.lineTo(x, H) } for (let y = 0; y < H; y += 18 * dpr) { ctx.moveTo(0, y); ctx.lineTo(W, y) } ctx.stroke() }
+    ctx.fillStyle = mp.hills[0]; ctx.fillRect(0, hillTop, W / 2, groundTop - hillTop)
+    ctx.fillStyle = mp.hills[1]; ctx.fillRect(W / 2, hillTop, W / 2, groundTop - hillTop)
+    ctx.beginPath(); ctx.fillStyle = mp.hills[0]; ctx.ellipse(W * 0.25, hillTop, W * 0.3, H * 0.06, 0, Math.PI, TAU); ctx.fill()
+    ctx.beginPath(); ctx.fillStyle = mp.hills[1]; ctx.ellipse(W * 0.75, hillTop, W * 0.3, H * 0.08, 0, Math.PI, TAU); ctx.fill()
+    ctx.fillStyle = mp.ground; ctx.fillRect(0, groundTop, W, H - groundTop)
+    ctx.fillStyle = mp.grass; ctx.fillRect(0, groundTop, W, H * 0.025)
+    const P = { pal: { tint: mp.tint, drop: '#000000', dropA: 0 }, shade: 'twotone' }
+    const left = 44 * dpr, n = GOURDS.length, step = (W - left - 8 * dpr) / n
+    const base = Math.min(0.22 * 60 * dpr, step * 0.3)   // 60 px per meter: about a 1080p screen
+    const rows = [[skyH * 0.3, 'before'], [skyH * 0.72, 'after'], [hillTop + (groundTop - hillTop) * 0.3, 'before'], [hillTop + (groundTop - hillTop) * 0.74, 'after']]
+    for (const [y, which] of rows) {
+      GOURDS.forEach((g, i) => drawGourd(ctx, P, which === 'before' ? g.current : afterLook(g), g.col, left + step * (i + 0.5), y, base * Math.sqrt(g.r / 0.22) * (g.current.body === 'boomerang' ? 0.8 : 1)))
+      ctx.font = `700 ${Math.round(10 * dpr)}px Figtree, system-ui, sans-serif`; ctx.textBaseline = 'middle'
+      const label = which === 'before' ? 'Current' : 'Picks', tw = ctx.measureText(label).width
+      ctx.fillStyle = 'rgba(246,239,227,0.92)'; ctx.beginPath(); ctx.roundRect(4 * dpr, y - 8 * dpr, tw + 8 * dpr, 16 * dpr, 8 * dpr); ctx.fill()
+      ctx.fillStyle = '#2e2620'; ctx.fillText(label, 8 * dpr, y + 0.5 * dpr)
+    }
+  }
+
+  const draws = [], lineup = document.getElementById('lineup'), cards = []
+  const chips = col => `<span class="chips"><i style="background:${col.color}"></i><i style="background:${col.rib}"></i></span>`
+  for (const g of GOURDS) {
+    const el = document.createElement('article'); el.className = 'card'
+    el.innerHTML = `<div class="card-head"><h3>${g.name}</h3><p>${g.does}</p></div>`
+    const opts = document.createElement('div'); opts.className = 'opts'; el.append(opts)
+    if (g.designs) {
+      const btns = {}
+      for (const d of g.designs) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.id = `opt-${g.key}-${d.id}`
+        const cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); b.append(cv)
+        b.insertAdjacentHTML('beforeend', `<span class="opt-name">${d.name}<em>Picked</em></span>`)
+        b.addEventListener('click', () => { picks[g.key] = d.id; changed() })
+        opts.append(b); btns[d.id] = b
+        draws.push(() => drawCard(cv, g, lookOf(g, d), 4 / 3))
+      }
+      el.insertAdjacentHTML('beforeend', g.designs.filter(d => d.why).map(d => `<p class="why"><b>${d.name}:</b> ${d.why}</p>`).join(''))
+      cards.push({ g, btns })
+    } else {
+      const d = document.createElement('div'); d.className = 'opt fixed'
+      const cv = document.createElement('canvas'); cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', g.name); d.append(cv)
+      d.insertAdjacentHTML('beforeend', `<span class="opt-name">${g.fixed ? 'Updated' : 'Keeps its look'} ${chips(g.col)}</span>`)
+      opts.append(d)
+      if (g.fixed) el.insertAdjacentHTML('beforeend', `<p class="why"><b>${g.fixed.note}</b></p>`)
+      draws.push(() => drawCard(cv, g, afterLook(g), 8 / 3))
+    }
+    lineup.append(el)
+  }
+  const stripsEl = document.getElementById('strips'), stripDraws = []
+  for (const mp of MAPS) {
+    const f = document.createElement('figure')
+    const cv = document.createElement('canvas'); cv.className = 'strip'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', `All gourds at game size on ${mp.name}`)
+    f.append(cv); f.insertAdjacentHTML('beforeend', `<figcaption><b>${mp.name}</b></figcaption>`)
+    stripsEl.append(f)
+    stripDraws.push(() => drawStrip(cv, mp))
+  }
+
+  function changed() {
+    try { localStorage.setItem('gw-gourd-designs', JSON.stringify(picks)) } catch (e) {}
+    for (const { g, btns } of cards) for (const d of g.designs) btns[d.id].setAttribute('aria-pressed', String(picks[g.key] === d.id))
+    const label = g => { const d = g.designs.find(x => x.id === picks[g.key]); return d && d.name }
+    document.getElementById('picks').innerHTML = CHOICE.map(g => label(g) ? `<li><span>${g.name}:</span> ${label(g)}</li>` : `<li class="unset">${g.name}: not picked</li>`).join('')
+    document.getElementById('picks-text').textContent = 'My Gourd Wars gourd designs: ' + CHOICE.map(g => `${g.name} ${label(g) || 'not picked'}`).join(', ') + '.'
+    stripDraws.forEach(d => d())
+  }
+  document.getElementById('all-now').addEventListener('click', () => { for (const g of CHOICE) picks[g.key] = g.designs[0].id; changed() })
+  document.getElementById('all-tuned').addEventListener('click', () => { for (const g of CHOICE) picks[g.key] = defaultDesign(g).id; changed() })
+  const copyBtn = document.getElementById('copy')
+  copyBtn.addEventListener('click', () => {
+    const el = document.getElementById('picks-text'), done = m => { copyBtn.textContent = m; setTimeout(() => { copyBtn.textContent = 'Copy picks' }, 1600) }
+    const select = () => { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); done('Selected, press copy') }
+    try { navigator.clipboard.writeText(el.textContent).then(() => done('Copied'), select) } catch (e) { select() }
+  })
+  const drawAll = () => { draws.forEach(d => d()); stripDraws.forEach(d => d()) }
+  let rt = 0
+  new ResizeObserver(() => { cancelAnimationFrame(rt); rt = requestAnimationFrame(drawAll) }).observe(document.querySelector('.wrap'))
+  changed()
+  requestAnimationFrame(drawAll)
+})()
+</script>
