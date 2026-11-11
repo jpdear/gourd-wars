@@ -42,6 +42,7 @@ Plain JavaScript modules, built with [Vite](https://vite.dev). Physics:
 
 ```
 index.html            the page: canvas, menu screens, editor shell
+lab.html              the effects lab (dev only: localhost:5199/lab.html; not in the build)
 styles/               base, menus, map editor, tuning panel;
                       tokens.css: every color and font they use
 src/
@@ -62,8 +63,11 @@ src/
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
   render/             draws a frame from a snapshot (the same on the host and guests);
                       palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
+                      effects.js: particles, blast clouds and popups (made locally from game events)
+                      anims.js: the bits of gourds that move on their own (blinking lights, glows, trails)
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
+  lab/                the effects lab: tries for gourd breaks, firing and animations (variants.js), side by side
   app/                runs it all in the page:
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do

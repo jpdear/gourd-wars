@@ -60,14 +60,14 @@ export const GOURD = freeze({
   vine: '#3c7a22',                      // (its curl, and the trail back to the thrower)
   stars: '#f4efe6',
   crosshair: '#d6332a',
-  antennaBlink: ['#fff3b0', '#ff3b2a'],
+  antenna: '#e2381b',                   // (Homing's aerial light, and the ring it sends out)
   string: '#6b6358',
   chomper: { mouth: '#c8383a', tooth: '#f3ecc4', wart: '#7f8a2c' },
   mine: { stem: '#3d4a22', glow: 'rgba(255, 70, 50, 0.35)', lit: '#ff3b2a', unlit: '#6e1f1a', dirt: '#6b4f32' },
   flameTrail: ['#fff3b0', '#ffd23f', '#ff9a2e', '#ff6a1f', '#e2381b'],   // (nearest the gourd first)
   lockOn: '#e2381b',
   airstrike: { shadow: '#14100c', target: '#d6332a' },
-  blackHole: { speck: '#fff', halo: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0)'], core: '#000' },
+  blackHole: { specks: ['#ffffff', '#a46bff'], halo: ['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.9)'], core: '#000' },   // (halo: the outer disc, the inner one)
 })
 
 // Until every map has its own shade tint (theme.shade) and contact shadow color (theme.shadow): these.
@@ -76,7 +76,10 @@ export const shadowOf = theme => theme.shadow || 'rgba(0, 0, 0, 0.15)'
 
 // Effects, by game event (see EFFECTS in effects.js).
 export const FX = freeze({
-  boom: { burst: ['#ff9a2e', '#e2571b', '#3b3631', '#ffd36b'], ring: '#e2571b' },
+  boom: {                                          // (a blast: its flash, its puffs by heat, then the map's theme.smoke)
+    burst: ['#ff9a2e', '#e2571b', '#3b3631', '#ffd36b'], flash: '#ffffff', sparks: ['#fff3b0', '#ffd23f'],
+    puff: { hot: '#ffe08a', warm: '#ffb347', cool: '#ff7f3f' },
+  },
   pierce: { rind: '#4f6a24', flesh: '#f6f1cf' },   // (with the type's own rib and color)
   snap: ['#b9c24a', '#6b7524', '#c8383a', '#f3ecc4'],
   wilt: ['#9a9a3e', '#6b6a2c', '#a07a3a'],
@@ -84,6 +87,15 @@ export const FX = freeze({
   swallow: ['#a46bff', '#0b0614', '#f4efe6'],
   collapse: { burst: ['#a46bff', '#f4efe6', '#4b2c84'], ring: '#a46bff' },
   seed: '#f6e7c1',                                 // (seeds in a splat or a pop)
+  frost: { ice: '#ffffff', pale: '#dff4fc' },      // (gourds' own breaks, with their own colors: see BREAKS in effects.js)
+  pie: { cream: '#fff6e0' },
+  balloon: { string: '#6b6358' },
+  vine: { leaf: '#76b046' },
+  buzzsaw: { pale: '#eef3c8' },
+  homing: { nozzle: '#3b3631' },
+  blackhole: { dust: ['#a46bff', '#f4efe6', '#4b2c84'] },
+  airstrike: { smoke: ['#e2481b', '#ff7f3f', '#ffb347'] },
+  spit: { pale: '#ffffff' },                        // (a Seed Spitter's puff: its color, mixed this way)
   cannon: { flash: ['#ffd23f', '#ff8a1f'], smoke: ['#d8d4cc', '#b9b4aa', '#8f8a80'] },
   block: ['#d9b25c', '#9c7a2e', '#3b3631'],
   freeze: ['#ffffff', '#dff4fc', '#9fd8f0'],
@@ -101,7 +113,7 @@ export const LEVEL = freeze({
     ice: 'rgba(190, 232, 250, 0.6)', iceEdge: 'rgba(255, 255, 255, 0.95)', balloonString: '#6b6358',
   },
   pitchfork: { bar: '#6b4a2b', tine: '#a3a9ae', tineEdge: '#5f656a' },
-  bonfire: { log: '#5b3a1e', glow: ['rgba(255, 160, 60, 0.35)', 'rgba(255, 160, 60, 0)'], flames: ['#e2481b', '#ff8a1f', '#ffd23f'] },
+  bonfire: { log: '#5b3a1e', glow: ['rgba(255, 160, 60, 0.10)', 'rgba(255, 160, 60, 0.12)', 'rgba(255, 160, 60, 0.14)'], flames: ['#e2481b', '#ff8a1f', '#ffd23f'] },   // (glow: outermost disc first)
   scarecrow: {
     pole: '#6b4a2b', body: '#b5894d', head: '#d9b77a', hat: '#3b3631', arm: '#7a5530',
     blade: '#c9ced2', bladeEdge: '#5f656a', hub: '#3b3631',
@@ -136,8 +148,8 @@ export const DIZZY = freeze({ star: '#f7c531' })
 // (by heat, like a blast's: see docs/RESTYLE_PLAN.md 4.4) and its seeds.
 export const TITLE = freeze({
   splat: '#c4630f',
-  puff: { hot: '#ffe08a', warm: '#ffb347', cool: '#ff7f3f' },
-  seed: '#f6e7c1',
+  puff: FX.boom.puff,
+  seed: FX.seed,
 })
 
 // The map editor's marks over the map (ui/editor).

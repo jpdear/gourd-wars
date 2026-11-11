@@ -670,7 +670,7 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 **Files:** `src/maps/themes.js`, `src/render/scenery.js` (a rewrite), `render.js` (passing the theme), `src/ui/editor/editor.js` (its uses of `theme.sky[1]` and other changed fields), and `tests/mapData.test.js` (new checks).
 
 **Do:**
-1. **`themes.js`:** rewrite the 6 entries with the 4.5 schema and values. Keep the keys. `paper` gets `name: 'Midday'`; the others keep their names. Document every field in the header comment. Then search the code for every use of the old fields (`theme.sky[0]`, `theme.sky[1]`, …) and update each one. The editor's `theme.sky[1]` stroke becomes `theme.bands ? theme.bands.at(-1) : theme.sky`, or better, a `skyColor(theme)` helper.
+1. **`themes.js`:** rewrite the 6 entries with the 4.5 schema and values. (Step 7 already added `smoke` to each, from the 4.5 table.) Keep the keys. `paper` gets `name: 'Midday'`; the others keep their names. Document every field in the header comment. Then search the code for every use of the old fields (`theme.sky[0]`, `theme.sky[1]`, …) and update each one. The editor's `theme.sky[1]` stroke becomes `theme.bands ? theme.bands.at(-1) : theme.sky`, or better, a `skyColor(theme)` helper.
 2. **`scenery.js`:** rewrite `drawMapBase` as follows.
    - **`drawSky`:** a flat `sky`, or flat `bands`, over the arena rectangle. No gradient.
    - **`SCENERY`:** a handler map, by `theme.scenery`, porting `hills`, `barn`, `field`, `rocks`, `camp` and `lab` (as `grid`) from `style-guide.html`. Run them through `mockView` (section 6), using `drawShaded` for the shaded pieces (hills sideways `[1, 0]` with a mockup shift of `0.16`, and props) with `theme.shade`.

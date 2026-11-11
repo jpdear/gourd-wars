@@ -19,10 +19,10 @@ import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
+import { drawEffects } from './effects.js'
 import { shadeOf } from './palette.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase } from './scenery.js'
-import { lerp } from '../util/math.js'
 
 export function render(ctx, view, snap, effects, ui) {
   const { s, ox, oy, w, h } = view
@@ -83,25 +83,9 @@ export function render(ctx, view, snap, effects, ui) {
   }
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players
 
-  for (const q of effects.particles) {
-    ctx.globalAlpha = 1 - q.age / q.life
-    ctx.fillStyle = q.color
-    ctx.beginPath()
-    ctx.arc(X(q.x), Y(q.y), q.r * s, 0, Math.PI * 2)
-    ctx.fill()
-  }
+  drawEffects(ctx, effects, map.theme, X, Y, s)   // (blast clouds, particles, rings)
   for (const b of effects.birds) drawFlyingOff(ctx, b, X, Y, s)
   for (const f of effects.feathers) drawFeather(ctx, f, X, Y, s)
-  for (const ring of effects.rings) {
-    const t = ring.age / ring.life
-    ctx.globalAlpha = 1 - t
-    ctx.strokeStyle = ring.color
-    ctx.lineWidth = 0.12 * s * (1 - t) + 1
-    ctx.beginPath()
-    ctx.arc(X(ring.x), Y(ring.y), lerp(0.3, ring.r, Math.sqrt(t)) * s, 0, Math.PI * 2)
-    ctx.stroke()
-  }
-  ctx.globalAlpha = 1
   drawPopups(ctx, effects, ui, X, Y, s)   // (in the world: they shake with it)
   ctx.restore()   // (the shake)
 

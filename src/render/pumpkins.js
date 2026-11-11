@@ -5,6 +5,7 @@
 // Everything about how a particular type looks is here, in tables by its mark or name: its shape
 // (BODIES), decoration (MARKS), extras while it flies (IN_FLIGHT) and how it's held (HELD).
 // drawPumpkinSilhouette draws just the shape in one color (for outlines).
+// What moves on its own (a blinking aerial, the glow under a patch, ...) is drawn through anims.js.
 // Colors: each type's own (game/pumpkinTypes.js: `rib` is its darker color, for lobes and details) and
 // GOURD (palette.js).
 
@@ -12,6 +13,7 @@ import { CONFIG } from '../config.js'
 import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
+import { ANIM, clock } from './anims.js'
 import { crowShape } from './crows.js'
 import { GOURD } from './palette.js'
 import { handOf } from './players.js'
@@ -45,43 +47,11 @@ export function drawPatches(ctx, snap, X, Y, s, shade) {
 
     const pk = patchPumpkin(patch)
     const type = PUMPKIN_TYPES[patch.typeName]
-    if (patch.superRare) drawSuperRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type)
-    else if (patch.typeName !== 'classic') {   // specials glow so both players see them coming: two see-through discs
-      const pulse = 0.6 + 0.25 * Math.sin(Date.now() / 220)
-      for (const [grow, a] of [[0.6, 0.18], [0.3, 0.28]]) {
-        ctx.fillStyle = hexA(type.color, a * pulse)
-        ctx.beginPath()
-        ctx.arc(X(pk.x), Y(pk.y), (pk.r + grow) * s, 0, TAU)
-        ctx.fill()
-      }
-    }
+    // specials glow so both players see them coming (Super Rare ones in gold): see anims.js
+    if (patch.superRare) ANIM.superRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
+    else if (patch.typeName !== 'classic') ANIM.patchGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
     drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.r * s, 0, pumpkinColors(type, patchRipeness(patch), patch.rot), type.mark, shade)
   })
-}
-
-// A Super Rare pumpkin on its patch: a bigger, faster-pulsing gold glow (see-through discs, the type's
-// color at the heart) with sparkles circling it. (x, y, r in pixels; s = pixels per meter)
-const GOLD = GOURD.superRare.gold
-function drawSuperRareGlow(ctx, x, y, r, s, type) {
-  const now = Date.now()
-  const pulse = 0.6 + 0.2 * Math.sin(now / 150)
-  for (const [color, grow, a] of [[GOLD, 0.8, 0.18], [GOLD, 0.45, 0.28], [type.color, 0.2, 0.3]]) {
-    ctx.fillStyle = hexA(color, a * pulse)
-    ctx.beginPath()
-    ctx.arc(x, y, r + grow * s, 0, TAU)
-    ctx.fill()
-  }
-  // 4 twinkling four-point stars going round
-  ctx.fillStyle = GOURD.superRare.sparkle
-  for (let i = 0; i < 4; i++) {
-    const a = now / 900 + (i * Math.PI) / 2
-    const d = r + 0.45 * s, size = 0.09 * s * (0.6 + 0.4 * Math.sin(now / 120 + i * 1.7))
-    const sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d
-    ctx.beginPath()
-    ctx.moveTo(sx, sy - size); ctx.lineTo(sx + size * 0.3, sy); ctx.lineTo(sx, sy + size); ctx.lineTo(sx - size * 0.3, sy); ctx.closePath()
-    ctx.moveTo(sx - size, sy); ctx.lineTo(sx, sy + size * 0.3); ctx.lineTo(sx + size, sy); ctx.lineTo(sx, sy - size * 0.3); ctx.closePath()
-    ctx.fill()
-  }
 }
 
 // --- shapes (in the pumpkin's own frame: radius r, canvas y pointing down, so negative y is the top) ---
@@ -223,8 +193,7 @@ const MARKS = {
   antenna: (c, r) => {   // a thin aerial with a blinking tip, where the stem would be
     c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.08)
     c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(r * 0.15, -r * 1.75); c.stroke()
-    c.fillStyle = GOURD.antennaBlink[Math.sin(Date.now() / 90) > 0 ? 0 : 1]
-    c.beginPath(); c.arc(r * 0.15, -r * 1.8, Math.max(1.5, r * 0.18), 0, TAU); c.fill()
+    ANIM.antennaTip(c, r * 0.15, -r * 1.8, r, clock.now())
   },
   string: (c, r, colors) => {   // a balloon's string, and the knot at its bottom
     c.strokeStyle = GOURD.string; c.lineWidth = Math.max(1, r * 0.05)
@@ -276,10 +245,10 @@ const IN_FLIGHT = {
     ctx.stroke()
   },
   homing: (ctx, pk, colors, snap, X, Y, s) => {   // on the hunt (it has a heading): flames out the back
-    if (pk.heading !== null && pk.heading !== undefined) drawFlameTrail(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.heading)
+    if (pk.heading !== null && pk.heading !== undefined) ANIM.flameTrail(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.heading, clock.now())
   },
-  boomerang: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'boomerang'),
-  buzzsaw: (ctx, pk, colors, snap, X, Y, s) => drawSpinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'saw'),
+  boomerang: (ctx, pk, colors, snap, X, Y, s) => spinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'boomerang'),
+  buzzsaw: (ctx, pk, colors, snap, X, Y, s) => spinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'saw'),
 }
 
 // A thrown pumpkin (pk: as in IN_FLIGHT; shade: the map's shade tint).
@@ -442,7 +411,6 @@ function mineGourd(c, r, colors, f) {
 // sitting on it → half buried); once it's set, its light blinks red (with a see-through glow).
 function drawLandmine(ctx, t, X, Y, s, shade) {
   const r = PUMPKIN_TYPES.landmine.trap.size * s, colors = PUMPKIN_TYPES.landmine
-  const lit = t.open >= 1 && (Date.now() / 1000 * 2.5) % 1 < 0.35
   ctx.save()
   ctx.translate(X(t.x), Y(t.y))
   ctx.rotate(-t.angle)
@@ -458,10 +426,7 @@ function drawLandmine(ctx, t, X, Y, s, shade) {
   drawShaded(ctx, {
     draw: paint(null),
     silhouette: (c, one) => paint(one)(c),
-    details: lit && (c => {
-      c.fillStyle = GOURD.mine.glow; c.beginPath(); c.arc(0, -r * 1.36, r * 0.32, 0, TAU); c.fill()
-      c.fillStyle = GOURD.mine.lit; c.beginPath(); c.arc(0, -r * 1.36, r * 0.14, 0, TAU); c.fill()
-    }),
+    details: t.open >= 1 && (c => ANIM.mineLight(c, 0, -r * 1.36, r, clock.now())),   // (once it's set)
     box: [-r * 1.5, -r * 1.7, r * 1.5, r * 1.2],
     shift: 0.2 * r,
     tint: shade,
@@ -498,49 +463,13 @@ function drawSawSquash(c, r, colors, f) {
   f(GOURD.stem); c.beginPath(); c.arc(0, 0, r * 0.16, 0, TAU); c.fill()   // the stem nub
 }
 
-// A spinning gourd in flight (pixels; mark: its shape): faint copies of it on either side of where it
-// is, like a blur from how fast it's spinning. (Flat: the faint copies aren't shaded.)
-function drawSpinBlur(ctx, x, y, r, angle, colors, mark) {
-  ctx.globalAlpha = 0.18
-  for (const off of [-0.5, 0.5]) drawPumpkin(ctx, x, y, r, angle + off, colors, mark)
-  ctx.globalAlpha = 1
-}
+// A spinning gourd in flight (pixels; mark: its shape): a blur from how fast it's spinning (see anims.js;
+// flat: the blur's copies of it aren't shaded).
+const spinBlur = (ctx, x, y, r, angle, colors, mark) => ANIM.spinBlur(ctx, x, y, r, angle, colors, a => drawPumpkin(ctx, x, y, r, a, colors, mark), clock.now())
 
-// A Homing gourd's exhaust (pixels; heading: the way it's flying, world radians): a flickering
-// flame streaming out behind it, yellow at the gourd fading to red.
-function drawFlameTrail(ctx, x, y, r, heading) {
-  const bx = -Math.cos(heading), by = Math.sin(heading)   // (backward, in canvas space: y points down)
-  const now = Date.now()
-  for (let i = 5; i >= 1; i--) {
-    const flick = 0.85 + 0.3 * Math.sin(now / 40 + i * 2.1)
-    const d = r * (0.6 + i * 0.55)
-    ctx.fillStyle = GOURD.flameTrail[i - 1]
-    ctx.globalAlpha = 0.9 - i * 0.12
-    ctx.beginPath()
-    ctx.arc(x + bx * d, y + by * d, r * (0.75 - i * 0.1) * flick, 0, TAU)
-    ctx.fill()
-  }
-  ctx.globalAlpha = 1
-}
-
-// Locked on: red corner brackets turning slowly around a player's torso (x, y in pixels), so
-// everyone can see who a Homing gourd is after.
-export function drawLockOn(ctx, x, y, s) {
-  const now = Date.now()
-  const R = 0.75 * s * (1 + 0.08 * Math.sin(now / 80)), arm = 0.25 * s
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(now / 600)
-  ctx.strokeStyle = GOURD.lockOn
-  ctx.lineWidth = Math.max(1.5, 0.06 * s)
-  ctx.beginPath()
-  for (let k = 0; k < 4; k++) {
-    ctx.rotate(Math.PI / 2)
-    ctx.moveTo(R - arm, -R); ctx.lineTo(R, -R); ctx.lineTo(R, -R + arm)
-  }
-  ctx.stroke()
-  ctx.restore()
-}
+// Locked on: a reticle round a player's torso (x, y in pixels), so everyone can see who a Homing gourd is
+// after (see anims.js).
+export const drawLockOn = (ctx, x, y, s) => ANIM.lockOn(ctx, x, y, s, clock.now())
 
 // An Airstrike target (t: 0 when called in → 1 when the airdrop is due; r: the airdrop's radius):
 // a dark shadow that spreads as the airdrop gets close, under a pulsing red crosshair.
@@ -571,33 +500,14 @@ export function drawAirstrikeTarget(ctx, x, y, t, r, X, Y, s) {
 // A Black Hole (r: its core's radius): a black core with a tight white halo, and white specks
 // streaking in from all around it.
 export function drawBlackHole(ctx, x, y, r, X, Y, s) {
-  const cx = X(x), cy = Y(y), t = Date.now() / 1000
-  // each speck falls in from 3.5 r, speeding up as it goes, then starts over from a new direction
-  // (u: 0 = far out, 1 = at the core)
-  ctx.strokeStyle = GOURD.blackHole.speck
-  ctx.lineWidth = Math.max(1.5, 0.05 * s)
-  ctx.lineCap = 'round'
-  for (let i = 0; i < 24; i++) {
-    const cycle = t * 0.8 + i * 0.618, u = cycle % 1
-    const a = i * 2.4 + Math.floor(cycle) * 1.7 + u * 0.8   // (a slight swirl)
-    const at = v => {
-      const d = r * (1 + 2.5 * (1 - v) ** 2)
-      return [cx + Math.cos(a + (v - u)) * d * s, cy - Math.sin(a + (v - u)) * d * s]
-    }
-    ctx.globalAlpha = Math.min(1, u * 3)
+  const cx = X(x), cy = Y(y)
+  ANIM.holeSpecks(ctx, cx, cy, r, s, clock.now())   // (streaking in: see anims.js)
+  GOURD.blackHole.halo.forEach((color, i) => {   // the halo: two flat white discs round the core
+    ctx.fillStyle = color
     ctx.beginPath()
-    ctx.moveTo(...at(Math.max(0, u - 0.08)))
-    ctx.lineTo(...at(u))
-    ctx.stroke()
-  }
-  ctx.globalAlpha = 1
-  const halo = ctx.createRadialGradient(cx, cy, r * s, cx, cy, r * 1.4 * s)
-  halo.addColorStop(0, GOURD.blackHole.halo[0])
-  halo.addColorStop(1, GOURD.blackHole.halo[1])
-  ctx.fillStyle = halo
-  ctx.beginPath()
-  ctx.arc(cx, cy, r * 1.4 * s, 0, TAU)
-  ctx.fill()
+    ctx.arc(cx, cy, r * [1.35, 1.15][i] * s, 0, TAU)
+    ctx.fill()
+  })
   ctx.fillStyle = GOURD.blackHole.core
   ctx.beginPath()
   ctx.arc(cx, cy, r * s, 0, TAU)

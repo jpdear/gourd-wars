@@ -94,13 +94,12 @@ export function drawBonfire(ctx, f, X, Y, s, flames) {
       ctx.fillRect(-f.w * 0.5 * s, -0.08 * s, f.w * s, 0.16 * s)
       ctx.restore()
     }
-    const g = ctx.createRadialGradient(X(f.x), Y(f.y + 0.4), 0, X(f.x), Y(f.y + 0.4), 1.6 * s)
-    g.addColorStop(0, LEVEL.bonfire.glow[0])
-    g.addColorStop(1, LEVEL.bonfire.glow[1])
-    ctx.fillStyle = g
-    ctx.beginPath()
-    ctx.arc(X(f.x), Y(f.y + 0.4), 1.6 * s, 0, Math.PI * 2)
-    ctx.fill()
+    LEVEL.bonfire.glow.forEach((color, i) => {   // the glow: three see-through discs, one inside the next
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.arc(X(f.x), Y(f.y + 0.4), [1.6, 1.1, 0.7][i] * s, 0, Math.PI * 2)
+      ctx.fill()
+    })
     return
   }
   const t = Date.now() / 1000
