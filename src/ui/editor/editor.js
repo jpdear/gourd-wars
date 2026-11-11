@@ -4,12 +4,12 @@
 
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../../config.js'
 import { CANNON, CANNON_FACES, cannonParts, cannonPath, clampAim, mountPoint } from '../../game/cannons.js'
-import { BALE, SCYTHE_START } from '../../game/level.js'
+import { BALE } from '../../game/level.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES } from '../../game/pumpkinTypes.js'
 import { MAPS } from '../../maps/builtin.js'
 import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
 import { THEMES } from '../../maps/themes.js'
-import { drawBale, drawBonfire, drawCannon, drawPitchforks, drawScarecrow } from '../../render/level.js'
+import { drawBale, drawBonfire, drawCannon, drawPitchforks } from '../../render/level.js'
 import { EDITOR, FONT } from '../../render/palette.js'
 import { drawPumpkin } from '../../render/pumpkins.js'
 import { EDITOR_MAP_ID, EDITOR_TOOLS, PIECE_FIELDS, PIECE_KINDS, PIECE_NAMES, TOOL_KINDS, cannonSpeedAt, drawSpawnMarker, moverEnd, pieceBox, pieceHandles } from './tools.js'
@@ -130,9 +130,6 @@ export function createEditor(canvas, view, hooks) {
     else if (kind === 'platforms' || kind === 'movers') {   // keep the edges on the grid
       o.x = r3(snap(x - o.w / 2, free) + o.w / 2)
       o.y = r3(snap(y - o.h / 2, free) + o.h / 2)
-    } else if (kind === 'scythes') {
-      o.x = clamp(snap(x, free), 0, W)
-      o.y = clamp(snap(y, free), 0, H)
     } else placeOnGround(kind, o, x, y, free, index)
   }
 
@@ -178,9 +175,6 @@ export function createEditor(canvas, view, hooks) {
       if (id === 'l') x0 = clamp(snap(x, free), x1 - hi, x1 - lo)
       else x1 = clamp(snap(x, free), x0 + lo, x0 + hi)
       Object.assign(o, { x: r3((x0 + x1) / 2), w: r3(x1 - x0) })
-    } else if (sel.kind === 'scythes') {
-      if (id === 'len') o.length = clamp(snap(Math.hypot(x - o.x, y - o.y), free), 1.4, 6)
-      else o.pole = clamp(snap(o.y - y, free), 0, H)
     } else if (sel.kind === 'cannons') {   // aim it at the handle; further out = faster
       const { pivot } = cannonParts(o), dx = x - pivot.x, dy = y - pivot.y
       o.aim = clampAim(o.face, Math.round(Math.atan2(dy, dx) * 180 / Math.PI))
@@ -224,7 +218,7 @@ export function createEditor(canvas, view, hooks) {
     else {
       kind = TOOL_KINDS[tool]
       if (def[kind].length >= MAP_LIMITS[kind]) { setStatus(`That's as many ${PIECE_NAMES[kind].toLowerCase()}s as a map can have.`, true); return }
-      const o = kind === 'fires' ? { w: 1.4 } : kind === 'scythes' ? { length: 2.6, turnTime: CONFIG.level.scytheTurnTime } : kind === 'cannons' ? { ...CANNON.defaults } : {}
+      const o = kind === 'fires' ? { w: 1.4 } : kind === 'cannons' ? { ...CANNON.defaults } : {}
       index = def[kind].push(o) - 1
     }
     const o = def[kind][index]
@@ -234,7 +228,6 @@ export function createEditor(canvas, view, hooks) {
       setStatus('A gourd cannon has to go on a floor, wall or ceiling: click right next to one.', true)
       return
     }
-    if (kind === 'scythes') { const g = groundAt(o.x, o.y - 0.3); o.pole = g !== null ? r3(o.y - g) : 2.6 }
     sel = { kind, index }
     drag = { type: 'move', before, start: m, orig: { ...o } }
     refresh()
@@ -488,13 +481,8 @@ export function createEditor(canvas, view, hooks) {
       ctx.strokeStyle = hexA(theme.ink, j % 4 ? 0.06 : 0.14)
       ctx.beginPath(); ctx.moveTo(X(0), Y(j)); ctx.lineTo(X(W), Y(j)); ctx.stroke()
     }
-    // markers: spawns, scythe reach, what a patch grows
+    // markers: spawns, what a patch grows
     def.spawns.forEach((sp, i) => drawSpawnMarker(ctx, sp, i, X, Y, s))
-    ctx.setLineDash([6, 5])
-    ctx.strokeStyle = EDITOR.scytheReach
-    ctx.lineWidth = 1.5
-    for (const sc of def.scythes) { ctx.beginPath(); ctx.arc(X(sc.x), Y(sc.y), sc.length * s, 0, Math.PI * 2); ctx.stroke() }
-    ctx.setLineDash([])
     def.cannons.forEach((c, i) => drawCannonPath(ctx, c, sel && sel.kind === 'cannons' && sel.index === i, X, Y, s))
     for (const m of def.movers) {   // where each moving platform goes: a see-through copy + an arrow
       const e = moverEnd(m)
@@ -543,10 +531,6 @@ export function createEditor(canvas, view, hooks) {
     if (o) {
       ctx.lineWidth = 2
       outline(sel.kind, sel.index, EDITOR.select, [], 0.1)
-      if (sel.kind === 'scythes') {   // the arm the length handle sits on
-        ctx.strokeStyle = EDITOR.select
-        ctx.beginPath(); ctx.moveTo(X(o.x), Y(o.y)); ctx.lineTo(X(o.x + o.length), Y(o.y)); ctx.stroke()
-      }
       if (sel.kind === 'cannons') {   // a line out to the aim handle
         const { pivot } = cannonParts(o), [[, hx, hy]] = pieceHandles('cannons', o)
         ctx.strokeStyle = EDITOR.select
@@ -584,7 +568,6 @@ export function createEditor(canvas, view, hooks) {
         else if (kind === 'patches') drawPumpkin(ctx, X(ghost.x), Y(ghost.y + 0.32), 0.3 * s, 0, PUMPKIN_TYPES.classic)
         else if (kind === 'bales') drawBale(ctx, { x: ghost.x, y: ghost.y + BALE.h / 2, angle: 0, health: 1 }, X, Y, s)
         else if (kind === 'fires') { drawBonfire(ctx, ghost, X, Y, s, false); drawBonfire(ctx, ghost, X, Y, s, true) }
-        else if (kind === 'scythes') { const g = groundAt(ghost.x, ghost.y - 0.3); ghost.pole = g !== null ? ghost.y - g : 2.6; drawScarecrow(ctx, ghost, SCYTHE_START, X, Y, s) }
         else if (kind === 'cannons' && ghost.face !== undefined) { drawCannon(ctx, ghost, null, X, Y, s); drawCannonPath(ctx, ghost, true, X, Y, s) }
         ctx.globalAlpha = 1
       } else {
@@ -642,7 +625,7 @@ export function createEditor(canvas, view, hooks) {
     // what render() draws: the map with its bales and ripe patches, no players
     snapshot() {
       return {
-        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], strikes: [], traps: [], crows: [], scythes: [], cannons: [], movers: def.movers.map(m => ({ x: m.x, y: m.y })),
+        time: 0, map: EDITOR_MAP_ID, players: [], pumpkins: [], holes: [], strikes: [], traps: [], crows: [], cannons: [], movers: def.movers.map(m => ({ x: m.x, y: m.y })),
         bales: def.bales.map((b, i) => ({ id: i, x: b.x, y: b.y + BALE.h / 2, angle: 0, health: 1, frozen: false, sticky: false, floating: false })),
         patches: def.patches.map(p => ({ state: 'ripe', growth: 1, rot: 0, typeName: p.only || 'classic', superRare: false })),
         timeScale: 1, transition: null, match: null,

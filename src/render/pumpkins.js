@@ -127,6 +127,27 @@ const OWN_LOOK = {
   crow: (c, r) => crowShape(c, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
 }
 
+// A spark burst at (x, y) (sized for a gourd r across; t: s): two spinning, flickering stars, spark lines
+// flickering on and off, and dots flying out. A Jack-o'-Boom's fuse throws it, and so does a cannon's.
+export function drawSparkBurst(c, x, y, r, t) {
+  const flick = 1 + 0.15 * Math.sin(t * TAU * 12), odd = Math.floor(t * 12) % 2, [outer, inner, lines, dots] = GOURD.spark
+  c.fillStyle = outer; starPath(c, x, y, r * 0.42 * flick, 0.2 + t * 6, 7, 0.38); c.fill()
+  c.fillStyle = inner; starPath(c, x, y, r * 0.24 * flick, -0.1 - t * 6, 7, 0.42); c.fill()
+  c.strokeStyle = lines; c.lineWidth = Math.max(1, r * 0.06); c.lineCap = 'round'
+  c.beginPath()
+  SPARK_LINES.forEach(([a, d0, d1], i) => {
+    if (i % 2 !== odd) return   // (they flicker: every other one on each beat)
+    c.moveTo(x + Math.cos(a) * d0 * r, y + Math.sin(a) * d0 * r); c.lineTo(x + Math.cos(a) * d1 * r, y + Math.sin(a) * d1 * r)
+  })
+  c.stroke(); c.lineCap = 'butt'
+  c.fillStyle = dots
+  for (const [a, rr, phase] of FUSE_DOTS) {   // each flies out from the spark, drops a little and shrinks away, then starts again
+    const p = (t / FUSE_DOT_TIME + phase) % 1, d = (0.3 + 0.75 * p) * r, size = rr * r * (1 - p) ** 0.6
+    if (size < 0.4) continue
+    c.beginPath(); c.arc(x + Math.cos(a) * d, y + Math.sin(a) * d + 0.35 * p * p * r, size, 0, TAU); c.fill()
+  }
+}
+const SPARK_LINES = [[-1.2, 0.5, 0.75], [-0.3, 0.5, 0.82], [0.6, 0.5, 0.7], [-2.1, 0.5, 0.68], [2.6, 0.48, 0.62], [-0.75, 0.5, 0.7], [0.15, 0.48, 0.66], [-1.65, 0.5, 0.78]]   // [angle, from, to (of r)]
 // The fuse's flying dots: [direction (radians, from the spark), radius (of r), where in its flight it starts (0..1)].
 const FUSE_DOTS = [[0.55, 0.06, 0], [-1.75, 0.05, 0.25], [-0.25, 0.045, 0.5], [-2.6, 0.05, 0.75]]
 const FUSE_DOT_TIME = 0.55   // s: one dot's flight
@@ -140,26 +161,11 @@ const MARKS = {
     c.restore()
   },
   fuse: (c, r) => {   // a curved fuse throwing sparks: two spinning, flickering stars, spark lines and flying dots
-    const t = Date.now() / 1000, flick = 1 + 0.15 * Math.sin(t * TAU * 12), odd = Math.floor(t * 12) % 2
+    const t = Date.now() / 1000
     c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
     c.beginPath(); c.moveTo(r * 0.1, -r * 1.1); c.quadraticCurveTo(r * 0.45, -r * 1.55, r * 0.66, -r * 1.36); c.stroke()
-    const sx = r * 0.7, sy = -r * 1.42, [outer, inner, lines, dots] = GOURD.spark
-    c.fillStyle = outer; starPath(c, sx, sy, r * 0.42 * flick, 0.2 + t * 6, 7, 0.38); c.fill()
-    c.fillStyle = inner; starPath(c, sx, sy, r * 0.24 * flick, -0.1 - t * 6, 7, 0.42); c.fill()
-    c.strokeStyle = lines; c.lineWidth = Math.max(1, r * 0.06)
-    c.beginPath()
-    const SPARKS = [[-1.2, 0.5, 0.75], [-0.3, 0.5, 0.82], [0.6, 0.5, 0.7], [-2.1, 0.5, 0.68], [2.6, 0.48, 0.62], [-0.75, 0.5, 0.7], [0.15, 0.48, 0.66], [-1.65, 0.5, 0.78]]
-    SPARKS.forEach(([a, d0, d1], i) => {
-      if (i % 2 !== odd) return   // (they flicker: every other one on each beat)
-      c.moveTo(sx + Math.cos(a) * d0 * r, sy + Math.sin(a) * d0 * r); c.lineTo(sx + Math.cos(a) * d1 * r, sy + Math.sin(a) * d1 * r)
-    })
-    c.stroke(); c.lineCap = 'butt'
-    c.fillStyle = dots
-    for (const [a, rr, phase] of FUSE_DOTS) {   // each flies out from the spark, drops a little and shrinks away, then starts again
-      const p = (t / FUSE_DOT_TIME + phase) % 1, d = (0.3 + 0.75 * p) * r, size = rr * r * (1 - p) ** 0.6
-      if (size < 0.4) continue
-      c.beginPath(); c.arc(sx + Math.cos(a) * d, sy + Math.sin(a) * d + 0.35 * p * p * r, size, 0, TAU); c.fill()
-    }
+    drawSparkBurst(c, r * 0.7, -r * 1.42, r, t)
+    c.lineCap = 'butt'
   },
   ice: (c, r) => {   // frost diamonds
     c.fillStyle = GOURD.ice

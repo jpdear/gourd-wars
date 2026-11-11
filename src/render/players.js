@@ -7,10 +7,12 @@ import { BALE, TINE } from '../game/level.js'
 import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
+import { clock } from './anims.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
 import { PLAYER, UI, shadeOf, shadowOf } from './palette.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
+import { LOOKS } from './statusLooks.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 
@@ -136,10 +138,10 @@ const LIMB_ORDER = side => {
 
 // A flat stick figure (see docs/RESTYLE_PLAN.md 4.4): round-capped limbs, the far ones darker, a round
 // head, and two-tone shading in the map's shade tint (theme.shade); the eye (or X eyes while ragdolled)
-// and anything it's wearing go on top, unshaded. Frozen: icy with two frost diamonds on the head;
-// glued: goo on the feet; floating: carried off by a balloon.
+// and anything it's wearing go on top, unshaded. Frozen and glued: as statusLooks.js draws them;
+// floating: carried off by a balloon.
 export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
-  const color = p.frozen ? mixHex(p.color, PLAYER.frozenTint, 0.7) : p.color   // frozen: icy
+  const color = p.frozen ? LOOKS.playerFrozen.tint(p.color) : p.color
   const far = mixHex(color, '#000000', 0.18)
   const limbs = LIMB_ORDER(p.facing).map(([name, near]) => [partEnds(part(p, name), PART_HALF_LEN[name]), name === 'torso' ? 0.16 : 0.11, near])
   const [hx, hy] = part(p, 'head')
@@ -174,14 +176,10 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'miter'
 
-  if (p.glued) {   // goo blobs on the feet
-    ctx.fillStyle = PUMPKIN_TYPES.pie.color
-    for (const name of ['shinL', 'shinR']) {
-      const [, , fx, fy] = partEnds(part(p, name), PART_HALF_LEN[name])
-      ctx.beginPath()
-      ctx.ellipse(X(fx), Y(fy), 0.2 * s, 0.1 * s, 0, 0, Math.PI * 2)
-      ctx.fill()
-    }
+  if (p.frozen || p.glued) {
+    const g = { head: [hx, hy], facing: p.facing, limbs: limbs.map(([ends, width]) => [...ends, width]), feet: ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2)) }
+    if (p.frozen) LOOKS.playerFrozen.over(ctx, g, X, Y, s, clock.now())
+    if (p.glued) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now())
   }
   if (p.floating) {   // a balloon carrying them off
     ctx.strokeStyle = PLAYER.balloonString
@@ -211,7 +209,7 @@ function lookDir(p, hx, hy, limits = [-Math.PI / 2, Math.PI / 2]) {
 
 // The eye: white with a dark pupil, both looking where they aim: the eye moves around the front of the
 // head (up to EYE_LIMITS), the pupil to the eye's edge toward the aim itself (so it still looks right
-// down when the eye has stopped). White X eyes while ragdolled. Frozen: two frost diamonds too.
+// down when the eye has stopped). White X eyes while ragdolled.
 function drawFace(ctx, p, hx, hy, X, Y, s) {
   const [ex0, ey0] = lookDir(p, hx, hy, EYE_LIMITS), [lx, ly] = lookDir(p, hx, hy)
   const ex = X(hx + ex0 * 0.065), ey = Y(hy + 0.015 + ey0 * 0.065)
@@ -235,15 +233,7 @@ function drawFace(ctx, p, hx, hy, X, Y, s) {
     ctx.arc(ex + lx * 0.018 * s, ey - ly * 0.018 * s, 0.026 * s, 0, Math.PI * 2)
     ctx.fill()
   }
-  if (p.frozen) {
-    ctx.fillStyle = PLAYER.frost
-    for (const [back, up, k] of [[0.09, 0.06, 1], [0.04, -0.08, 0.75]]) {   // (on the back of the head, away from the eye; k: size)
-      const x = X(hx - p.facing * back), y = Y(hy + up), w = 0.025 * k * s, h = 0.045 * k * s
-      ctx.beginPath()
-      ctx.moveTo(x, y - h); ctx.lineTo(x + w, y); ctx.lineTo(x, y + h); ctx.lineTo(x - w, y)
-      ctx.fill()
-    }
-  }
+
 }
 
 // A little gold crown sitting on a head ([x, y, angle]), tilting with it: flat and shaded, with a jewel.

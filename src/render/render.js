@@ -8,14 +8,13 @@
 // Every color and font the drawing uses is in palette.js (plus each map's theme and each pumpkin type's own).
 
 import { CONFIG } from '../config.js'
-import { SCYTHE_START } from '../game/level.js'
 import { leaders } from '../game/match.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { snapPlayer } from '../game/snapshot.js'
 import { MAP_SHIFT, ease, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups, hudSurface } from './hud.js'
-import { drawBale, drawBonfire, drawCannon, drawScarecrow } from './level.js'
+import { drawBale, drawBonfire, drawCannon } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
@@ -53,13 +52,12 @@ export function render(ctx, view, snap, effects, ui) {
   if (tr) {   // the map we're leaving, one screen to the left
     const old = mapDef(tr.from), XO = x => X(x - MAP_SHIFT)
     drawMapBase(ctx, old, XO, Y, s, null)
-    old.scythes.forEach(sc => drawScarecrow(ctx, sc, SCYTHE_START, XO, Y, s))
-    for (const c of old.cannons || []) drawCannon(ctx, c, null, XO, Y, s)
+    for (const c of old.cannons || []) drawCannon(ctx, c, null, XO, Y, s, shadeOf(old.theme))
     for (const f of old.fires) drawBonfire(ctx, f, XO, Y, s, true)
   }
   drawMapBase(ctx, map, X, Y, s, snap && snap.movers)
   const cannons = map.cannons || []
-  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s)   // (timer: seconds to its next shot)
+  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s, shadeOf(map.theme))   // (timer: seconds to its next shot)
 
   if (snap) {
     const shade = shadeOf(map.theme)   // (the map's tint for two-tone shading)
@@ -79,7 +77,6 @@ export function render(ctx, view, snap, effects, ui) {
     for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
     if (me && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)   // (if there's something to throw)
-    map.scythes.forEach((sc, i) => drawScarecrow(ctx, sc, snap.scythes[i] ?? Math.PI / 2, X, Y, s))
   }
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players
 

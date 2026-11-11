@@ -644,7 +644,8 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
    - The blade is flat steel (`#c9ced2`) with no stroke and a darker `#9aa1a6` back edge band, shaded.
    - The hub is flat.
 5. **Cannon:** already mostly flat. Remove any strokes, shade the mount and barrel (as separate silhouettes), and keep the orange muzzle ring and fuse sparks. Reuse the gourd spark-burst look for the fuse.
-6. **Crows** (`crows.js`):
+4b. **The scarecrow was removed from the game** (the user's call, after step 8): the hazard, its tool in the editor and its look. Saved custom maps that had one load without it. It comes back in step 9 as part of the Scarecrow Field backdrop (the silhouette in the field mockup).
+6. **Crows** (`crows.js`) — **skipped (the user's call, during step 8): crows stay as they are for now.**
    - Remove the `EDGE` strokes. Make the body, wings, head and legs flat fills: `INK` for the near side and `FAR` for the far wing.
    - The beak split becomes a thin filled wedge, not a stroke.
    - The eye stays white and dark.

@@ -1,4 +1,4 @@
-// LEVEL PIECES — hay bales and hazards (pitchforks, scarecrow scythes, bonfires)
+// LEVEL PIECES — hay bales and hazards (pitchforks, bonfires) and moving platforms
 // Hazards aren't physics bodies; each step we just check what overlaps them.
 
 import * as planck from 'planck'
@@ -117,12 +117,12 @@ export function updateBales(game, dt) {
   game.bales = game.bales.filter(b => !b.broken)
 }
 
-// Pitchforks are solid: a wooden bar with a row of steel tines. Touching any of it is a KO.
+// Pitchforks are solid: a wooden bar with a row of steel tines. Touching them hurts and bounces you up.
 export const TINE = { spacing: 0.24, halfW: 0.06, base: 0.12, tip: 0.55 }
+// Where a pitchfork row's tines stand: as many as fit, evenly spaced, centered on the bar.
 export function pitchforkTines(sp) {
-  const xs = []
-  for (let x = sp.x - sp.w / 2 + TINE.spacing / 2; x < sp.x + sp.w / 2; x += TINE.spacing) xs.push(x)
-  return xs
+  const n = Math.max(1, Math.floor(sp.w / TINE.spacing))
+  return Array.from({ length: n }, (_, i) => sp.x + (i - (n - 1) / 2) * TINE.spacing)
 }
 export function buildPitchforks(game, sp) {
   const body = game.world.createBody({ type: 'static' })
@@ -134,25 +134,6 @@ export function buildPitchforks(game, sp) {
   return body
 }
 
-// A scarecrow's scythe is a solid blade spinning on a kinematic body (it shoves whatever it hits,
-// and touching it is a KO). The arm itself is just for show.
-const SCYTHE_BLADE = 1.2              // the outer 1.2 m of the arm carries the blade
-export const SCYTHE_START = Math.PI / 2      // each round starts with the blade straight up
-// The blade in the arm's own frame (pivot at 0, 0; arm along +x). It spins clockwise, so the
-// sharp curve leads on the -y side.
-export function scytheBladeShape(sc) {
-  const r0 = sc.length - SCYTHE_BLADE, rm = r0 + 0.6, L = sc.length
-  return [
-    [[r0, 0.04], [rm, 0.04], [rm, -0.32], [r0, -0.22]],
-    [[rm, 0.04], [L, 0.04], [L - 0.05, -0.16], [rm, -0.32]],
-  ]
-}
-export function buildScythe(game, sc) {
-  const body = game.world.createBody({ type: 'kinematic', position: new Vec2(sc.x, sc.y), angle: SCYTHE_START })
-  for (const poly of scytheBladeShape(sc)) body.createFixture(new planck.Polygon(poly.map(([x, y]) => new Vec2(x, y))), { friction: 0.3 })
-  body.setUserData({ kind: 'hazard', hazard: 'scythe' })
-  return body
-}
 // Moving platforms: kinematic boxes that follow their trip exactly. Each step their velocity is set
 // to land on the spot where they should be, so whatever stands on them is carried smoothly.
 export function buildMover(game, m) {
@@ -180,8 +161,6 @@ export function updateMovers(game, dt) {
   }
 }
 
-const scytheAngle = game => (game.scythes.length ? game.scythes[0].body.getAngle() : SCYTHE_START)
-
 export function recordHazardContact(game, fixture, other) {
   const ud = fixture.getBody().getUserData()
   if (ud && ud.kind === 'hazard') game.hazardHits.push({ body: other.getBody(), hazard: ud.hazard })
@@ -204,17 +183,14 @@ const fireBox = f => ({ x0: f.x - f.w / 2, x1: f.x + f.w / 2, y0: f.y, y1: f.y +
 const inBox = (b, p, pad) => p.x > b.x0 - pad && p.x < b.x1 + pad && p.y > b.y0 - pad && p.y < b.y1 + pad
 export const inFire = (game, p, pad) => currentMap(game).fires.some(f => inBox(fireBox(f), p, pad))
 
-// Whatever touched a pitchfork or a blade this step: players get hurt (pitchforks) or KO'd (blades),
-// pumpkins and bales break. Bonfires burn players and pop them out.
+// Whatever touched a pitchfork this step: players get hurt, pumpkins and bales break. Bonfires burn
+// players and pop them out.
 export function updateHazards(game, dt) {
   for (const pl of game.players) pl.spikeTimer = Math.max(0, pl.spikeTimer - dt)
-  for (const { body, hazard } of game.hazardHits) {
+  for (const { body } of game.hazardHits) {
     const ud = body.getUserData()
     if (!ud) continue
-    if (ud.kind === 'player') {
-      if (hazard === 'spikes') spikePlayer(game, ud.player)
-      else ud.player.kill(game)
-    }
+    if (ud.kind === 'player') spikePlayer(game, ud.player)
     else if (ud.kind === 'pumpkin') breakPumpkin(game, ud.pumpkin)
     else if (ud.kind === 'bale') breakBale(game, ud.bale, 'straw')
   }

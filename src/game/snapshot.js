@@ -72,7 +72,6 @@ export function makeSnapshot(game) {
     strikes: game.strikes.map(st => ({
       id: st.id, x: r3(st.x), y: r3(st.y), t: r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r: r3(PUMPKIN_TYPES.airdrop.radius * st.power),
     })),
-    scythes: game.scythes.map(sc => r3(wrapAngle(sc.body.getAngle()))),   // their angles, in the map's order
     movers: game.movers.map(m => { const pos = m.body.getPosition(); return { x: r3(pos.x), y: r3(pos.y) } }),   // (in the map's order)
     cannons: game.cannons.map(c => r3(c.timer)),   // seconds until each fires (in the map's order)
     // in the map's patch order (where each one is comes from the map: see patchView)
@@ -123,7 +122,6 @@ export function interpolateSnapshots(a, b, t) {
     traps: byId(a.traps, b.traps, moved),
     crows: byId(a.crows, b.crows, moved),
     strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
-    scythes: b.scythes.map((angle, i) => (a.scythes[i] === undefined ? angle : a.scythes[i] + wrapAngle(angle - a.scythes[i]) * t)),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? { x: lerp(a.movers[i].x, q.x, t), y: lerp(a.movers[i].y, q.y, t) } : q)),
     cannons: b.cannons,
     map: b.map,

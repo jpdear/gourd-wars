@@ -122,16 +122,24 @@ const EFFECTS = {
     const dir = Math.random() < 0.5 ? -1 : 1
     fx.birds.push({ x: ev.x, y: ev.y, vx: dir * 5, vy: 4, dir, age: 0, life: 2 })
   },
-  cannon: (fx, ev) => {   // a gourd cannon firing: a flash and a puff of smoke out of the muzzle
-    burst(fx, ev.x, ev.y, 8, FX.cannon.flash, [2, 6], [0.08, 0.18], [0.03, 0.06])
-    burst(fx, ev.x, ev.y, 14, FX.cannon.smoke, [0.5, 2.5], [0.4, 0.9], [0.08, 0.16], 1)
+  cannon: (fx, ev) => {   // a gourd cannon firing: a cone of hot sparks out the barrel, smoke rolling forward and drifting up
+    emit(fx, { x: ev.x, y: ev.y, n: 10, colors: [FX.boom.puff.hot, FX.boom.puff.warm, FX.boom.puff.cool], speed: [4, 9], life: [0.08, 0.18], size: [0.06, 0.1], heading: ev.angle, spread: 0.35, gravity: 0, drag: 6 })
+    emit(fx, { x: ev.x, y: ev.y, n: 8, colors: FX.cannon.smoke, speed: [1, 3.5], life: [0.6, 1], size: [0.08, 0.14], heading: ev.angle, spread: 0.5, gravity: -0.1, drag: 3 })
   },
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, FX.block, [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
   freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, FX.freeze, [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
-  straw: (fx, ev) => burst(fx, ev.x, ev.y, 26, FX.straw, [2, 7], [0.4, 0.8], [0.04, 0.09], 2),
-  burn: (fx, ev) => (ev.small
-    ? burst(fx, ev.x, ev.y, 4, FX.burn.small, [1, 3], [0.2, 0.4], [0.03, 0.05], 3)
-    : burst(fx, ev.x, ev.y, 26, FX.burn.big, [2, 6], [0.4, 0.9], [0.04, 0.09], 4)),
+  straw: (fx, ev) => {   // a hay bale breaking (or swallowed by a Black Hole): thin straws spraying out, tumbling and fluttering down, and bits of twine
+    emit(fx, { x: ev.x, y: ev.y, n: 26, colors: FX.straw.straws, speed: [2, 7], life: [0.6, 1.1], size: [0.07, 0.095], shape: 'stick', lift: 2, gravity: 0.5, drag: 2, sway: 0.6, spin: 12 })
+    emit(fx, { x: ev.x, y: ev.y, n: 3, colors: [FX.straw.twine], speed: [2, 5], life: [0.6, 0.9], size: [0.12, 0.15], shape: 'stick', lift: 2, gravity: 0.8, spin: 10 })
+  },
+  burn: (fx, ev) => {
+    if (ev.small) return burst(fx, ev.x, ev.y, 4, FX.burn.small, [1, 3], [0.2, 0.4], [0.03, 0.05], 3)   // a player in a bonfire
+    // a hay bale burning up: a burst of flames licking upward, embers rising, charred bits of straw falling
+    const B = FX.burn, x = ev.x, y = ev.y
+    emit(fx, { x, y, n: 16, colors: B.flames, speed: [1, 3.5], life: [0.35, 0.6], size: [0.1, 0.16], heading: Math.PI / 2, spread: 0.8, gravity: -0.4, drag: 2 })
+    emit(fx, { x, y, n: 10, colors: B.embers, speed: [1, 3], life: [0.8, 1.3], size: [0.025, 0.04], heading: Math.PI / 2, spread: 1, gravity: -0.12, drag: 1.5, sway: 0.6 })
+    emit(fx, { x, y, n: 10, colors: B.char, speed: [2, 5], life: [0.6, 0.9], size: [0.06, 0.085], shape: 'stick', lift: 1.5, gravity: 0.8, spin: 10 })
+  },
   dust: (fx, ev) => burst(fx, ev.x, ev.y, 2, FX.dust, [0.3, 1.2], [0.25, 0.45], [0.03, 0.06], 0.8),   // sliding down a wall
   yank: (fx, ev) => burst(fx, ev.x, ev.y, 10, FX.yank, [2, 5], [0.25, 0.45], [0.03, 0.06]),
   damage: (fx, ev) => {

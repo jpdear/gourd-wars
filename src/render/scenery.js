@@ -5,7 +5,7 @@
 
 import { CONFIG } from '../config.js'
 import { drawBonfire, drawPitchforks } from './level.js'
-import { BACKDROP } from './palette.js'
+import { BACKDROP, shadeOf } from './palette.js'
 import { hexA } from '../util/color.js'
 
 export function drawMapBase(ctx, map, X, Y, s, moverPos) {
@@ -17,8 +17,8 @@ export function drawMapBase(ctx, map, X, Y, s, moverPos) {
     const at = moverPos && moverPos[i]
     drawPlatform(ctx, theme, at ? { ...m, x: at.x, y: at.y } : m, X, Y, s)
   })
-  for (const sp of map.spikes) drawPitchforks(ctx, sp, X, Y, s)
-  for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, false)
+  for (const sp of map.spikes) drawPitchforks(ctx, sp, X, Y, s, shadeOf(map.theme))
+  for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, false, shadeOf(map.theme))
 }
 
 function drawPlatform(ctx, theme, p, X, Y, s) {

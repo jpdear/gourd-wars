@@ -6,8 +6,6 @@
 //   bales      hay bales {x, y}: y = the surface they sit on
 //   spikes     pitchfork rows {x, y, w}: y = base, tines point up (instant kill)
 //   fires      bonfires {x, y, w}: y = base (damage + a hop out)
-//   scythes    scarecrows {x, y, length, pole, turnTime?}: x, y = pivot, length = arm (the outer
-//              blade is deadly), pole = how far the pole reaches down, turnTime = seconds per turn
 //   movers     moving platforms {x, y, w, h, x2, y2, speed, pause}: slide from (x, y) to (x2, y2)
 //              and back at about speed m/s, waiting pause seconds at each end (optional)
 //   cannons    gourd cannons {x, y, face, aim, speed, every, delay}: see game/cannons.js (optional)
@@ -27,7 +25,7 @@ export const MAPS = {
     ],
     spawns: [{ x: 11, y: 4.4 }, { x: 21, y: 4.4 }, { x: 3.5, y: 7.3 }, { x: 28.5, y: 7.3 }],
     patches: [{ x: 16, y: 4.4 }, { x: 4.5, y: 7.3 }, { x: 27.5, y: 7.3 }],
-    bales: [], spikes: [], fires: [], scythes: [],
+    bales: [], spikes: [], fires: [],
   },
   // Inside a barn: walls and a ceiling; the only way out is the hole in the floor.
   hayloft: {
@@ -52,27 +50,26 @@ export const MAPS = {
       { x: 26.4, y: 2.6 }, { x: 25.35, y: 2.6 }, { x: 25.9, y: 3.4 }, { x: 19.6, y: 2.6 },  // right floor
       { x: 3, y: 8.4 }, { x: 29, y: 8.4 },                                                  // lofts
     ],
-    spikes: [], fires: [], scythes: [],
+    spikes: [], fires: [],
   },
-  // Two fields and a raised mound in the middle, swept by a big scarecrow.
+  // Two fields of wheat and a raised mound in the middle.
   field: {
     name: 'Scarecrow Field',
     theme: THEMES.sunset,
     platforms: [
       { x: 5.5,  y: 3.4,   w: 9,   h: 1.2 },   // fields (top 4)
       { x: 26.5, y: 3.4,   w: 9,   h: 1.2 },
-      { x: 16,   y: 4.4,   w: 7,   h: 1.2 },   // the mound (top 5), under the scarecrow
+      { x: 16,   y: 4.4,   w: 7,   h: 1.2 },   // the mound (top 5)
       { x: 6,    y: 7.35,  w: 3.5, h: 0.5 },   // side ledges (top 7.6)
       { x: 26,   y: 7.35,  w: 3.5, h: 0.5 },
       { x: 10.5, y: 10.35, w: 2.5, h: 0.5 },   // stepping ledges (top 10.6)
       { x: 21.5, y: 10.35, w: 2.5, h: 0.5 },
-      { x: 16,   y: 12.4,  w: 4,   h: 0.5 },   // perch above the scythe's reach (top 12.65)
+      { x: 16,   y: 12.4,  w: 4,   h: 0.5 },   // the high perch (top 12.65)
     ],
     spawns: [{ x: 6.5, y: 4 }, { x: 25.5, y: 4 }, { x: 6, y: 7.6 }, { x: 26, y: 7.6 }],
     patches: [{ x: 3.5, y: 4 }, { x: 28.5, y: 4 }, { x: 16, y: 5 }, { x: 16, y: 12.65 }],
     bales: [{ x: 8.8, y: 4 }, { x: 23.2, y: 4 }],
     spikes: [], fires: [],
-    scythes: [{ x: 16, y: 8.2, length: 2.8, pole: 3.2 }],
   },
   // Little platforms over a floor of pitchforks.
   pit: {
@@ -94,7 +91,7 @@ export const MAPS = {
     patches: [{ x: 2.5, y: 5 }, { x: 29.5, y: 5 }, { x: 16, y: 4.5 }, { x: 16, y: 13 }],
     bales: [{ x: 17.1, y: 9.5 }],
     spikes: [{ x: 16, y: 1.8, w: 30.6 }],
-    fires: [], scythes: [],
+    fires: [],
   },
   // A campground at night with a big bonfire in the middle.
   camp: {
@@ -111,7 +108,7 @@ export const MAPS = {
     spawns: [{ x: 8, y: 3.5 }, { x: 24, y: 3.5 }, { x: 9.5, y: 6.85 }, { x: 22.5, y: 6.85 }],
     patches: [{ x: 4, y: 3.5 }, { x: 28, y: 3.5 }, { x: 15, y: 9.85 }],
     bales: [{ x: 12.6, y: 3.5 }, { x: 19.4, y: 3.5 }, { x: 17.6, y: 9.85 }],
-    spikes: [], scythes: [],
+    spikes: [],
     fires: [{ x: 16, y: 3.5, w: 1.8 }],
   },
   // A test map with one of everything (off in the rotation by default).
@@ -121,7 +118,7 @@ export const MAPS = {
     platforms: [
       { x: 7,    y: 4,   w: 10,  h: 0.8 },   // left ground (top 4.4)
       { x: 25,   y: 4,   w: 10,  h: 0.8 },   // right ground
-      { x: 16,   y: 9.5, w: 6,   h: 0.6 },   // top middle (top 9.8), under the scarecrow
+      { x: 16,   y: 9.5, w: 6,   h: 0.6 },   // top middle (top 9.8)
       { x: 2.5,  y: 8.5, w: 3,   h: 0.5 },   // high ledges
       { x: 29.5, y: 8.5, w: 3,   h: 0.5 },
       { x: 16,   y: 1.5, w: 8.4, h: 0.6 },   // pit floor under the pitchforks (top 1.8, above the help text)
@@ -131,7 +128,6 @@ export const MAPS = {
     bales: [{ x: 10.4, y: 4.4 }, { x: 11.45, y: 4.4 }, { x: 10.9, y: 5.2 }, { x: 25.8, y: 4.4 }],
     spikes: [{ x: 16, y: 1.8, w: 8 }],
     fires: [{ x: 28.2, y: 4.4, w: 1.4 }],
-    scythes: [{ x: 16, y: 12.4, length: 2.6, pole: 2.6 }],
     movers: [{ x: 13.5, y: 4.15, w: 3, h: 0.5, x2: 18.5, y2: 4.15, speed: 2.5, pause: 1 }],   // a ferry over the pit
     cannons: [   // gourds at the left ground (where you start), one every 2 s: a lob from the high ledge, a flat shot from under the top middle
       { x: 3.5, y: 8.75, face: 'top', aim: 49, speed: 6, every: 4, delay: 2 },

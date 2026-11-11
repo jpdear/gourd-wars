@@ -139,7 +139,7 @@ export function updateBlackHoles(game, dt) {
     }
     for (const bale of game.bales) {
       if (bale.broken) continue
-      if (pullAt(bale.body.getPosition()).d < h.r) breakBale(game, bale, 'swallow')
+      if (pullAt(bale.body.getPosition()).d < h.r) breakBale(game, bale, 'straw')   // (it bursts into straw like any broken bale)
       else pull(bale.body)
     }
     for (const patch of game.patches) {

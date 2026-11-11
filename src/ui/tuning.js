@@ -106,7 +106,6 @@ const TUNABLES = [
       ['CONFIG.level.spikeDamage', 0, 100, 1, 'pitchfork dmg'],
       ['CONFIG.level.spikeCooldown', 0, 2, 0.05, 'pitchfork cooldown'],
       ['CONFIG.level.spikeBounce', 0, 25, 0.5, 'pitchfork bounce'],
-      ['CONFIG.level.scytheTurnTime', 0.5, 10, 0.1, 'scythe turn (s)'],
     ]],
   ]],
   ['Patches', [

@@ -57,7 +57,7 @@ src/
     crows.js            crows flying over (knocked down, thrown, pecking)
     traps.js            planted gourds: Chompers (biting) and Landmines (blowing up)
     pickups.js          what the harvest key can pick up (pumpkins, crows)
-    level.js            hay bales, pitchforks, scarecrows, bonfires, moving platforms
+    level.js            hay bales, pitchforks, bonfires, moving platforms
     cannons.js          gourd cannons (a map piece firing gourds)
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
@@ -65,6 +65,7 @@ src/
                       palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
                       effects.js: particles, blast clouds and popups (made locally from game events)
                       anims.js: the bits of gourds that move on their own (blinking lights, glows, trails)
+                      statusLooks.js: how bales and players look damaged, frozen or glued
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
   lab/                the effects lab: tries for gourd breaks, firing and animations (variants.js), side by side

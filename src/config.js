@@ -101,7 +101,6 @@ export const CONFIG = {
     spikeDamage: 25,         // touching pitchforks (health is 50: two touches knock you out)
     spikeCooldown: 0.5,      // ...then no more pitchfork damage for this long, however many tines you touch
     spikeBounce: 12,         // m/s pop up off the tines
-    scytheTurnTime: 3,       // seconds per full turn of a scarecrow's scythe
   },
   pickup: {                  // standing at something to pick up with the harvest key (a pumpkin, a crow)
     reach: 1.1,              // how close (sideways) you need to be

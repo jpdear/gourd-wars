@@ -4,8 +4,12 @@
 // Three kinds of row:
 //   break  the gourd flies in, hits a player standing there for scale, and breaks (VARIANTS); loops
 //   fire   a player holding the gourd sprays a full load of seeds to the left (FIRING); loops
-//   anim   one of the bits that move on their own (ANIM in render/anims.js), shown on a little scene
-//          (SCENES), with the try swapped in for the game's while its tile is drawn (ANIMS)
+//   anim   a piece of the game's drawing that can be swapped (ANIM in render/anims.js: bits that move
+//          on their own; LOOKS in render/statusLooks.js: bales and players damaged, frozen, glued),
+//          shown on a little scene (SCENES), with the try swapped in while its tile is drawn (ANIMS)
+//   cannon a gourd cannon firing every loop, and what happens at its muzzle (CANNON)
+//   bale   a nearly broken hay bale breaking every loop, by the event for how (BALE): straw, or burn
+//          (sitting on a bonfire)
 // Some break rows also show what else the game does there (CONTEXT: a blast, the Black Hole growing,
 // the Airstrike's target), so the effect is judged with it. Everything is drawn by the game's own code
 // (effects, gourds, the player), so a tile looks just like the game.
@@ -13,27 +17,31 @@
 // pause, and a time scrubber (drag it to stop at any moment). Each tile uses the same random numbers
 // every loop, so a paused moment is the same every time.
 
-import { CONFIG } from '../config.js'
+import { CONFIG, PLAYER_COLORS } from '../config.js'
 import { addPlayer, createGame, currentMap, stepGame } from '../game/game.js'
 import { emptyInput } from '../game/input.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { makeSnapshot } from '../game/snapshot.js'
 import { BUILTIN_MAP_IDS, MAPS } from '../maps/builtin.js'
 import { ANIM, clock } from '../render/anims.js'
+import { LOOKS } from '../render/statusLooks.js'
+import { CANNON as CANNON_DEF, cannonParts } from '../game/cannons.js'
+import { BALE } from '../game/level.js'
 import { createEffects, drawEffects, spawnEffect, updateEffects } from '../render/effects.js'
 import { GOURD, shadeOf } from '../render/palette.js'
 import { drawPlayer, handOf } from '../render/players.js'
+import { drawBale, drawBonfire, drawCannon } from '../render/level.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawPumpkin, drawTrap, pumpkinColors } from '../render/pumpkins.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
-import { ANIMS, FIRING, VARIANTS } from './variants.js'
+import { ANIMS, BALE as BALE_BREAKS, CANNON, FIRING, VARIANTS } from './variants.js'
 
 const TILE = { w: 270, h: 170, scale: 48 }   // px, and px per m (at 1x zoom)
 const FLOOR = 0.6                             // m: the floor's height above the tile's bottom edge (at 1x zoom)
-const LOOP = { fly: 0.3, length: 2 }          // s (game time): the flight in, then the whole loop
+const LOOP = { fly: 0.3, fire: 0.8, bale: 0.6, length: 2 }   // s (game time): a gourd's flight in, when the cannon fires, when the bale breaks, the whole loop
 const HIT = [0.2, 1.05]                       // m: where the gourd breaks (at the player's chest)
 const FROM = -2.9                             // m: where it flies in from
-const STANDS = { break: HIT[0] + 0.35, fire: 2.2, anim: 1.9 }   // m: where the player stands, by kind of row
+const STANDS = { break: HIT[0] + 0.35, fire: 2.2, anim: 1.9, cannon: 2.4, bale: 1.9 }   // m: where the player stands, by kind of row
 const FIRE_START = 0.25                       // s: the first shot
 const TITLES = { mini: 'Gourd Cluster (each piece)', seed: 'Seed Spitter (each seed hitting)' }   // (rows whose type's own name doesn't say enough)
 const SPEEDS = [[1, '1x'], [0.5, '0.5x'], [0.25, '0.25x'], [0, 'Pause']]
@@ -81,11 +89,27 @@ const SCENES = {
     },
   },
   mine: { focus: [0, 0.2], draw: (ctx, v, t, theme) => drawTrap(ctx, { kind: 'landmine', x: 0, y: 0, angle: 0, open: 1 }, v.X, v.Y, v.s, shadeOf(theme)) },
+  baleDamage: {   // three bales: healthy, damaged, nearly broken
+    focus: [0, 0.5],
+    draw: (ctx, v, t, theme) => [[-1.25, 1], [0, 0.5], [1.25, 0.2]].forEach(([x, health]) => drawBale(ctx, bale(x, { health }), v.X, v.Y, v.s, shadeOf(theme))),
+  },
+  baleFrozen: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { frozen: true }), v.X, v.Y, v.s, shadeOf(theme)) },
+  baleGlued: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { sticky: true }), v.X, v.Y, v.s, shadeOf(theme)) },
+  playerFrozen: { focus: [0, 0.95], alone: true, draw: (ctx, v, t, theme) => drawStanding(ctx, v, theme, { frozen: true }) },
+  playerGlued: { focus: [0, 0.6], alone: true, draw: (ctx, v, t, theme) => drawStanding(ctx, v, theme, { glued: true }) },
 }
+const bale = (x, state) => ({ x, y: BALE.h / 2, angle: 0, health: 1, ...state })
+const drawStanding = (ctx, v, theme, state) => {   // the scale player, standing at 0 in this state (in red, so pale blue shows up)
+  const p = players.anim
+  drawPlayer(ctx, { ...p.snap, color: PLAYER_COLORS[1], ...state }, false, theme, x => v.X(x - p.x), y => v.Y(y - p.feet), v.s)
+}
+const TABLES = { ANIM, LOOKS }
+// The cannon the cannon row fires: on the floor, aimed up and left, firing once a loop at LOOP.fire.
+const CANNON_AT = { x: 1.4, y: 0, face: 'top', aim: 155, speed: 9, every: LOOP.length }
 
 const state = { mapId: BUILTIN_MAP_IDS[0], speed: 1, zoom: 1, clock: 0 }
 const players = { break: standingPlayer(null), fire: standingPlayer('spitter') }
-players.anim = players.break
+players.anim = players.cannon = players.bale = players.break
 const tiles = []
 
 // --- the page ---
@@ -108,7 +132,10 @@ function buildPage() {
   for (const [typeName, tries] of Object.entries(FIRING)) {
     addRow('fire', typeName, `${PUMPKIN_TYPES[typeName].name} (firing)`, { label: 'Now', about: 'What the game does today.', make: (fx, ev) => spawnEffect(fx, { type: 'spit', typeName, ripeness: 1, ...ev }) }, tries)
   }
-  for (const row of Object.values(ANIMS)) addRow('anim', row, row.title, { label: 'Now', about: 'What the game does today.', draw: ANIM[row.piece] }, row.tries)
+  for (const row of Object.values(ANIMS)) addRow('anim', row, row.title, { label: 'Now', about: 'What the game does today.', draw: TABLES[row.table || 'ANIM'][row.piece] }, row.tries)
+  const BALE_TITLES = { straw: 'Hay bale: breaking', burn: 'Hay bale: burning up (in a bonfire)' }
+  for (const [type, tries] of Object.entries(BALE_BREAKS)) addRow('bale', type, BALE_TITLES[type], { label: 'Now', about: 'What the game does today.', make: (fx, ev) => spawnEffect(fx, { type, ...ev }) }, tries)
+  addRow('cannon', 'classic', 'Gourd cannon (firing)', { label: 'Now', about: 'What the game does today.', make: (fx, ev) => spawnEffect(fx, { type: 'cannon', ...ev }) }, CANNON)
 }
 
 // subject: the pumpkin type's name (break, fire) or the ANIMS row (anim)
@@ -116,7 +143,7 @@ function addRow(kind, subject, title, now, tries) {
   const row = document.createElement('section')
   row.innerHTML = `<h2>${title}</h2><div class="lab-tiles"></div>`
   document.querySelector('.lab-rows').append(row)
-  const colors = kind !== 'anim' && pumpkinColors(PUMPKIN_TYPES[subject], 1, 0)
+  const colors = PUMPKIN_TYPES[subject] && pumpkinColors(PUMPKIN_TYPES[subject], 1, 0)   // (a gourd's row: its colors)
   const looks = [now, ...tries.map((v, i) => ({ label: `${'ABCDE'[i]} · ${v.name}`, about: v.about, draw: v.draw, make: v.make && ((fx, ev) => v.make(fx, ev, colors)) }))]
   for (const look of looks) {
     const fig = document.createElement('figure')
@@ -148,7 +175,7 @@ function view(focus, centered) {
   const x0 = centered ? TILE.w / 2 : TILE.w * 0.45 + focus[0] * TILE.scale, y0 = centered ? TILE.h * 0.55 : TILE.h - (FLOOR + focus[1]) * TILE.scale
   return { X: x => x0 + (x - focus[0]) * s, Y: y => y0 - (y - focus[1]) * s, s }
 }
-const FOCUS = { break: () => HIT, fire: () => muzzle().slice(0, 2), anim: tile => SCENES[tile.subject.scene].focus }
+const FOCUS = { break: () => HIT, fire: () => muzzle().slice(0, 2), anim: tile => SCENES[tile.subject.scene].focus, cannon: () => { const m = cannonParts(CANNON_AT).muzzle; return [m.x, m.y] }, bale: () => [0, BALE.h / 2] }
 
 // What happens in a tile's loop, by kind of row: a list of { at (s), run(tile) }.
 const SCRIPTS = {
@@ -168,6 +195,15 @@ const SCRIPTS = {
     }))
   },
   anim: () => [],
+  bale: (subject, look) => [{ at: LOOP.bale, run: tile => look.make(tile.fx, { x: 0, y: BALE.h / 2 }) }],
+  cannon: (typeName, look) => [{
+    at: LOOP.fire,
+    run: tile => {   // (like cannons.js's fire: the gourd out of the muzzle, and the cannon event)
+      const { muzzle, dir, aim } = cannonParts(CANNON_AT), r = PUMPKIN_TYPES[CANNON_DEF.ammo].radius
+      tile.seeds.push({ x: muzzle.x + dir.x * r, y: muzzle.y + dir.y * r, vx: dir.x * CANNON_AT.speed, vy: dir.y * CANNON_AT.speed, g: CONFIG.gravity, type: CANNON_DEF.ammo })
+      look.make(tile.fx, { x: muzzle.x, y: muzzle.y, angle: aim })
+    },
+  }],
 }
 
 const reset = tile => Object.assign(tile, { fx: createEffects(), at: 0, next: 0, seeds: [], random: seeded(tile.seed) })
@@ -206,28 +242,35 @@ function drawTile(tile, t) {
   ctx.fillRect(0, v.Y(0), TILE.w, 0.12 * v.s)
   if (context?.under && age >= 0) context.under(ctx, v, age)
   const p = players[kind], at = x => v.X(x - p.x + STANDS[kind]), up = y => v.Y(y - p.feet)
-  drawPlayer(ctx, p.snap, false, theme, at, up, v.s)
+  if (!(kind === 'anim' && SCENES[tile.subject.scene].alone)) drawPlayer(ctx, p.snap, false, theme, at, up, v.s)
   if (kind === 'anim') return drawAnim(tile, v, theme, at, up)
+  const fire = kind === 'bale' && tile.subject === 'burn' && { x: 0, y: 0, w: 1.4 }
+  if (fire) drawBonfire(ctx, fire, v.X, v.Y, v.s, false, shadeOf(theme))
+  if (kind === 'bale' && t < LOOP.bale) drawBale(ctx, bale(0, { health: 0.2 }), v.X, v.Y, v.s, shadeOf(theme))
+  if (fire) drawBonfire(ctx, fire, v.X, v.Y, v.s, true)
+  if (kind === 'cannon') drawCannon(ctx, CANNON_AT, ((LOOP.fire - t) % LOOP.length + LOOP.length) % LOOP.length, v.X, v.Y, v.s, shadeOf(theme))
   if (kind === 'break' && t < LOOP.fly) {   // flying in, spinning
     const type = PUMPKIN_TYPES[tile.subject], u = t / LOOP.fly
     drawPumpkin(ctx, v.X(FROM + (HIT[0] - FROM) * u), v.Y(HIT[1] + 0.25 * (1 - u)), type.radius * v.s, -t * 14, type, type.mark, shadeOf(theme))
   }
   if (context?.over && age >= 0) context.over(ctx, v, age)
-  const seed = PUMPKIN_TYPES.seed
-  for (const sd of tile.seeds) drawPumpkin(ctx, v.X(sd.x), v.Y(sd.y), seed.radius * v.s, Math.atan2(sd.vy, sd.vx), seed, seed.mark)
+  for (const sd of tile.seeds) {   // (seeds, or the cannon's gourd)
+    const type = PUMPKIN_TYPES[sd.type || 'seed']
+    drawPumpkin(ctx, v.X(sd.x), v.Y(sd.y), type.radius * v.s, sd.type ? -tile.at * 6 : Math.atan2(sd.vy, sd.vx), type, type.mark, sd.type && shadeOf(theme))
+  }
   drawEffects(ctx, tile.fx, theme, v.X, v.Y, v.s)
 }
 
 // An animation row's tile: its scene, with this tile's version of the piece swapped in and the clock
 // set to the lab's (so pause and the scrubber stop it), then both put back.
 function drawAnim(tile, v, theme, at, up) {
-  const { piece, scene } = tile.subject, real = ANIM[piece], realNow = clock.now, t = state.clock
-  ANIM[piece] = tile.look.draw
+  const { piece, scene } = tile.subject, table = TABLES[tile.subject.table || 'ANIM'], real = table[piece], realNow = clock.now, t = state.clock
+  table[piece] = tile.look.draw
   clock.now = () => t
   try {
     SCENES[scene].draw(tile.ctx, v, t, theme)
     if (scene === 'lockOn') { const torso = players.anim.snap.parts[0]; ANIM.lockOn(tile.ctx, at(torso[0]), up(torso[1]), v.s, t) }
-  } finally { ANIM[piece] = real; clock.now = realNow }
+  } finally { table[piece] = real; clock.now = realNow }
 }
 
 // Where a firing player's seeds leave the gourd (tile m) and which way (radians), as in Player.fireSeed.
