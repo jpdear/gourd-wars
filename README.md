@@ -63,6 +63,7 @@ src/
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
   render/             draws a frame from a snapshot (the same on the host and guests);
                       palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
+                      scenery.js: map backdrops (cached), their moving parts and weather, and platform tops
                       effects.js: particles, blast clouds and popups (made locally from game events)
                       anims.js: the bits of gourds that move on their own (blinking lights, glows, trails)
                       statusLooks.js: how bales and players look damaged, frozen or glued

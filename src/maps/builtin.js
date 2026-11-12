@@ -32,8 +32,8 @@ export const MAPS = {
     name: 'Hay Loft',
     theme: THEMES.barn,
     platforms: [
-      { x: 0.4,  y: 10,   w: 0.8,  h: 16, wall: true },   // walls
-      { x: 31.6, y: 10,   w: 0.8,  h: 16, wall: true },
+      { x: 0.4,  y: 9,    w: 0.8,  h: 18, wall: true },   // walls (all the way down)
+      { x: 31.6, y: 9,    w: 0.8,  h: 18, wall: true },
       { x: 16,   y: 17.65, w: 32,  h: 0.7, wall: true },  // ceiling (bottom 17.3, just above the score)
       { x: 6.9,  y: 1.3,  w: 12.2, h: 2.6 },              // barn floor (top 2.6), hole from x 13 to 19
       { x: 25.1, y: 1.3,  w: 12.2, h: 2.6 },

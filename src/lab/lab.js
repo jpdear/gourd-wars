@@ -25,14 +25,15 @@ import { makeSnapshot } from '../game/snapshot.js'
 import { BUILTIN_MAP_IDS, MAPS } from '../maps/builtin.js'
 import { ANIM, clock } from '../render/anims.js'
 import { LOOKS } from '../render/statusLooks.js'
+import { PARTS, drawMapFront, mock, paintBackdrop } from '../render/scenery.js'
+import { THEMES } from '../maps/themes.js'
 import { CANNON as CANNON_DEF, cannonParts } from '../game/cannons.js'
 import { BALE } from '../game/level.js'
 import { createEffects, drawEffects, spawnEffect, updateEffects } from '../render/effects.js'
-import { GOURD, shadeOf } from '../render/palette.js'
+import { GOURD } from '../render/palette.js'
 import { drawPlayer, handOf } from '../render/players.js'
 import { drawBale, drawBonfire, drawCannon } from '../render/level.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawPumpkin, drawTrap, pumpkinColors } from '../render/pumpkins.js'
-import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 import { ANIMS, BALE as BALE_BREAKS, CANNON, FIRING, VARIANTS } from './variants.js'
 
@@ -68,14 +69,14 @@ const onPatch = (ctx, v, theme, typeName, glow, t) => {   // a gourd growing on 
   ctx.fillStyle = GOURD.patchLeaf
   for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(v.X(side * 0.28), v.Y(0.06), 0.2 * v.s, 0.07 * v.s, side * 0.4, 0, Math.PI * 2); ctx.fill() }
   ANIM[glow](ctx, v.X(0), v.Y(r), r * v.s, v.s, type.color, t)
-  drawPumpkin(ctx, v.X(0), v.Y(r), r * v.s, 0, type, type.mark, shadeOf(theme))
+  drawPumpkin(ctx, v.X(0), v.Y(r), r * v.s, 0, type, type.mark, theme.shade)
 }
 const SCENES = {
   homing: {   // a Homing gourd on the hunt, weaving a little
     focus: AT,
     draw: (ctx, v, t, theme) => {
       const heading = 0.25 * Math.sin(t * 0.8)
-      drawFlyingPumpkin(ctx, flying('homing', AT[0] + 0.4 * Math.sin(t * 0.8), AT[1] + 0.15 * Math.sin(t * 1.3), heading - Math.PI / 2, { heading }), { players: [] }, v.X, v.Y, v.s, shadeOf(theme))
+      drawFlyingPumpkin(ctx, flying('homing', AT[0] + 0.4 * Math.sin(t * 0.8), AT[1] + 0.15 * Math.sin(t * 1.3), heading - Math.PI / 2, { heading }), { players: [] }, v.X, v.Y, v.s, theme.shade)
     },
   },
   lockOn: { focus: [STANDS.anim, 1.2], draw: () => {} },   // (the player's drawn anyway; the reticle goes on them: see drawAnim)
@@ -85,25 +86,44 @@ const SCENES = {
   spin: {   // a Boomerang and a Buzzsaw spinning in mid-air
     focus: AT,
     draw: (ctx, v, t, theme) => {
-      for (const [typeName, x] of [['boomerang', -0.6], ['buzzsaw', 0.6]]) drawFlyingPumpkin(ctx, flying(typeName, x, AT[1], t * 24), { players: [] }, v.X, v.Y, v.s, shadeOf(theme))
+      for (const [typeName, x] of [['boomerang', -0.6], ['buzzsaw', 0.6]]) drawFlyingPumpkin(ctx, flying(typeName, x, AT[1], t * 24), { players: [] }, v.X, v.Y, v.s, theme.shade)
     },
   },
-  mine: { focus: [0, 0.2], draw: (ctx, v, t, theme) => drawTrap(ctx, { kind: 'landmine', x: 0, y: 0, angle: 0, open: 1 }, v.X, v.Y, v.s, shadeOf(theme)) },
+  mine: { focus: [0, 0.2], draw: (ctx, v, t, theme) => drawTrap(ctx, { kind: 'landmine', x: 0, y: 0, angle: 0, open: 1 }, v.X, v.Y, v.s, theme.shade) },
   baleDamage: {   // three bales: healthy, damaged, nearly broken
     focus: [0, 0.5],
-    draw: (ctx, v, t, theme) => [[-1.25, 1], [0, 0.5], [1.25, 0.2]].forEach(([x, health]) => drawBale(ctx, bale(x, { health }), v.X, v.Y, v.s, shadeOf(theme))),
+    draw: (ctx, v, t, theme) => [[-1.25, 1], [0, 0.5], [1.25, 0.2]].forEach(([x, health]) => drawBale(ctx, bale(x, { health }), v.X, v.Y, v.s, theme.shade)),
   },
-  baleFrozen: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { frozen: true }), v.X, v.Y, v.s, shadeOf(theme)) },
-  baleGlued: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { sticky: true }), v.X, v.Y, v.s, shadeOf(theme)) },
+  baleFrozen: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { frozen: true }), v.X, v.Y, v.s, theme.shade) },
+  baleGlued: { focus: [0, 0.5], draw: (ctx, v, t, theme) => drawBale(ctx, bale(0, { sticky: true }), v.X, v.Y, v.s, theme.shade) },
   playerFrozen: { focus: [0, 0.95], alone: true, draw: (ctx, v, t, theme) => drawStanding(ctx, v, theme, { frozen: true }) },
   playerGlued: { focus: [0, 0.6], alone: true, draw: (ctx, v, t, theme) => drawStanding(ctx, v, theme, { glued: true }) },
+  sunsetSky: { focus: [16, 9], fit: true, alone: true, draw: (ctx, v) => paintBackdrop(ctx, THEMES.sunset, v.X, v.Y, v.s) },   // (all of Scarecrow Field's backdrop)
+  campForest: { focus: [16, 6], fit: true, alone: true, draw: (ctx, v) => paintBackdrop(ctx, THEMES.night, v.X, v.Y, v.s) },   // (Bonfire Camp's backdrop, round its forest)
+  scarecrow: {   // Scarecrow Field's backdrop round its scarecrow (zoom closes in on it)
+    focus: [11.3, 4.1], alone: true,
+    draw: (ctx, v) => paintBackdrop(ctx, THEMES.sunset, v.X, v.Y, v.s),
+  },
+  // Whole maps in a theme with no built-in map (Bonfire Camp's layout), in big tiles; zoom: how close
+  // in round focus they start (the zoom buttons multiply it).
+  graveTree: { focus: [8, 8.5], zoom: 1.8, fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'graveyard', t) },
+  graves: { focus: [24, 7.5], zoom: 1.8, fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'graveyard', t) },
+  lavaWhole: { focus: [16, 9], fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'lava', t) },
+  lavaVolcano: { focus: [25.3, 8.6], zoom: 2.6, fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'lava', t) },
+  graveSky: { focus: [16, 9], fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'graveyard', t) },
+  lavaTops: { focus: [10, 5.4], zoom: 3, fit: true, big: true, alone: true, draw: (ctx, v, t) => drawWholeMap(ctx, v, 'lava', t) },
+}
+const drawWholeMap = (ctx, v, themeKey, t) => {   // (the backdrop drawn now, not from the game's cache: the tries swap pieces of it)
+  const map = { ...MAPS.camp, theme: THEMES[themeKey] }
+  paintBackdrop(ctx, map.theme, v.X, v.Y, v.s)
+  drawMapFront(ctx, map, v.X, v.Y, v.s, null, t)
 }
 const bale = (x, state) => ({ x, y: BALE.h / 2, angle: 0, health: 1, ...state })
 const drawStanding = (ctx, v, theme, state) => {   // the scale player, standing at 0 in this state (in red, so pale blue shows up)
   const p = players.anim
   drawPlayer(ctx, { ...p.snap, color: PLAYER_COLORS[1], ...state }, false, theme, x => v.X(x - p.x), y => v.Y(y - p.feet), v.s)
 }
-const TABLES = { ANIM, LOOKS }
+const TABLES = { ANIM, LOOKS, BACKDROP: PARTS }
 // The cannon the cannon row fires: on the floor, aimed up and left, firing once a loop at LOOP.fire.
 const CANNON_AT = { x: 1.4, y: 0, face: 'top', aim: 155, speed: 9, every: LOOP.length }
 
@@ -149,12 +169,13 @@ function addRow(kind, subject, title, now, tries) {
     const fig = document.createElement('figure')
     fig.innerHTML = `<canvas></canvas><figcaption><b>${look.label}</b> ${look.about}</figcaption>`
     row.querySelector('.lab-tiles').append(fig)
-    const canvas = fig.querySelector('canvas'), dpr = window.devicePixelRatio || 1
-    canvas.width = TILE.w * dpr
-    canvas.height = TILE.h * dpr
-    canvas.style.width = TILE.w + 'px'
-    canvas.style.height = TILE.h + 'px'
-    const tile = { kind, subject, look, ctx: canvas.getContext('2d'), dpr, seed: tiles.length + 1 }
+    const canvas = fig.querySelector('canvas'), dpr = window.devicePixelRatio || 1, k = kind === 'anim' && SCENES[subject.scene].big ? 2 : 1   // (big: twice the size)
+    const w = TILE.w * k, h = TILE.h * k
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    canvas.style.width = w + 'px'
+    canvas.style.height = h + 'px'
+    const tile = { kind, subject, look, ctx: canvas.getContext('2d'), dpr, w, h, seed: tiles.length + 1 }
     tile.script = SCRIPTS[kind](subject, look)
     reset(tile)
     tiles.push(tile)
@@ -174,6 +195,12 @@ function view(focus, centered) {
   const s = TILE.scale * state.zoom
   const x0 = centered ? TILE.w / 2 : TILE.w * 0.45 + focus[0] * TILE.scale, y0 = centered ? TILE.h * 0.55 : TILE.h - (FLOOR + focus[1]) * TILE.scale
   return { X: x => x0 + (x - focus[0]) * s, Y: y => y0 - (y - focus[1]) * s, s }
+}
+// A whole map's backdrop fitted to the tile's height at 1x (zoom closes in round `focus`; and the
+// scene's own zoom, if it has one).
+function fitView(focus, tile, zoom = 1) {
+  const s = tile.h / CONFIG.view.h * state.zoom * zoom
+  return { X: x => tile.w / 2 + (x - focus[0]) * s, Y: y => tile.h / 2 - (y - focus[1]) * s, s }
 }
 const FOCUS = { break: () => HIT, fire: () => muzzle().slice(0, 2), anim: tile => SCENES[tile.subject.scene].focus, cannon: () => { const m = cannonParts(CANNON_AT).muzzle; return [m.x, m.y] }, bale: () => [0, BALE.h / 2] }
 
@@ -231,32 +258,33 @@ const seeded = seed => () => {   // (mulberry32)
 }
 
 function drawTile(tile, t) {
-  const { ctx, dpr, kind } = tile, theme = MAPS[state.mapId].theme, v = view(FOCUS[kind](tile), kind === 'anim'), age = t - LOOP.fly
+  const { ctx, dpr, kind } = tile, theme = MAPS[state.mapId].theme, scene = kind === 'anim' && SCENES[tile.subject.scene], age = t - LOOP.fly
+  const v = scene?.fit ? fitView(FOCUS[kind](tile), tile, scene.zoom) : view(FOCUS[kind](tile), kind === 'anim')
   const context = kind === 'break' && CONTEXT[tile.subject]
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.fillStyle = mixHex(theme.sky[0], theme.sky[1], 0.5)
-  ctx.fillRect(0, 0, TILE.w, TILE.h)
+  ctx.fillStyle = theme.sky || theme.bands[0]
+  ctx.fillRect(0, 0, tile.w, tile.h)
   ctx.fillStyle = theme.platform
-  ctx.fillRect(0, v.Y(0), TILE.w, TILE.h)
+  ctx.fillRect(0, v.Y(0), tile.w, tile.h)
   ctx.fillStyle = theme.platformTop
-  ctx.fillRect(0, v.Y(0), TILE.w, 0.12 * v.s)
+  ctx.fillRect(0, v.Y(0), tile.w, 0.12 * v.s)
   if (context?.under && age >= 0) context.under(ctx, v, age)
   const p = players[kind], at = x => v.X(x - p.x + STANDS[kind]), up = y => v.Y(y - p.feet)
   if (!(kind === 'anim' && SCENES[tile.subject.scene].alone)) drawPlayer(ctx, p.snap, false, theme, at, up, v.s)
   if (kind === 'anim') return drawAnim(tile, v, theme, at, up)
   const fire = kind === 'bale' && tile.subject === 'burn' && { x: 0, y: 0, w: 1.4 }
-  if (fire) drawBonfire(ctx, fire, v.X, v.Y, v.s, false, shadeOf(theme))
-  if (kind === 'bale' && t < LOOP.bale) drawBale(ctx, bale(0, { health: 0.2 }), v.X, v.Y, v.s, shadeOf(theme))
+  if (fire) drawBonfire(ctx, fire, v.X, v.Y, v.s, false, theme.shade)
+  if (kind === 'bale' && t < LOOP.bale) drawBale(ctx, bale(0, { health: 0.2 }), v.X, v.Y, v.s, theme.shade)
   if (fire) drawBonfire(ctx, fire, v.X, v.Y, v.s, true)
-  if (kind === 'cannon') drawCannon(ctx, CANNON_AT, ((LOOP.fire - t) % LOOP.length + LOOP.length) % LOOP.length, v.X, v.Y, v.s, shadeOf(theme))
+  if (kind === 'cannon') drawCannon(ctx, CANNON_AT, ((LOOP.fire - t) % LOOP.length + LOOP.length) % LOOP.length, v.X, v.Y, v.s, theme.shade)
   if (kind === 'break' && t < LOOP.fly) {   // flying in, spinning
     const type = PUMPKIN_TYPES[tile.subject], u = t / LOOP.fly
-    drawPumpkin(ctx, v.X(FROM + (HIT[0] - FROM) * u), v.Y(HIT[1] + 0.25 * (1 - u)), type.radius * v.s, -t * 14, type, type.mark, shadeOf(theme))
+    drawPumpkin(ctx, v.X(FROM + (HIT[0] - FROM) * u), v.Y(HIT[1] + 0.25 * (1 - u)), type.radius * v.s, -t * 14, type, type.mark, theme.shade)
   }
   if (context?.over && age >= 0) context.over(ctx, v, age)
   for (const sd of tile.seeds) {   // (seeds, or the cannon's gourd)
     const type = PUMPKIN_TYPES[sd.type || 'seed']
-    drawPumpkin(ctx, v.X(sd.x), v.Y(sd.y), type.radius * v.s, sd.type ? -tile.at * 6 : Math.atan2(sd.vy, sd.vx), type, type.mark, sd.type && shadeOf(theme))
+    drawPumpkin(ctx, v.X(sd.x), v.Y(sd.y), type.radius * v.s, sd.type ? -tile.at * 6 : Math.atan2(sd.vy, sd.vx), type, type.mark, sd.type && theme.shade)
   }
   drawEffects(ctx, tile.fx, theme, v.X, v.Y, v.s)
 }

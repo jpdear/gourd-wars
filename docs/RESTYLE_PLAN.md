@@ -723,10 +723,12 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 6. Document the new themes in `docs/DESIGN.md` (the Maps section) and the new fields in `themes.js`'s header.
 
 **Check:**
-- [ ] For each new theme: open the map editor, make a quick test map with a few platforms and a pit, set the theme, play it, and compare with `style-guide.html`.
-- [ ] Gourds and players read clearly on each one (this feeds step 13).
-- [ ] Frame time with snow or embers running.
-- [ ] Tests and build pass.
+- [x] For each new theme: open the map editor, make a quick test map with a few platforms and a pit, set the theme, play it, and compare with `style-guide.html`.
+- [x] Gourds and players read clearly on each one (this feeds step 13).
+- [x] Frame time with snow or embers running.
+- [x] Tests and build pass.
+
+**Notes:** checked by switching Bonfire Camp's map to each theme in Practice (60 fps on all four, with snow and embers running). Graveyard's fence and graves stand on its far hill (at the mockup's ground level they'd be hidden behind the arena floor), and its tree on the near hill. After feedback (picked in the effects lab): Graveyard has no fog (the user's pick), a taller far hill with a row of small faded graves along its crest, cut off at its surface, and a sharp-angled forked tree; Lava's platforms are webs of cracks from the user's reference picture (black on floating ones, glowing on the floor: any platform 1 m thick or more); Winter, Lava and Synthwave got more shading on their mountains (Lava's ranges also a glowing rim); Synthwave's platforms are lighter with a dark frame and no seams. Lava has no lava sea (the user removed it), an ash-grey sky, and an animated crater and lava flow (ANIMATED); Graveyard has puffy storm clouds half hiding the moon, and Graveyard's crosses are flat (a shadow side blended them into the sky).
 
 **Hand over:** screenshots of the 4 new themes in a test map. Ask to start step 11.
 

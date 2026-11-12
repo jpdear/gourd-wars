@@ -11,6 +11,7 @@
 
 import { CONFIG, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
 import { matchInfoText } from '../game/match.js'
+import { skyColor } from '../maps/themes.js'
 import { UI, font } from './palette.js'
 import { mixHex } from '../util/color.js'
 import { clamp } from '../util/math.js'
@@ -23,10 +24,6 @@ import { clamp } from '../util/math.js'
 const PAPER = { face: UI.paper, ledge: UI.paperEdge, text: UI.ink }
 const INK = { face: UI.ink, ledge: UI.inkEdge, text: UI.paper }
 const brightness = hex => { const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) }
-function skyColor(theme) {   // (one color for the whole sky: its top band, or its two ends mixed)
-  if (theme.bands) return theme.bands[0]
-  return Array.isArray(theme.sky) ? mixHex(theme.sky[0], theme.sky[1], 0.5) : theme.sky
-}
 const surfaceOf = theme => (brightness(skyColor(theme)) > 140 ? INK : PAPER)
 export function hudSurface(theme, fromTheme = null, t = 1) {
   const to = surfaceOf(theme), from = fromTheme ? surfaceOf(fromTheme) : to

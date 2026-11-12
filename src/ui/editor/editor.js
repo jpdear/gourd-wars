@@ -8,7 +8,7 @@ import { BALE } from '../../game/level.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES } from '../../game/pumpkinTypes.js'
 import { MAPS } from '../../maps/builtin.js'
 import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
-import { THEMES } from '../../maps/themes.js'
+import { THEMES, skyColor } from '../../maps/themes.js'
 import { drawBale, drawBonfire, drawCannon, drawPitchforks } from '../../render/level.js'
 import { EDITOR, FONT } from '../../render/palette.js'
 import { drawPumpkin } from '../../render/pumpkins.js'
@@ -578,11 +578,11 @@ export function createEditor(canvas, view, hooks) {
     // help + where the cursor is, along the bottom
     ctx.font = `${Math.round(0.32 * s)}px ${FONT.system}`
     ctx.fillStyle = theme.muted
-    ctx.strokeStyle = theme.sky[1]
+    ctx.strokeStyle = skyColor(theme)
     ctx.lineWidth = 3
     ctx.lineJoin = 'round'
     const outlined = (text, x, align) => { ctx.textAlign = align; ctx.strokeText(text, X(x), Y(0.35)); ctx.fillText(text, X(x), Y(0.35)) }
-    outlined('Snaps to a 0.25 m grid (hold Shift for fine placement) · 1–9, M, C tools · Ctrl+Z undo · Del delete · Esc deselect', 0.4, 'left')
+    outlined('Snaps to a 0.25 m grid (hold Shift for fine placement) · 1–8, M, C tools · Ctrl+Z undo · Del delete · Esc deselect', 0.4, 'left')
     if (cursor && cursor.x >= 0 && cursor.x <= W && cursor.y >= 0 && cursor.y <= H) outlined(`x ${cursor.x.toFixed(2)}  y ${cursor.y.toFixed(2)}`, W - 0.4, 'right')
   }
 

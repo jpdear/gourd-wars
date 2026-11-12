@@ -9,7 +9,7 @@ import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { clock } from './anims.js'
 import { drawDizzyStars, drawPeckingCrow } from './crows.js'
-import { PLAYER, UI, shadeOf, shadowOf } from './palette.js'
+import { PLAYER, UI } from './palette.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
 import { LOOKS } from './statusLooks.js'
@@ -171,7 +171,7 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
     details: c => drawFace(c, p, hx, hy, X, Y, s),
     box: [X(Math.min(...xs) - pad), Y(Math.max(...ys) + pad), X(Math.max(...xs) + pad), Y(Math.min(...ys) - pad)],
     shift: 0.04 * s,
-    tint: shadeOf(theme),
+    tint: theme.shade,
   })
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'miter'
@@ -188,13 +188,13 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
     ctx.moveTo(X(hx), Y(hy + BODY.headR))
     ctx.lineTo(X(hx), Y(hy + 0.75))
     ctx.stroke()
-    drawPumpkin(ctx, X(hx), Y(hy + 0.95), 0.2 * s, 0, PUMPKIN_TYPES.balloon, null, shadeOf(theme))
+    drawPumpkin(ctx, X(hx), Y(hy + 0.95), 0.2 * s, 0, PUMPKIN_TYPES.balloon, null, theme.shade)
   }
   if (crowned) drawCrown(ctx, part(p, 'head'), theme, X, Y, s)
   if (p.pecked) drawPeckingCrow(ctx, p, X, Y, s)
   if (p.dazed) drawDizzyStars(ctx, X(hx), Y(hy + 0.3), s)
 
-  if (p.held) drawHeldPumpkin(ctx, p, X, Y, s, shadeOf(theme))
+  if (p.held) drawHeldPumpkin(ctx, p, X, Y, s, theme.shade)
 }
 
 // Which way a player looks: toward where they're aiming (p.aim), on the side they face: [angle above
@@ -263,7 +263,7 @@ function drawCrown(ctx, head, theme, X, Y, s) {
     },
     box: [Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m],
     shift: 0.04 * s,
-    tint: shadeOf(theme),
+    tint: theme.shade,
   })
 }
 
@@ -273,7 +273,7 @@ function drawCrown(ctx, head, theme, X, Y, s) {
 export function drawContactShadows(ctx, snap, map, theme, X, Y, s) {
   const floors = map.platforms.map(({ x, y, w, h }) => ({ x0: x - w / 2, x1: x + w / 2, top: y + h / 2 }))
   map.movers.forEach((m, i) => { const { x, y } = (snap.movers && snap.movers[i]) || m; floors.push({ x0: x - m.w / 2, x1: x + m.w / 2, top: y + m.h / 2 }) })
-  ctx.fillStyle = shadowOf(theme)
+  ctx.fillStyle = theme.shadow
   for (const p of snap.players) {
     if (p.dead || p.stunned) continue
     const feet = ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2))

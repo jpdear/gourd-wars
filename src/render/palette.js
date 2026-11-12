@@ -1,7 +1,8 @@
 // PALETTE: every color (and font) the canvas drawing uses, in one place, grouped by what it colors.
 // The render code reads these instead of writing colors inline, so changing the look means changing
 // this file. Not in here: each pumpkin type's own colors (PUMPKIN_TYPES in game/pumpkinTypes.js),
-// each map's colors (THEMES in maps/themes.js) and the players' colors (PLAYER_COLORS in config.js).
+// each map's colors, its scenery's and its shading tint included (THEMES in maps/themes.js), and the
+// players' colors (PLAYER_COLORS in config.js).
 // The HTML menus, map editor panel and tuning panel get theirs from styles/tokens.css.
 
 const freeze = o => {
@@ -68,9 +69,6 @@ export const GOURD = freeze({
   blackHole: { specks: ['#ffffff', '#a46bff'], halo: ['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.9)'], core: '#000' },   // (halo: the outer disc, the inner one)
 })
 
-// Until every map has its own shade tint (theme.shade) and contact shadow color (theme.shadow): these.
-export const shadeOf = theme => theme.shade || '#d6cfc4'
-export const shadowOf = theme => theme.shadow || 'rgba(0, 0, 0, 0.15)'
 
 // Effects, by game event (see EFFECTS in effects.js).
 export const FX = freeze({
@@ -129,16 +127,6 @@ export const LEVEL = freeze({
     mount: '#6b4a2b', strap: '#3c3f44', barrel: '#2f3338', band: '#4a4f55', muzzle: '#f28c28',
     pin: '#4a4f55',   // (its fuse sparks like a Jack-o'-Boom's: GOURD.spark)
   },
-})
-
-// Each map's backdrop scenery, by its theme's scenery name (scenery.js).
-export const BACKDROP = freeze({
-  hills: { hill: 'rgba(90, 143, 60, 0.12)' },
-  barn: { planks: 'rgba(94, 59, 31, 0.18)', rafters: 'rgba(94, 59, 31, 0.45)' },
-  sunset: { sun: 'rgba(255, 236, 170, 0.85)', hills: 'rgba(160, 110, 50, 0.35)' },
-  rocks: { rocks: 'rgba(70, 78, 92, 0.35)' },
-  night: { stars: 'rgba(255, 255, 255, 0.8)', moon: '#f3ecd2', pines: 'rgba(8, 12, 22, 0.75)' },
-  wheat: { stem: '#b8942c', head: '#e0bb45' },
 })
 
 // Crows (crows.js).

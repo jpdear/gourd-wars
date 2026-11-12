@@ -19,9 +19,8 @@ import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './pl
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
 import { drawEffects } from './effects.js'
-import { shadeOf } from './palette.js'
 import { drawPickupHints } from './pickups.js'
-import { drawMapBase } from './scenery.js'
+import { drawMapBase, drawWeather } from './scenery.js'
 
 export function render(ctx, view, snap, effects, ui) {
   const { s, ox, oy, w, h } = view
@@ -52,15 +51,15 @@ export function render(ctx, view, snap, effects, ui) {
   if (tr) {   // the map we're leaving, one screen to the left
     const old = mapDef(tr.from), XO = x => X(x - MAP_SHIFT)
     drawMapBase(ctx, old, XO, Y, s, null)
-    for (const c of old.cannons || []) drawCannon(ctx, c, null, XO, Y, s, shadeOf(old.theme))
+    for (const c of old.cannons || []) drawCannon(ctx, c, null, XO, Y, s, old.theme.shade)
     for (const f of old.fires) drawBonfire(ctx, f, XO, Y, s, true)
   }
   drawMapBase(ctx, map, X, Y, s, snap && snap.movers)
   const cannons = map.cannons || []
-  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s, shadeOf(map.theme))   // (timer: seconds to its next shot)
+  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s, map.theme.shade)   // (timer: seconds to its next shot)
 
   if (snap) {
-    const shade = shadeOf(map.theme)   // (the map's tint for two-tone shading)
+    const shade = map.theme.shade   // (the map's tint for two-tone shading)
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s, shade)
     drawPatches(ctx, snap, X, Y, s, shade)
     for (const c of snap.crows) drawCrow(ctx, c, X, Y, s)
@@ -83,6 +82,7 @@ export function render(ctx, view, snap, effects, ui) {
   drawEffects(ctx, effects, map.theme, X, Y, s)   // (blast clouds, particles, rings)
   for (const b of effects.birds) drawFlyingOff(ctx, b, X, Y, s)
   for (const f of effects.feathers) drawFeather(ctx, f, X, Y, s)
+  drawWeather(ctx, map.theme, X, Y, s)   // (snow, embers: over everything in the world)
   drawPopups(ctx, effects, ui, X, Y, s)   // (in the world: they shake with it)
   ctx.restore()   // (the shake)
 

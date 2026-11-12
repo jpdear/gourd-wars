@@ -19,18 +19,21 @@
 // A row with no tries just shows the game's look.
 //
 // Every batch so far is picked and in the game (the rows with no tries show the game's look for the
-// last ones). Nothing being tried right now.
+// last ones: Lava's flow, sky and platforms; Graveyard's clouds, tree and graves). Nothing being tried
+// right now.
 
 export const VARIANTS = {}
 
 export const FIRING = {}
 
+
 export const ANIMS = {
-  baleBody: { title: 'Hay bale: broken (healthy, damaged, nearly broken)', piece: 'baleBody', table: 'LOOKS', scene: 'baleDamage', tries: [] },
-  baleFrozen: { title: 'Hay bale: frozen', piece: 'baleFrozen', table: 'LOOKS', scene: 'baleFrozen', tries: [] },
-  playerFrozen: { title: 'Player: frozen', piece: 'playerFrozen', table: 'LOOKS', scene: 'playerFrozen', tries: [] },
-  playerGlued: { title: 'Player: glued', piece: 'playerGlued', table: 'LOOKS', scene: 'playerGlued', tries: [] },
-  baleGlued: { title: 'Hay bale: sticky', piece: 'baleGlued', table: 'LOOKS', scene: 'baleGlued', tries: [] },
+  lavaFlow: { title: 'Lava: the lava flow (zoomed on the volcano; it moves)', piece: 'lavaFlow', table: 'BACKDROP', scene: 'lavaVolcano', tries: [] },
+  lavaLand: { title: 'Lava: sky and mountains', piece: 'lavaLand', table: 'BACKDROP', scene: 'lavaWhole', tries: [] },
+  graveClouds: { title: 'Graveyard: clouds', piece: 'graveClouds', table: 'BACKDROP', scene: 'graveSky', tries: [] },
+  graveTree: { title: 'Graveyard: the tree', piece: 'graveTree', table: 'BACKDROP', scene: 'graveTree', tries: [] },
+  graves: { title: 'Graveyard: the graves on the hill', piece: 'graves', table: 'BACKDROP', scene: 'graves', tries: [] },
+  lavaTop: { title: 'Lava: platforms (floating ones, and the floor)', piece: 'lavaTop', table: 'BACKDROP', scene: 'lavaTops', tries: [] },
 }
 
 export const CANNON = []

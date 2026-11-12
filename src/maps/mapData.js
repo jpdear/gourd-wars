@@ -26,7 +26,7 @@ export function sanitizeMap(raw) {
     id: typeof raw.id === 'string' && /^c_[a-z0-9]{4,16}$/.test(raw.id) ? raw.id : newMapId(),
     custom: true,
     name: String(raw.name || 'Custom map').replace(/[\u0000-\u001f]/g, '').slice(0, 32) || 'Custom map',
-    theme: THEMES[raw.theme] ? raw.theme : 'paper',
+    theme: Object.hasOwn(THEMES, raw.theme) ? raw.theme : 'paper',
     platforms: list(raw.platforms, MAP_LIMITS.platforms).map(o => ({
       ...pt(o), w: num(o.w, 0.25, W, 2), h: num(o.h, 0.25, H, 0.5), ...(o.wall ? { wall: true } : {}),
     })),
@@ -56,7 +56,7 @@ export function sanitizeMap(raw) {
 
 // The version the game plays: the theme name becomes the theme itself.
 export function toRuntimeMap(def) {
-  return { ...def, theme: THEMES[def.theme] || THEMES.paper, playable: checkMap(def).errors.length === 0 }
+  return { ...def, theme: Object.hasOwn(THEMES, def.theme) ? THEMES[def.theme] : THEMES.paper, playable: checkMap(def).errors.length === 0 }
 }
 
 export function encodeMapCode(def) {
