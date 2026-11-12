@@ -232,6 +232,13 @@ const MARKS = {
     }
     c.stroke(); c.lineCap = 'butt'
   },
+  swirl: (c, r) => {   // a pale spiral on its face, slowly turning (a Teleport gourd)
+    c.save(); c.rotate(clock.now() * 2)
+    c.strokeStyle = GOURD.swirl; c.lineWidth = Math.max(1, r * 0.11); c.lineCap = 'round'
+    c.beginPath()
+    for (let i = 0; i <= 40; i++) { const a = i / 40 * TAU * 1.7, d = r * (0.06 + i / 40 * 0.5); c.lineTo(Math.cos(a) * d, Math.sin(a) * d) }
+    c.stroke(); c.lineCap = 'butt'; c.restore()
+  },
   rubberball: (c, r) => {   // a wide rubber band round its middle and a stubby fuse for a stem (it sparks once it's ticking: see fusedLook)
     c.save(); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.clip()
     c.fillStyle = GOURD.rubberBand; c.fillRect(-r * 1.2, -r * 0.19, r * 2.4, r * 0.38)
@@ -291,6 +298,7 @@ const IN_FLIGHT = {
   homing: (ctx, pk, colors, snap, X, Y, s) => {   // on the hunt (it has a heading): flames out the back
     if (pk.heading !== null && pk.heading !== undefined) ANIM.flameTrail(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.heading, clock.now())
   },
+  teleport: (ctx, pk, colors, snap, X, Y, s) => afterimages(ctx, pk, colors, X, Y, s),
   boomerang: (ctx, pk, colors, snap, X, Y, s) => spinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'boomerang'),
   buzzsaw: (ctx, pk, colors, snap, X, Y, s) => spinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'saw'),
 }
@@ -315,6 +323,23 @@ function drawMaybeTicking(ctx, x, y, r, angle, colors, type, left, shade) {
   drawSparkBurst(ctx, FUSE_TIP[0] * look.r, FUSE_TIP[1] * look.r, look.r * 0.8, clock.now())
   ctx.restore()
 }
+
+// A Teleport gourd's afterimages: two flat, see-through copies of it trailing behind the way it's going
+// (which way that is: from where it was drawn last, per gourd; just for looks).
+const lastSeen = new Map()   // pumpkin id → { x, y, dx, dy }
+function afterimages(ctx, pk, colors, X, Y, s) {
+  const prev = lastSeen.get(pk.id), mx = prev ? pk.x - prev.x : 0, my = prev ? pk.y - prev.y : 0, d = Math.hypot(mx, my)
+  const dir = d > 0.002 ? { dx: mx / d, dy: my / d } : prev || { dx: 0, dy: 0 }
+  if (lastSeen.size > 64) lastSeen.clear()   // (forget gourds long gone)
+  lastSeen.set(pk.id, { x: pk.x, y: pk.y, ...dir })
+  if (!dir.dx && !dir.dy) return
+  for (const [back, alpha, k] of AFTERIMAGES) {
+    ctx.globalAlpha = alpha
+    drawPumpkin(ctx, X(pk.x - dir.dx * back * pk.radius), Y(pk.y - dir.dy * back * pk.radius), pk.radius * k * s, pk.angle, colors, null, null)
+  }
+  ctx.globalAlpha = 1
+}
+const AFTERIMAGES = [[2.9, 0.25, 0.8], [1.55, 0.45, 0.9]]   // [how far behind (of its radius), opacity, size], furthest first
 
 // A thrown pumpkin (pk: as in IN_FLIGHT; shade: the map's shade tint).
 export function drawFlyingPumpkin(ctx, pk, snap, X, Y, s, shade) {

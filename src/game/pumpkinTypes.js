@@ -36,7 +36,7 @@
 
 import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
-import { callAirstrike, explode, freezeBlast, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { callAirstrike, explode, freezeBlast, openBlackHole, swapPlaces, teleportOwner, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { biteWith, plantTrap } from './traps.js'
 import { cannonOfBody, cannonTouching, freezeCannon } from './cannons.js'
 import { breakPumpkin, knockback, rebound, shove } from './pumpkins.js'
@@ -291,6 +291,15 @@ export const PUMPKIN_TYPES = {
     chill: { radius: 2.5, center: 3, edge: 1, objects: 3, floor: 5, cannon: 5 },
     onHitPlayer: () => {},   // (no damage: the burst freezes them)
     onBreak: (game, pk) => { const p = pk.body.getPosition(); freezeBlast(game, p.x, p.y, pk.type.chill, pk.power) },
+  },
+  teleport: {   // a magenta pumpkin with a slowly turning swirl (flying, paler copies of it trail behind): wherever it lands, its thrower is there
+    name: 'Teleport', color: '#d0479a', rib: '#8e2766', mark: 'swirl',
+    radius: 0.22, density: 2, restitution: 0.1,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakEvent: null,   // (no splat: the warp's specks instead)
+    // See teleportOwner and swapPlaces in powers.js: wherever it breaks, its thrower appears at the nearest
+    // open spot, keeping their own speed; hitting someone, the two swap places. Either frees you from glue and Chompers.
+    onHitPlayer: (game, pk, player) => swapPlaces(game, pk, player),
+    onBreak: (game, pk) => teleportOwner(game, pk),
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

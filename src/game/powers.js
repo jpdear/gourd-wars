@@ -6,7 +6,7 @@ import { breakBale, damageBale, freezeBale, iceOver, skyDrop } from './level.js'
 import { freezePatch, patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
-import { blastTraps } from './traps.js'
+import { blastTraps, freeVictim } from './traps.js'
 import { cannonDistance, freezeCannon } from './cannons.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
@@ -65,6 +65,71 @@ export function freezeBlast(game, x, y, chill, power) {
   for (const patch of game.patches) if (patch.state !== 'empty' && reach(patchPumpkin(patch)) <= 1) freezePatch(patch, chill.objects * power)
   for (const c of game.cannons) if (cannonDistance(c.def, { x, y }) <= chill.radius) freezeCannon(c, chill.cannon * power)
   iceOver(game, x, y, chill.radius, chill.floor * power)
+}
+
+// TELEPORT: wherever the gourd breaks (landing, hitting a wall, a bale, a shield, a bonfire, pitchforks...),
+// its thrower is there in an instant, at the nearest open spot: standing on what it landed on, just off a
+// wall, hanging under a ceiling (whichever side it came from), keeping their own speed. Hitting someone,
+// the two swap places instead (swapPlaces). Teleporting frees you from glue and a Chomper. Nothing happens
+// if its thrower is out (fallen, knocked out, gone), if it fell off the map, or if a Black Hole swallowed it.
+// Events: `warp` { x, y (the torso's middle), how: 'leave' (where you were) | 'arrive' (both ends of a swap too) }.
+const canWarp = pl => !!pl && !pl.dead && !pl.ko && !pl.removed
+export function teleportOwner(game, pk) {
+  const pl = pk.owner
+  if (pk.used || pk.swallowed || !canWarp(pl)) return
+  const p = pk.body.getPosition(), to = openSpot(game, p, pk.impactVel || pk.body.getLinearVelocity(), pk.radius)
+  const from = pl.torso.getPosition()
+  game.events.push({ type: 'warp', x: r3(from.x), y: r3(from.y), how: 'leave' })
+  warp(game, pl, to.x, to.y)
+}
+export function swapPlaces(game, pk, other) {
+  const pl = pk.owner
+  pk.used = true   // (so breaking doesn't teleport them again)
+  if (!canWarp(pl) || other === pl || other.dead || other.removed) return
+  const a = pl.torso.getPosition(), b = other.torso.getPosition()
+  const ax = a.x, ay = a.y, bx = b.x, by = b.y
+  warp(game, pl, bx, by)
+  warp(game, other, ax, ay)
+}
+function warp(game, pl, x, y) {
+  pl.warpTo(x, y)
+  freeVictim(game, pl)
+  game.events.push({ type: 'warp', x: r3(x), y: r3(y), how: 'arrive' })
+}
+
+// Where a teleported player's torso goes for a gourd (radius r) that hit something at p going v: standing
+// on it, under it, or beside it, whichever side it came from first, then the others, then the nearest
+// open spot round about (or p itself if there's none). See bodyFits.
+const BODY_BOX = { down: 1.2, up: 0.78, half: 0.28 }   // m from the torso's middle to the feet, to the top of the head; half the width
+function openSpot(game, p, v, r) {
+  const gap = 0.03, B = BODY_BOX
+  const floor = { x: p.x, y: p.y - r + B.down + gap }, ceiling = { x: p.x, y: p.y + r - B.up - gap }
+  const wall = { x: p.x + Math.sign(v.x || 1) * (r - B.half - gap), y: p.y }
+  const sides = Math.abs(v.y) >= Math.abs(v.x) ? (v.y <= 0 ? [floor, ceiling, wall] : [ceiling, floor, wall]) : [wall, floor, ceiling]
+  for (const q of sides) if (bodyFits(game, q.x, q.y)) return q
+  for (let d = 0.25; d <= 1.5; d += 0.25) {
+    for (let k = 0; k < 8; k++) {
+      const a = k / 8 * Math.PI * 2, q = { x: floor.x + Math.cos(a) * d, y: floor.y + Math.sin(a) * d }
+      if (bodyFits(game, q.x, q.y)) return q
+    }
+  }
+  return { x: p.x, y: p.y }
+}
+// Would a standing player's body, torso's middle at (x, y), be clear of anything solid (platforms, walls,
+// moving platforms, cannons, hay bales)? Players, pumpkins and hazards (pitchforks) don't count.
+const PASSABLE = new Set(['player', 'pumpkin', 'hazard'])
+function bodyFits(game, x, y) {
+  const B = BODY_BOX, x0 = x - B.half, x1 = x + B.half, y0 = y - B.down, y1 = y + B.up
+  const points = []
+  for (const px of [x0, x, x1]) for (let k = 0; k <= 5; k++) points.push(new Vec2(px, lerp(y0, y1, k / 5)))
+  let fits = true
+  game.world.queryAABB({ lowerBound: new Vec2(x0, y0), upperBound: new Vec2(x1, y1) }, fixture => {
+    const ud = fixture.getBody().getUserData()
+    if (fixture.isSensor() || (ud && PASSABLE.has(ud.kind))) return true
+    if (points.some(q => fixture.testPoint(q))) { fits = false; return false }
+    return true
+  })
+  return fits
 }
 
 // Send bodies flying straight out from a blast (a = direction away from the center) at `speed` m/s.
@@ -158,7 +223,7 @@ export function updateBlackHoles(game, dt) {
     }
     for (const pk of game.pumpkins) {
       if (pk.broken) continue
-      if (pullAt(pk.body.getPosition()).d < h.r + pk.radius) breakPumpkin(game, pk)   // (a Jack-o'-Boom goes off)
+      if (pullAt(pk.body.getPosition()).d < h.r + pk.radius) { pk.swallowed = true; breakPumpkin(game, pk) }   // (a Jack-o'-Boom goes off; a Teleport gourd doesn't take you in)
       else pull(pk.body)
     }
     for (const bale of game.bales) {

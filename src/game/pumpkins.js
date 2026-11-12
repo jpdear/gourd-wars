@@ -81,6 +81,7 @@ export function handlePumpkinContacts(game) {
       const pos = p.body.getPosition(), d = unit(c.velocity)   // (chips fly off it as it cuts through)
       game.events.push({ type: 'pierce', x: r3(pos.x), y: r3(pos.y), dx: r3(d.x), dy: r3(d.y), typeName: p.typeName })
     }
+    p.impactVel = c.velocity   // (how it was going when it hit: a Teleport gourd lands you on the side it came from)
     const hitPlayer = ud && ud.kind === 'player'
     if (hitPlayer) {
       const player = ud.player

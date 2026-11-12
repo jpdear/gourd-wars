@@ -82,6 +82,15 @@ function cloud(effects, x, y, k, look = FX.boom) {
   effects.clouds.push({ x, y, k, age: 0, life: CLOUD.life, puffs, look })
 }
 
+// A Teleport's specks (flickering dots in purples and pinks), all over the body (torso's middle at x, y):
+//   leave    where you were: spread round it, sucked in fast and gone
+//   arrive   where you appear (both ends of a swap): popping out, stopping almost at once, then sinking and flickering out
+const WARP_ROWS = [-0.6, -0.2, 0.2, 0.6]   // (heights over the body, m from its middle)
+const WARP = {
+  leave: (fx, { x, y }) => { for (const dy of WARP_ROWS) emit(fx, { x, y: y + dy, n: 7, colors: FX.warp, speed: [-3.4, -2.6], from: 0.6, life: [0.18, 0.23], size: [0.035, 0.07], shape: 'mote', gravity: 0 }) },
+  arrive: (fx, { x, y }) => { for (const dy of WARP_ROWS) emit(fx, { x, y: y + dy, n: 8, colors: FX.warp, speed: [1.5, 3.5], life: [0.6, 1.1], size: [0.035, 0.075], shape: 'mote', gravity: 0.06, drag: 7 }) },
+}
+
 // What each game event looks like, by event type (events with no entry show nothing).
 const EFFECTS = {
   boom: (fx, ev) => {
@@ -114,6 +123,7 @@ const EFFECTS = {
   },
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, FX.block, [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
   freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, FX.freeze, [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
+  warp: (fx, ev) => WARP[ev.how](fx, ev),   // a Teleport (see WARP)
   thaw: (fx, ev) => emit(fx, { x: ev.x, y: ev.y, n: 12, colors: FX.iceburst.shards, speed: [2, 5], life: [0.3, 0.5], size: [0.04, 0.07], shape: 'shard', gravity: 1, spin: 12 }),   // a frozen cannon's ice breaking off
   straw: (fx, ev) => {   // a hay bale breaking (or swallowed by a Black Hole): thin straws spraying out, tumbling and fluttering down, and bits of twine
     emit(fx, { x: ev.x, y: ev.y, n: 26, colors: FX.straw.straws, speed: [2, 7], life: [0.6, 1.1], size: [0.07, 0.095], shape: 'stick', lift: 2, gravity: 0.5, drag: 2, sway: 0.6, spin: 12 })
@@ -273,6 +283,10 @@ const heading = q => Math.atan2(-q.vy, q.vx)   // (on screen: y points down)
 const turned = (ctx, x, y, turn, path) => { ctx.save(); ctx.translate(x, y); ctx.rotate(turn); ctx.beginPath(); path(); ctx.restore() }
 const PARTICLE_SHAPES = {
   dot: (ctx, x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill() },
+  mote: (ctx, x, y, r, turn, q) => {   // a dot that flickers lighter now and then, at its own rate (a Teleport's specks)
+    if (Math.floor(q.age * (10 + q.seed * 8) + q.seed * 3) % 3 === 0) ctx.fillStyle = mixHex(q.color, '#ffffff', 0.35)
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill()
+  },
   chunk: (ctx, x, y, r, turn, q) => {   // a bit of rind (its outline is the same every frame: from its seed)
     ctx.beginPath()
     for (let k = 0; k < 5; k++) { const a = turn + k / 5 * TAU, d = r * (0.65 + hash(q.seed, k) * 0.5); ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d) }

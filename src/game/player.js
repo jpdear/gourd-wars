@@ -363,6 +363,16 @@ export class Player {
     this.jumpLock = lockTime
   }
 
+  // Teleported (a Teleport gourd): the whole body moved so the torso's middle is at (x, y), keeping its
+  // speed; free of glue, a Chomper's hold (the trap itself: see freeVictim in traps.js), a Vine and a wall.
+  warpTo(x, y) {
+    const c = this.torso.getPosition()
+    this.moveBy(x - c.x, y - c.y)
+    this.gluedTimer = this.pendingGlue = this.trappedTimer = 0
+    this.grapple = null
+    this.wall = null
+  }
+
   // Shift the whole body by (dx, dy); every part keeps its angle and speed.
   moveBy(dx, dy) {
     for (const p of this.parts) {

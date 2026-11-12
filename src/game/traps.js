@@ -148,6 +148,11 @@ function detonate(game, t) {
 }
 
 // Its time's up (or it's done biting, or what it sat on is gone): it shrivels away.
+// Let go of whoever a Chomper has hold of (a Teleport gourd whisked them away): it wilts.
+export function freeVictim(game, player) {
+  for (const t of game.traps) if (t.victim === player && !t.gone) goAway(game, t)
+}
+
 function goAway(game, t) {
   t.gone = true
   game.events.push({ type: 'wilt', x: r3(t.x), y: r3(t.y) })
