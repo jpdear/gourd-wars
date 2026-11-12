@@ -278,6 +278,16 @@ const TUNABLES = [
       ['CONFIG.player.iceGrip', 0.02, 1, 0.01, 'grip on ice'],
       ['CONFIG.player.iceFriction', 0, 0.3, 0.01, 'body friction on ice'],
     ]],
+    ['Sticky Bomb', [
+      [T_ + 'sticky.stuckFuse', 0.25, 8, 0.25, 'fuse once stuck (s)'],
+      [T_ + 'sticky.glue.radius', 0.5, 6, 0.1, 'glue radius'],
+      [T_ + 'sticky.glue.center', 0, 8, 0.25, 'glued: center (s)'],
+      [T_ + 'sticky.glue.edge', 0, 8, 0.25, 'glued: edge (s)'],
+      [T_ + 'sticky.glue.damage', 0, 40, 1, 'damage (center)'],
+      [T_ + 'sticky.glue.bale', 0, 15, 0.25, 'gooey bales (s)'],
+      [T_ + 'sticky.glue.floor', 0, 15, 0.25, 'sticky floor (s)'],
+      [T_ + 'sticky.chainDelay', 0, 1, 0.05, 'chain delay (s)'],
+    ]],
   ]],
 ]
 

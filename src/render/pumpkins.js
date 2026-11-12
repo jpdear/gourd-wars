@@ -14,7 +14,8 @@ import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
 import { ANIM, clock } from './anims.js'
-import { GOURD } from './palette.js'
+import { GOURD, STATUS } from './palette.js'
+import { fillGoo, strokeGoo } from './statusLooks.js'
 import { handOf } from './players.js'
 import { drawShaded } from './shading.js'
 import { hexA, mixHex } from '../util/color.js'
@@ -121,6 +122,8 @@ const BODIES = {
   mine: (c, r, colors, f) => mineGourd(c, r, colors, f),
   chomper: (c, r, colors, f) => shutChomper(c, r, colors, f),   // (thrown or held: shut, lying on its side)
   icefuse: (c, r, colors, f) => lobed(c, r, colors, f, { stem: false }),   // an Ice Bomb (its fuse and snow cap: MARKS)
+  slime: (c, r, colors, f) => slimeGlob(c, r, colors, f),       // a Sticky Bomb (its fuse: MARKS)
+  slimeStuck: (c, r, colors, f) => slimeGlob(c, r, colors, f),  // (stuck: drawSticky draws its fuse burning down)
   rubberball: (c, r, colors, f) => {   // a Bouncing Bomb: a round ball squash (no lobes sticking out, no stem)
     f(lobeColor(colors)); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.fill()
     f(colors.color); c.beginPath(); c.ellipse(0, 0, r * 0.6, r * 0.99, 0, 0, TAU); c.fill()
@@ -232,6 +235,7 @@ const MARKS = {
     }
     c.stroke(); c.lineCap = 'butt'
   },
+  slime: (c, r) => stickyFuse(c, r, 1, false),   // its fuse, not lit yet
   swirl: (c, r) => {   // a pale spiral on its face, slowly turning (a Teleport gourd)
     c.save(); c.rotate(clock.now() * 2)
     c.strokeStyle = GOURD.swirl; c.lineWidth = Math.max(1, r * 0.11); c.lineCap = 'round'
@@ -322,6 +326,80 @@ function drawMaybeTicking(ctx, x, y, r, angle, colors, type, left, shade) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(-angle)
   drawSparkBurst(ctx, FUSE_TIP[0] * look.r, FUSE_TIP[1] * look.r, look.r * 0.8, clock.now())
   ctx.restore()
+}
+
+// A Sticky Bomb: a gourd inside a glob of slime, whose big soft lumps creep slowly round its outline (and it
+// sags a little heavier at the bottom). Two layers: the darker outer goo, the lighter inner glob.
+function slimeGlob(c, r, colors, f) {
+  const turn = clock.now() * 0.7
+  f(colors.rib); blobPath(c, r * 1.04, 3, 0.1, 1, 1.03, turn); c.fill()
+  f(colors.color); c.save(); c.translate(-r * 0.06, -r * 0.04); blobPath(c, r * 0.86, 3, 0.09, 1, 1.03, turn + 0.4); c.fill(); c.restore()
+}
+// A lumpy blob outline round (0, 0): radius r, n lumps `bump` high (of r), stretched sx × sy, the lumps turned `turn`.
+function blobPath(c, r, n, bump, sx, sy, turn) {
+  c.beginPath()
+  for (let i = 0; i <= 48; i++) {
+    const a = i / 48 * TAU, k = 1 + bump * Math.sin((a - turn) * n + 0.7) + bump * 0.6 * Math.sin(a * (n + 2))
+    c.lineTo(Math.cos(a) * r * k * sx, Math.sin(a) * r * k * sy)
+  }
+  c.closePath()
+}
+// Its fuse, out of the top of the glob: `left` (0..1) of it still there; lit, a spark burst on its end.
+function stickyFuse(c, r, left, lit) {
+  const L = 0.15 + 0.5 * left, x = r * 0.12, y = -r * (0.85 + L)
+  c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
+  c.beginPath(); c.moveTo(0, -r * 0.85); c.lineTo(x, y); c.stroke(); c.lineCap = 'butt'
+  if (lit) drawSparkBurst(c, x, y, r * 0.85, clock.now())
+}
+// A stuck Sticky Bomb (st: from the snapshot; see game/stickies.js). On a surface: a splat of goo on it and three
+// stretchy strands holding the gourd on, wobbling (stopping where the surface ends, with goo draping over the
+// edge there: st.span); on someone: squashed flat against them, nothing else. Its fuse burns down to the burst.
+export function drawSticky(ctx, st, X, Y, s, shade) {
+  const type = PUMPKIN_TYPES.sticky, r = type.radius * s, colors = pumpkinColors(type, 1, 0)
+  ctx.save()
+  ctx.translate(X(st.x), Y(st.y))
+  ctx.rotate(Math.PI / 2 - st.angle)   // (now +y points at what it's on)
+  if (st.onPlayer) { ctx.translate(0, r * STICKY.squash.shift); ctx.scale(STICKY.squash.wide, STICKY.squash.flat) }
+  else stickyGoo(ctx, r, STATUS.goos.sticky, clock.now(), (st.span || [-9, 9]).map(v => v * s))
+  drawPumpkin(ctx, 0, 0, r, 0, colors, 'slimeStuck', shade)
+  stickyFuse(ctx, r, Math.min(1, st.fuse / type.stuckFuse), true)
+  ctx.restore()
+}
+const STICKY = { squash: { flat: 0.72, wide: 1.17, shift: 0.28 }, gap: 1.32 }   // squashed on someone: this flat, this wide, moved in this far (of r); gap: see stickies.js
+// (In the gourd's frame, +y toward the surface, +x along it.) span: [from, to] px either side the surface runs.
+// (It's two-tone like all of the Sticky Bomb's goo: see fillGoo. Here "down" is toward the surface, so the
+// lip runs along the splat's side away from it.)
+function stickyGoo(c, r, goo, t, [from, to]) {
+  const surf = r * STICKY.gap, wob = Math.sin(t * 6), splat = r * 0.95 * 1.25 * 1.12   // (half the splat's width, at its widest)
+  c.save()
+  c.beginPath(); c.rect(from, surf - r, to - from, r * 2); c.clip()   // (the splat stops where the surface does)
+  fillGoo(c, [cc => blobShape(cc, 0, surf, r * 0.95, 7, 0.12, 1.25, 0.28)], goo, r / PUMPKIN_TYPES.sticky.radius)
+  c.restore()
+  const drapes = []
+  for (const [edge, side] of [[from, -1], [to, 1]]) {   // cut short by an edge: goo draping over it, down the side
+    if (Math.abs(edge) >= splat) continue
+    const w = r * 0.22, hang = r * (0.35 + 0.12 * Math.sin(t * 2.5 + side))
+    drapes.push(cc => {
+      cc.moveTo(edge - side * w * 1.4, surf - r * 0.08); cc.lineTo(edge + side * w * 0.5, surf - r * 0.08)
+      cc.quadraticCurveTo(edge + side * w * 0.6, surf + hang * 0.6, edge + side * w * 0.15, surf + hang)
+      cc.arc(edge + side * w * 0.15 - side * w * 0.3, surf + hang, w * 0.3, 0, Math.PI, side > 0)
+      cc.closePath()
+    })
+  }
+  if (drapes.length) fillGoo(c, drapes, goo, r / PUMPKIN_TYPES.sticky.radius)
+  strokeGoo(c, [[-0.55, -0.85, 0.16], [0.05, 0.1, 0.2], [0.55, 0.8, 0.14]].map(([x0, x1, w]) => {
+    const foot = Math.max(from + r * 0.08, Math.min(to - r * 0.08, x1 * r))   // (its foot on the surface, not past its edge)
+    return { w: Math.max(1, r * w), path: cc => { cc.beginPath(); cc.moveTo(x0 * r, r * 0.7); cc.quadraticCurveTo((x0 * r + foot) * 0.5 + wob * r * 0.08, r * 1.05, foot, surf) } }
+  }), goo, r / PUMPKIN_TYPES.sticky.radius)
+}
+// blobPath's outline as a subpath (for fillGoo), around (x, y).
+function blobShape(c, x, y, r, n, bump, sx, sy) {
+  for (let i = 0; i <= 48; i++) {
+    const a = i / 48 * TAU, k = 1 + bump * Math.sin(a * n + 0.7) + bump * 0.6 * Math.sin(a * (n + 2))
+    const px = x + Math.cos(a) * r * k * sx, py = y + Math.sin(a) * r * k * sy
+    if (i) c.lineTo(px, py); else c.moveTo(px, py)
+  }
+  c.closePath()
 }
 
 // A Teleport gourd's afterimages: two flat, see-through copies of it trailing behind the way it's going

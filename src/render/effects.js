@@ -97,6 +97,10 @@ const EFFECTS = {
     cloud(fx, ev.x, ev.y, ev.r / 1.25)
     burst(fx, ev.x, ev.y, 40, FX.boom.burst, [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
   },
+  glueburst: (fx, ev) => {   // a Sticky Bomb bursting: a cloud of slime puffs and drops of slime flung out, falling
+    cloud(fx, ev.x, ev.y, ev.r / 1.6, FX.glueburst)
+    emit(fx, { x: ev.x, y: ev.y, n: 22, colors: FX.glueburst.drops, speed: [4, 10], life: [0.45, 0.75], size: [0.05, 0.09], shape: 'drop', gravity: 1.1, lift: 1.5 })
+  },
   iceburst: (fx, ev) => {   // an Ice Bomb: a cold puff cloud (white to pale blue) and ice shards spinning out to its edge
     cloud(fx, ev.x, ev.y, ev.r / 1.6, FX.iceburst)
     emit(fx, { x: ev.x, y: ev.y, n: 22, colors: FX.iceburst.shards, speed: [5, 12], life: [0.3, 0.5], size: [0.06, 0.12], shape: 'shard', gravity: 0.4, drag: 2, spin: 14 })
@@ -352,7 +356,7 @@ function drawCloud(ctx, c, theme, X, Y, s) {
     ctx.fill()
   }
 }
-const heatColor = (h, theme, look) => h > 0.66 ? look.puff.hot : h > 0.33 ? look.puff.warm : h > 0.12 || look !== FX.boom ? look.puff.cool : theme.smoke   // (a cold cloud stays pale blue)
+const heatColor = (h, theme, look) => h > 0.66 ? look.puff.hot : h > 0.33 ? look.puff.warm : h > 0.12 || look !== FX.boom ? look.puff.cool : theme.smoke   // (a cold or slimy cloud keeps its own last color)
 
 const TAU = Math.PI * 2
 const darker = c => mixHex(c, '#000000', 0.3)

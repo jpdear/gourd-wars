@@ -40,7 +40,8 @@ function spawnBale(game, x, y) {
   const bale = {
     id: game.nextBaleId++, body, hp: CONFIG.level.baleHealth, maxHp: CONFIG.level.baleHealth, broken: false,
     frozenTimer: 0,   // Frost: slippery ice block
-    stickyTimer: 0,   // Splat Pie: glues whoever touches it
+    stickyTimer: 0,   // Splat Pie (or a Sticky Bomb's burst): glues whoever touches it
+    gooKind: 'pie',   // ...whose goo it is (its color: see STATUS.goos)
     floatTimer: 0,    // Balloon: floating up
   }
   body.setUserData({ kind: 'bale', bale })
@@ -56,22 +57,28 @@ export function shoveBale(bale, dir, speed) {
 }
 
 // Frost: no friction for a while, so it slides a long way.
-// ICE ON THE FLOOR (an Ice Bomb): stretches of platform top that are slippery for a while.
-// game.ice: [{ id, x0, x1, y (the top), timer (s left) }]; Player.update asks onIce where it stands.
-// The tops of the map's platforms (and walls) within `radius` of (x, y) ice over for `seconds`.
-export function iceOver(game, x, y, radius, seconds) {
+// FLOOR COATINGS: stretches of platform top coated for a while, by kind: an Ice Bomb's `ice` (slippery: see
+// Player.onIce) and a Sticky Bomb's `goo` (glues whoever stands in it, till it dries).
+// game.ice, game.goo: [{ id, x0, x1, y (the top), timer (s left) }].
+//   coatFloor(game, kind, x, y, radius, seconds)   the tops of the map's platforms (and walls) within radius of (x, y)
+//   coatAt(game, kind, x, y)                       the stretch of that kind at (x, y) (feet on it), or null
+const COAT_IDS = { ice: 'nextIceId', goo: 'nextGooId' }   // (where each kind's next id comes from)
+export function coatFloor(game, kind, x, y, radius, seconds) {
   for (const p of currentMap(game).platforms) {
     const top = p.y + p.h / 2, dy = top - y
     if (Math.abs(dy) > radius) continue
     const half = Math.sqrt(radius * radius - dy * dy)
     const x0 = Math.max(p.x - p.w / 2, x - half), x1 = Math.min(p.x + p.w / 2, x + half)
-    if (x1 - x0 > 0.05) game.ice.push({ id: game.nextIceId++, x0, x1, y: top, timer: seconds })
+    if (x1 - x0 > 0.05) game[kind].push({ id: game[COAT_IDS[kind]]++, x0, x1, y: top, timer: seconds })
   }
 }
-export const onIce = (game, x, y) => game.ice.some(z => x >= z.x0 && x <= z.x1 && Math.abs(y - z.y) < 0.3)
-export function updateIce(game, dt) {
-  for (const z of game.ice) z.timer -= dt
-  game.ice = game.ice.filter(z => z.timer > 0)
+export const coatAt = (game, kind, x, y) => game[kind].find(z => x >= z.x0 && x <= z.x1 && Math.abs(y - z.y) < 0.3) || null
+export const onIce = (game, x, y) => !!coatAt(game, 'ice', x, y)
+export function updateCoats(game, dt) {
+  for (const kind of Object.keys(COAT_IDS)) {
+    for (const z of game[kind]) z.timer -= dt
+    game[kind] = game[kind].filter(z => z.timer > 0)
+  }
 }
 
 export function freezeBale(bale, seconds) {
@@ -123,7 +130,7 @@ export function updateBales(game, dt) {
         const touching = pl.parts.some(part =>
           [part.body.getWorldPoint(new Vec2(0, part.halfLen)), part.body.getWorldPoint(new Vec2(0, -part.halfLen))]
             .some(pt => baleAt(game, pt, 0.1) === b))
-        if (touching) pl.glue(PUMPKIN_TYPES.pie.glue)
+        if (touching) pl.glue(PUMPKIN_TYPES.pie.glue, b.gooKind)
       }
     }
     // bonfires burn them (pitchforks and blades break them by touch)

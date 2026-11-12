@@ -8,7 +8,8 @@ import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { clock } from './anims.js'
-import { DIZZY, PLAYER, UI } from './palette.js'
+import { DIZZY, PLAYER, STATUS, UI } from './palette.js'
+import { gooLeft } from './endings.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
 import { LOOKS } from './statusLooks.js'
@@ -112,8 +113,8 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
     if (travelled >= nextDot) nextDot += 0.45
   }
   dots.forEach(([x, y], i) => {
-    ctx.globalAlpha = 0.6 * (1 - 0.35 * i / Math.max(dots.length, 1))   // fading a little along the way
-    for (const [color, r] of [[UI.paper, 0.095], [flight.color, 0.075]]) {
+    ctx.globalAlpha = 0.9 * (1 - 0.35 * i / Math.max(dots.length, 1))   // fading a little along the way
+    for (const [color, r] of SIGHT_DOT(flight.color)) {   // (ringed dark and light, so it shows on any map, whatever the gourd's color)
       ctx.fillStyle = color
       ctx.beginPath()
       ctx.arc(X(x), Y(y), r * s, 0, Math.PI * 2)
@@ -122,6 +123,9 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   })
   ctx.globalAlpha = 1
 }
+
+// One dot of the sight, from the outside in: [color, radius (m)].
+const SIGHT_DOT = color => [[UI.ink, 0.11], [UI.paper, 0.088], [color, 0.068]]
 
 // Where a part of a snapshot player is: its [x, y, angle] by name.
 const part = (p, name) => p.parts[PART_NAMES.indexOf(name)]
@@ -175,10 +179,12 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'miter'
 
-  if (p.frozen || p.glued) {
+  const drain = p.glued ? null : gooLeft('p' + p.slot)   // (just come unglued: its goo draining away)
+  if (p.frozen || p.glued || drain) {
     const g = { head: [hx, hy], facing: p.facing, limbs: limbs.map(([ends, width]) => [...ends, width]), feet: ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2)) }
     if (p.frozen) LOOKS.playerFrozen.over(ctx, g, X, Y, s, clock.now())
-    if (p.glued) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now())
+    if (p.glued) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now(), STATUS.goos[p.goo || 'pie'])
+    else if (drain) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now(), STATUS.goos[drain.goo], drain.k)
   }
   if (p.floating) {   // a balloon carrying them off
     ctx.strokeStyle = PLAYER.balloonString

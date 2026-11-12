@@ -5,7 +5,7 @@ import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
 import { emptyInput } from './input.js'
-import { buildMover, buildPitchforks, recordHazardContact, resetBales, updateBales, updateHazards, updateIce, updateMovers } from './level.js'
+import { buildMover, buildPitchforks, recordHazardContact, resetBales, updateBales, updateCoats, updateHazards, updateMovers } from './level.js'
 import { buildCannon, resetCannons, updateCannons } from './cannons.js'
 import { updateMatch } from './match.js'
 import { createPatches, resetPatches, updatePatches } from './patches.js'
@@ -15,6 +15,7 @@ import { handlePumpkinContacts, piercesThrough, recordPumpkinContact, updatePump
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
 import { clearTraps, updateTraps } from './traps.js'
+import { clearStickies, updateStickies } from './stickies.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
 export function createGame() {
@@ -28,10 +29,11 @@ export function createGame() {
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
   // traps: Chompers planted on the floor or biting someone (see traps.js)
-  // ice: icy stretches of floor an Ice Bomb left (see iceOver in level.js)
+  // ice, goo: icy / sticky stretches of floor an Ice Bomb / Sticky Bomb left (see coatFloor in level.js)
+  // stickies: Sticky Bombs stuck to something, burning down (see stickies.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], ice: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextIceId: 1,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], ice: [], goo: [], stickies: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextIceId: 1, nextGooId: 1, nextStickyId: 1,
     match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
@@ -136,7 +138,9 @@ export function resetRound(game) {
   game.holes = []
   game.strikes = []
   game.ice = []
+  game.goo = []
   clearTraps(game)
+  clearStickies(game)
   resetBales(game)
   game.roundTime = 0
   game.moverTime = 0
@@ -162,9 +166,10 @@ export function stepGame(game, inputs) {
   handlePumpkinContacts(game)
   updatePumpkins(game, dt)
   updateTraps(game, dt)
+  updateStickies(game, dt)
   updateHazards(game, dt)
   updateBales(game, dt)
-  updateIce(game, dt)
+  updateCoats(game, dt)
   updatePatches(game, dt)
   for (const p of game.players) p.checkDeath(dt, game)
   updateMatch(game, CONFIG.dt)

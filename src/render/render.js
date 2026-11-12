@@ -14,10 +14,11 @@ import { snapPlayer } from '../game/snapshot.js'
 import { MAP_SHIFT, ease, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups, hudSurface } from './hud.js'
-import { drawBale, drawBonfire, drawCannon, drawIce } from './level.js'
+import { drawBale, drawBonfire, drawCannon, drawGoo, drawIce } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
-import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
+import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawSticky, drawTrap } from './pumpkins.js'
 import { drawEffects } from './effects.js'
+import { trackEndings } from './endings.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase, drawWeather } from './scenery.js'
 
@@ -30,6 +31,7 @@ export function render(ctx, view, snap, effects, ui) {
   const XS = x => ox + x * s            // screen (HUD, text)
   const Y = y => oy + (CONFIG.view.h - y) * s
 
+  trackEndings(snap, effects)   // (goo draining away, ice shattering: see endings.js)
   ctx.clearRect(0, 0, w, h)
   ctx.save()
   ctx.beginPath()
@@ -60,17 +62,20 @@ export function render(ctx, view, snap, effects, ui) {
   if (snap) {
     const shade = map.theme.shade   // (the map's tint for two-tone shading)
     if (snap.ice) drawIce(ctx, snap.ice, X, Y, s)   // (an Ice Bomb's icy floor)
+    if (snap.goo) drawGoo(ctx, snap.goo, X, Y, s)   // (a Sticky Bomb's sticky floor)
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s, shade)
     drawPatches(ctx, snap, X, Y, s, shade)
     drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, ui.surface, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
     for (const t of snap.traps) if (!t.bite) drawTrap(ctx, t, X, Y, s, shade)   // (on the floor: under whoever steps on it)
+    for (const st of snap.stickies || []) if (!st.onPlayer) drawSticky(ctx, st, X, Y, s, shade)   // (stuck to the level or a bale)
     for (const pk of snap.pumpkins) drawFlyingPumpkin(ctx, pk, snap, X, Y, s, shade)
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     drawContactShadows(ctx, snap, map, map.theme, X, Y, s)
     for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), map.theme, X, Y, s)
     for (const t of snap.traps) if (t.bite) drawTrap(ctx, t, X, Y, s, shade)   // (clamped on someone)
+    for (const st of snap.stickies || []) if (st.onPlayer) drawSticky(ctx, st, X, Y, s, shade)   // (stuck on someone)
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
     for (const h of snap.holes) drawBlackHole(ctx, h.x, h.y, h.r, X, Y, s)   // (over whatever it's swallowing)
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)

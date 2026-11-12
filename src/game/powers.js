@@ -2,12 +2,13 @@
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
-import { breakBale, damageBale, freezeBale, iceOver, skyDrop } from './level.js'
+import { breakBale, coatFloor, damageBale, freezeBale, skyDrop } from './level.js'
 import { freezePatch, patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { blastTraps, freeVictim } from './traps.js'
 import { cannonDistance, freezeCannon } from './cannons.js'
+import { blastStickies } from './stickies.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
@@ -16,6 +17,7 @@ import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 export function explode(game, x, y, blast, power) {
   game.events.push({ type: 'boom', x: r3(x), y: r3(y), r: blast.radius })
   blastTraps(game, x, y, blast.radius)   // (a Landmine it reaches goes off too)
+  blastStickies(game, x, y, blast.radius)   // (and a stuck Sticky Bomb, a moment later)
   const away = pos => {
     const dx = pos.x - x, dy = pos.y - y, d = Math.hypot(dx, dy)
     return { d, f: 1 - d / blast.radius, dx: d > 0.01 ? dx / d : 0, dy: d > 0.01 ? dy / d : 1 }
@@ -64,7 +66,29 @@ export function freezeBlast(game, x, y, chill, power) {
   for (const bale of game.bales) if (reach(bale.body.getPosition()) <= 1) freezeBale(bale, chill.objects * power)
   for (const patch of game.patches) if (patch.state !== 'empty' && reach(patchPumpkin(patch)) <= 1) freezePatch(patch, chill.objects * power)
   for (const c of game.cannons) if (cannonDistance(c.def, { x, y }) <= chill.radius) freezeCannon(c, chill.cannon * power)
-  iceOver(game, x, y, chill.radius, chill.floor * power)
+  coatFloor(game, 'ice', x, y, chill.radius, chill.floor * power)
+}
+
+// STICKY BOMB's burst: everything within glue.radius is glued, with no push: players (longer the closer
+// their nearest part was; in the air, when they land) take a little damage too, hay bales go gooey, and the
+// platform tops in reach are sticky till they dry. (See the sticky type for the numbers.)
+export function glueBurst(game, x, y, glue, power) {
+  game.events.push({ type: 'glueburst', x: r3(x), y: r3(y), r: glue.radius })
+  const reach = pos => Math.hypot(pos.x - x, pos.y - y) / glue.radius   // 0 at the center, 1 at the edge
+  for (const pl of game.players) {
+    if (pl.dead) continue
+    const d = Math.min(...pl.parts.map(part => reach(part.body.getPosition())))
+    if (d > 1) continue
+    const c = pl.torso.getPosition()
+    pl.takeHit(game, glue.damage * (1 - d) * power, 0, c)
+    pl.glue(lerp(glue.center, glue.edge, d) * power, 'sticky')
+  }
+  for (const bale of game.bales) {
+    if (reach(bale.body.getPosition()) > 1) continue
+    bale.stickyTimer = Math.max(bale.stickyTimer, glue.bale * power)
+    bale.gooKind = 'sticky'
+  }
+  coatFloor(game, 'goo', x, y, glue.radius, glue.floor * power)
 }
 
 // TELEPORT: wherever the gourd breaks (landing, hitting a wall, a bale, a shield, a bonfire, pitchforks...),

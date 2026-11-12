@@ -101,6 +101,7 @@ export const FX = freeze({
   block: ['#d9b25c', '#9c7a2e', '#3b3631'],
   freeze: ['#ffffff', '#dff4fc', '#9fd8f0'],
   warp: ['#4a1a5e', '#7a1f5c', '#d0479a', '#f29ad0'],   // (a Teleport: specks of deep purple, plum, magenta and pink)
+  glueburst: { flash: '#f0ffd0', puff: { hot: '#d8ff7a', warm: '#9be000', cool: '#7cb800' }, drops: ['#9be000', '#5c9100'] },   // (a Sticky Bomb bursting: a cloud of slime puffs and flung drops)
   iceburst: { flash: '#ffffff', puff: { hot: '#ffffff', warm: '#e3f6fc', cool: '#bfe8f5' }, shards: ['#ffffff', '#bfe8f5', '#8fd3ea'] },   // (an Ice Bomb: a cold puff cloud, white to pale blue, and ice shards)
   straw: { straws: ['#e2b84a', '#c9982f', '#f3d77a'], twine: '#8a5a2b' },
   burn: {                                          // (small: a player burning; the rest: a hay bale burning up)
@@ -120,6 +121,7 @@ export const STATUS = freeze({
   frozen: '#bfe6f7',                    // (a frozen player's color, mixed most of the way to this)
   frost: '#ffffff',                     // (the spots)
   goo: '#f3dfb0', gooDark: '#e2c68e',   // (gooDark: the puddle's lower edge)
+  goos: { pie: { goo: '#f3dfb0', dark: '#e2c68e' }, sticky: { goo: '#9be000', dark: '#5c9100', lip: '#e6ff9c' } },   // (lip: drawn two-tone, see fillGoo)   // (glue by whose it is: a Splat Pie's filling, a Sticky Bomb's slime)
 })
 
 // Level pieces (level.js).

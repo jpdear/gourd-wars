@@ -9,10 +9,11 @@ import { CANNON, cannonParts } from '../game/cannons.js'
 import { BALE, TINE, pitchforkTines } from '../game/level.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { clock } from './anims.js'
-import { LEVEL } from './palette.js'
+import { LEVEL, STATUS } from './palette.js'
+import { DRAIN, gooLeft } from './endings.js'
 import { drawPumpkin, drawSparkBurst } from './pumpkins.js'
 import { drawShaded } from './shading.js'
-import { LOOKS } from './statusLooks.js'
+import { fillGoo, LOOKS } from './statusLooks.js'
 
 const TAU = Math.PI * 2
 
@@ -27,7 +28,7 @@ function shaded(ctx, paint, box, shift, s, shade) {
 }
 const around = (cx, cy, r) => [cx - r, cy - r, cx + r, cy + r]
 
-export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floating }, X, Y, s, shade) {
+export function drawBale(ctx, { id, x, y, angle, health: hp, frozen, sticky, floating, goo }, X, Y, s, shade) {
   if (floating) {   // the balloon carrying it, drawn upright above it
     ctx.strokeStyle = LEVEL.bale.balloonString
     ctx.lineWidth = 1
@@ -41,14 +42,30 @@ export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floatin
   const local = (c, fn) => { c.save(); c.translate(X(x), Y(y)); c.rotate(-angle); fn(); c.restore() }   // (in the bale's own frame)
   shaded(ctx, (c, f) => local(c, () => LOOKS.baleBody(c, w, h, hp, s, f)), around(X(x), Y(y), Math.hypot(w, h) / 2 + 4), 0.05, s, shade)
   if (frozen) local(ctx, () => LOOKS.baleFrozen(ctx, w, h, s, clock.now()))
-  if (sticky) local(ctx, () => LOOKS.baleGlued(ctx, w, h, s, clock.now()))
+  const drain = sticky ? null : gooLeft('b' + id)   // (just worn off: its goo draining away)
+  if (sticky) local(ctx, () => LOOKS.baleGlued(ctx, w, h, s, clock.now(), STATUS.goos[goo || 'pie']))
+  else if (drain) local(ctx, () => LOOKS.baleGlued(ctx, w, h, s, clock.now(), STATUS.goos[drain.goo], drain.k))
+}
+
+// A Sticky Bomb's sticky floor (zones: the snapshot's goo): a flat strip of slime along each stretch of
+// platform top with a darker lower edge, like a glued player's puddle; over its last moment it drains away,
+// narrowing in from both ends (and thinning), like the goo on players and bales (see endings.js).
+export function drawGoo(ctx, zones, X, Y, s) {
+  const G = STATUS.goos.sticky
+  for (const z of zones) {
+    const k = Math.min(1, z.t / DRAIN), k2 = 1 - (1 - k) * (1 - k), mid = (z.x0 + z.x1) / 2, half = (z.x1 - z.x0) / 2 * k2
+    if (half <= 0.01) continue
+    const x0 = X(mid - half), w = half * 2 * s
+    ctx.save(); ctx.translate(0, Y(z.y) * (1 - (0.4 + 0.6 * k2))); ctx.scale(1, 0.4 + 0.6 * k2)
+    fillGoo(ctx, [c => c.roundRect(x0, Y(z.y + 0.06), w, 0.09 * s, 0.045 * s)], G, s)   // (two-tone: see fillGoo)
+    ctx.restore()
+  }
 }
 
 // An Ice Bomb's icy floor (zones: the snapshot's ice): a pale sheet over each stretch of platform top with a
-// darker lower edge, white glints, and little icicles hanging under it; it fades out over its last half second.
+// darker lower edge, white glints, and little icicles hanging under it; when it's gone it shatters (endings.js).
 export function drawIce(ctx, zones, X, Y, s) {
   for (const z of zones) {
-    ctx.globalAlpha = Math.min(1, z.t / 0.5)
     const x0 = X(z.x0), w = (z.x1 - z.x0) * s
     ctx.fillStyle = LEVEL.ice.edge; ctx.fillRect(x0, Y(z.y + 0.04), w, 0.16 * s)
     ctx.fillStyle = LEVEL.ice.top; ctx.fillRect(x0, Y(z.y + 0.04), w, 0.1 * s)
@@ -62,7 +79,6 @@ export function drawIce(ctx, zones, X, Y, s) {
       ctx.beginPath(); ctx.moveTo(X(x - 0.06), Y(z.y - 0.12)); ctx.lineTo(X(x + 0.06), Y(z.y - 0.12)); ctx.lineTo(X(x), Y(z.y - 0.12 - len)); ctx.fill()
     }
   }
-  ctx.globalAlpha = 1
 }
 
 // A frozen cannon's ice (pivot, aim: its barrel's): a bumpy strip of snow along the side of the barrel facing

@@ -62,9 +62,11 @@ export function rebound(p) {
   p.reboundTimer = REBOUND_TIME
 }
 
-// Stopped by a shield: a fused one bounces back off it, anything else breaks.
-function stopped(game, p) {
+// Stopped by `player`'s shield: a fused one bounces back off it, one with onBlocked does that (a Sticky
+// Bomb sticks to them), anything else breaks.
+function stopped(game, p, player) {
   if (fused(p)) rebound(p)
+  else if (p.type.onBlocked) p.type.onBlocked(game, p, player)
   else breakPumpkin(game, p)
 }
 
@@ -87,7 +89,7 @@ export function handlePumpkinContacts(game) {
       const player = ud.player
       const pos = p.body.getPosition()
       if (p.reboundTimer > 0) continue
-      if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { stopped(game, p); continue }
+      if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { stopped(game, p, player); continue }
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
@@ -194,16 +196,17 @@ export function updatePumpkins(game, dt) {
     }
     // a carried Big Gourd blocks it (not the thrower's own, if it missesThrower)
     const blocks = pl => p.reboundTimer <= 0 && !(p.type.missesThrower && pl === p.owner) && pl.tryBlock(game, pos, p.radius, unit(p.body.getLinearVelocity()))
-    if (!p.type.unblockable && game.players.some(blocks)) {
-      stopped(game, p)
+    const blocker = p.type.unblockable ? null : game.players.find(blocks)
+    if (blocker) {
+      stopped(game, p, blocker)
       if (p.broken) continue
     }
-    // hitting a pumpkin still on the vine knocks it off (both splat; a fused one flies on)
+    // hitting a pumpkin still on the vine knocks it off (both splat; a fused or sticky one flies on)
     for (const patch of game.patches) {
       if (patch.state === 'empty') continue
       const target = patchPumpkin(patch)
       if (Math.hypot(pos.x - target.x, pos.y - target.y) < p.radius + target.r) {
-        if (!fused(p)) breakPumpkin(game, p)
+        if (!fused(p) && !p.type.sticks) breakPumpkin(game, p)
         splatPatch(game, patch)
         break
       }

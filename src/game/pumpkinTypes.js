@@ -31,14 +31,16 @@
 //   onHitPlayer(game, pk, player, part, vel)   replaces the normal hit
 //   onHitBale(game, pk, bale, vel)             hit a hay bale (instead of onHitWorld)
 //   onHitWorld(game, pk, body)                 touched something else that isn't a player
+//   onBlocked(game, pk, player)                a carried Big Gourd shield stopped it (instead of breaking on it)
 //   onBreak(game, pk)                          when it breaks
 //   update(game, pk, dt)                       every step while flying
 
 import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
-import { callAirstrike, explode, freezeBlast, openBlackHole, swapPlaces, teleportOwner, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { callAirstrike, explode, freezeBlast, glueBurst, openBlackHole, swapPlaces, teleportOwner, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { biteWith, plantTrap } from './traps.js'
 import { cannonOfBody, cannonTouching, freezeCannon } from './cannons.js'
+import { stickTo } from './stickies.js'
 import { breakPumpkin, knockback, rebound, shove } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -96,7 +98,7 @@ export const PUMPKIN_TYPES = {
     name: 'Splat Pie', color: '#f3dfb0', rib: '#c79a54', mark: 'pie',
     radius: 0.22, density: 2, restitution: 0.1,
     damage: 8, knockback: 2, stun: 0.6, breakAfterHits: 1, glue: 1.5, baleGoo: 5,
-    onHitBale: (game, pk, bale) => { bale.stickyTimer = pk.type.baleGoo },   // gooey: glues whoever touches it
+    onHitBale: (game, pk, bale) => { bale.stickyTimer = pk.type.baleGoo; bale.gooKind = 'pie' },   // gooey: glues whoever touches it
     onHitPlayer: (game, pk, player, part, vel) => { knockback(game, player, part, pk, vel); player.glue(pk.type.glue) },
   },
   vine: {   // shot more than thrown: fast and nearly straight, ~19 m on a tap, ~23 m charged
@@ -300,6 +302,27 @@ export const PUMPKIN_TYPES = {
     // open spot, keeping their own speed; hitting someone, the two swap places. Either frees you from glue and Chompers.
     onHitPlayer: (game, pk, player) => swapPlaces(game, pk, player),
     onBreak: (game, pk) => teleportOwner(game, pk),
+  },
+  sticky: {   // a gourd in a wobbling glob of toxic neon slime, a short fuse on top: it sticks to whatever it hits (people too) and 2 s later bursts, gluing everything near
+    name: 'Sticky Bomb', color: '#b8ff2e', rib: '#6fbf00', mark: 'slime',   // (a louder green than anything else in the game)
+    radius: 0.21, density: 2, restitution: 0,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakEvent: null,   // (no damage on contact: it just sticks)
+    // See stickies.js: stuck, it rides along with whatever it's on; stuckFuse s later it bursts (glueBurst in
+    // powers.js). A blast in reach sets it off chainDelay s later. A pumpkin on its patch doesn't stop it (it
+    // knocks it off and flies on). Broken before it sticks (a bonfire, a Black Hole), it bursts there.
+    //   radius         everything within this many m is glued, no push:
+    //   center, edge   players (glued when they land, if in the air): s glued right at it, down to at the edge
+    //   damage         to players right at it (less further out)
+    //   bale           hay bales in reach go gooey for this many s (gluing whoever touches them)
+    //   floor          the platform tops in reach are sticky for this many s (whoever stands in it stays stuck till it dries)
+    // Picked green, every time and the damage are less (× power).
+    stuckFuse: 2, chainDelay: 0.15, sticks: true,
+    glue: { radius: 2.5, center: 3, edge: 1, damage: 10, bale: 6, floor: 6 },
+    onHitPlayer: (game, pk, player, part) => stickTo(game, pk, part, true),
+    onHitWorld: (game, pk, body) => stickTo(game, pk, body, false),
+    onHitBale: (game, pk, bale) => stickTo(game, pk, bale.body, false),
+    onBlocked: (game, pk, player) => stickTo(game, pk, player.facing > 0 ? player.forearmR : player.forearmL, true),   // (onto the arm holding the shield)
+    onBreak: (game, pk) => { const p = pk.body.getPosition(); glueBurst(game, p.x, p.y, pk.type.glue, pk.power) },
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

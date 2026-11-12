@@ -11,7 +11,7 @@ import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { BODY, CONFIG } from '../config.js'
 import { emptyInput } from './input.js'
-import { baleAt, damageBale, onIce } from './level.js'
+import { baleAt, coatAt, damageBale, onIce } from './level.js'
 import { findPickup } from './pickups.js'
 import { applyHit, launch, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES, throwSpeeds } from './pumpkinTypes.js'
@@ -52,6 +52,7 @@ const freshLife = () => ({
   frozenTimer: 0,             // Frost: stiff as a statue
   gluedTimer: 0,              // Splat Pie: stuck to the floor
   pendingGlue: 0,             // ...hit in the air: sticks when you land
+  gooKind: 'pie',             // ...whose goo it is (a Splat Pie's or a Sticky Bomb's: its color)
   trappedTimer: 0,            // bitten by a Chomper: held in place
   floatTimer: 0,              // Balloon: floating helplessly upward
   // hazards (kept up by level.js)
@@ -258,7 +259,9 @@ export class Player {
     this.trappedTimer = Math.max(this.trappedTimer, seconds)
   }
 
-  glue(seconds) {
+  // kind: whose goo ('pie' or 'sticky': just its color)
+  glue(seconds, kind = 'pie') {
+    this.gooKind = kind
     if (this.grounded) this.gluedTimer = Math.max(this.gluedTimer, seconds)
     else this.pendingGlue = Math.max(this.pendingGlue, seconds)
   }
@@ -435,6 +438,8 @@ export class Player {
     this.senseGround()
     const hips = torso.getWorldPoint(new Vec2(0, -BODY.torsoLen / 2))
     this.onIce = this.grounded && onIce(game, hips.x, hips.y - this.groundDist)   // (an Ice Bomb's icy floor: slippery)
+    const goo = this.grounded && coatAt(game, 'goo', hips.x, hips.y - this.groundDist)
+    if (goo) this.glue(goo.timer, 'sticky')   // (a Sticky Bomb's goo on the floor: stuck in it till it dries)
     this.coyote = this.grounded ? C.coyoteTime : Math.max(0, this.coyote - dt)
     if (this.pendingGlue > 0 && this.grounded) { this.gluedTimer = this.pendingGlue; this.pendingGlue = 0 }
 
