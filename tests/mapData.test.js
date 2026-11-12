@@ -2,6 +2,7 @@ import { expect, it } from 'vitest'
 import { CONFIG, MAX_PLAYERS } from '../src/config.js'
 import { MAPS } from '../src/maps/builtin.js'
 import { MAP_CODE_PREFIX, MAP_LIMITS, checkMap, decodeMapCode, duplicateMap, encodeMapCode, sanitizeMap } from '../src/maps/mapData.js'
+import { THEMES } from '../src/maps/themes.js'
 
 it('turns a map into a code and back', () => {
   const def = duplicateMap('patch', 'Pumpkin Hill ☺')   // (non-ASCII names survive)
@@ -46,4 +47,24 @@ it('passes the checks for every built-in map', () => {
   for (const id of Object.keys(MAPS)) {
     expect(checkMap(duplicateMap(id, id)).errors, id).toEqual([])
   }
+})
+
+it('gives every theme what the drawing needs, in colors that parse', () => {
+  const hex = /^#[0-9a-f]{6}$/i, rgba = /^rgba\(\s*\d+,\s*\d+,\s*\d+,\s*(0|1|0?\.\d+)\)$/
+  const color = c => hex.test(c) || rgba.test(c)
+  const colorsIn = v => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(colorsIn) : Object.values(v).flatMap(colorsIn))
+  for (const [key, t] of Object.entries(THEMES)) {
+    for (const field of ['name', 'scenery', 'ink', 'muted', 'platform', 'platformTop', 'wall', 'top', 'shade', 'shadow', 'smoke', 'art']) expect(t[field], `${key}.${field}`).toBeTruthy()
+    expect(Boolean(t.sky) !== Boolean(t.bands), `${key}: a sky or bands (one of them)`).toBe(true)
+    if (t.bands) expect(t.bands.length, `${key}.bands`).toBe(4)
+    for (const c of [t.sky, ...(t.bands || []), t.ink, t.muted, t.platform, t.platformTop, t.wall, t.shade, t.shadow, t.smoke, ...colorsIn(t.art)].filter(Boolean)) expect(color(c), `${key}: ${c}`).toBe(true)
+  }
+})
+
+it('keeps a map\'s theme when it knows it, and falls back to paper when it doesn\'t', () => {
+  const base = duplicateMap('patch', 'Themed')
+  for (const key of Object.keys(THEMES)) expect(sanitizeMap({ ...base, theme: key }).theme).toBe(key)
+  expect(sanitizeMap({ ...base, theme: 'nope' }).theme).toBe('paper')
+  expect(sanitizeMap({ ...base, theme: 'toString' }).theme).toBe('paper')   // (not fooled by what every object has)
+  for (const key of ['winter', 'lava', 'synthwave', 'graveyard']) expect(sanitizeMap({ ...base, theme: key }).theme).toBe(key)   // (the themes with no built-in map: custom maps only)
 })

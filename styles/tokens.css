@@ -1,0 +1,58 @@
+/* Design tokens: every color and font the HTML parts use (menus, map editor panel, tuning panel), in
+   one place. The other stylesheets only use these var(--…) names. (The canvas has its own list:
+   src/render/palette.js.) Loaded before the other stylesheets. */
+:root {
+  /* fonts */
+  --font-display: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;   /* the logo, titles, buttons, big numbers */
+  --font-text: 'Fredoka', system-ui, sans-serif;                       /* labels, status lines, small print, the map editor and tuning panels */
+  --font-mono: ui-monospace, monospace;
+
+  /* the page behind everything */
+  --page: var(--bark);                     /* (the strips round the arena when the window isn't its shape: the menus' bark) */
+
+  /* the main palette, Pumpkin & Bark (the menus; see docs/RESTYLE_PLAN.md 4.1) */
+  --bark: #2e2620;                          /* the menu backdrop */
+  --bark-2: #3a3029;                        /* raised shapes on bark (the title screen's circles) */
+  --bark-3: #463a31;                        /* hover and buttons on bark panels */
+  --ink: #2e2620;                           /* text and dark buttons */
+  --ink-edge: #16110d;                      /* the ledge under dark buttons */
+  --paper: #f6efe3;                         /* cards, light buttons */
+  --paper-edge: #d9cbb5;                    /* the ledge under paper */
+  --muted: #8a7b69;                         /* labels and small print on paper */
+  --muted-on-bark: #b6a895;                 /* small print on bark */
+  --pumpkin: #f28c28;                       /* the logo, the main button */
+  --pumpkin-edge: #b05a10;
+  --logo-edge: #1c1511;                     /* the stroke and drop under the logo and titles */
+  --accent: #5fae3c;                        /* toggles that are on */
+  --accent-edge: #3c7a22;
+  --hit: #e8384f;                           /* danger buttons */
+  --hit-edge: #a22737;
+  --scrim: rgba(46, 38, 32, 0.55);          /* dims the game behind the Esc menu */
+  --white: #fff;
+
+  /* made from the main palette: hovers (a little lighter, or darker on paper), and a few in-betweens */
+  --ink-hover: color-mix(in srgb, var(--ink), white 10%);
+  --bark-3-hover: color-mix(in srgb, var(--bark-3), white 8%);
+  --changed: color-mix(in srgb, var(--pumpkin), var(--paper) 45%);   /* the tuning panel: a setting you've changed */
+  --pumpkin-hover: color-mix(in srgb, var(--pumpkin), white 12%);
+  --accent-hover: color-mix(in srgb, var(--accent), white 12%);
+  --hit-hover: color-mix(in srgb, var(--hit), white 12%);
+  --paper-edge-hover: color-mix(in srgb, var(--paper-edge), var(--ink) 8%);
+  --paper-edge-edge: color-mix(in srgb, var(--paper-edge), var(--ink) 25%);   /* the ledge under paper-edge buttons */
+  --paper-2: color-mix(in srgb, var(--paper), var(--paper-edge));               /* a row on a card (My Maps) */
+  --dot-ring: rgba(0, 0, 0, 0.25);          /* round each pumpkin's color dot */
+
+  /* the map editor's status line (under the map's name) */
+  --panel-ok: #9fd47a;
+  --panel-bad: #ffb36e;
+
+  /* the map editor's checks */
+  --problem-err: #5a2420;
+  --problem-err-hover: #6e2c26;
+  --problem-err-text: #ffd0c8;
+  --problem-warn: #4a3a20;
+  --problem-warn-hover: #5c4826;
+  --problem-warn-text: #ffe0a8;
+  --problem-ok: #2e4422;
+  --problem-ok-text: #c8f0a8;
+}

@@ -19,6 +19,9 @@ import { resize } from './view.js'
 export function boot() {
   app.canvas = document.getElementById('game')
   app.ctx = app.canvas.getContext('2d')
+  // the canvas only draws with a web font once it's loaded: ask for both now (the frame loop picks them
+  // up when they arrive; until then it falls back to the next font in the list)
+  for (const f of ['400 20px "Luckiest Guy"', '500 20px Fredoka']) document.fonts.load(f).catch(() => {})
   const game = app.game = createGame()
   window.game = game   // handy for poking at from the browser dev console
   app.effects = createEffects()

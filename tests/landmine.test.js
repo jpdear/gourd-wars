@@ -8,11 +8,10 @@ import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
 
 const M = PUMPKIN_TYPES.landmine, T = M.trap
-// Practice (no crows): you and a dummy, standing. The Patch: the main floor's top at 4.4, x 9 to 23 (a
+// Practice: you and a dummy, standing. The Patch: the main floor's top at 4.4, x 9 to 23 (a
 // pumpkin patch at 16: keep clear of it).
 function setup() {
   const game = createGame()
-  game.crowTimer = Infinity
   steps(game, 30)   // (stand up)
   return { game, me: game.players[0], dummy: game.players[1] }
 }

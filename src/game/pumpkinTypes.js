@@ -1,14 +1,15 @@
 // Every pumpkin type. Numbers are at full power (a fast, ripe throw); throwing softer or
 // picking it green scales damage and knockback down.
-//   name, color, rib, mark   how it looks (mark = its shape and decoration; anything else special about
-//                            how a type looks, in flight or held, is in render/pumpkins.js)
+//   name, color, rib, mark   how it looks: color (its body), rib (a darker color for its side lobes and
+//                            details), mark (its shape and decoration; anything else special about how a
+//                            type looks, in flight or held, is in render/pumpkins.js)
 //   radius, density, restitution, friction, gravityScale
 //   damage, knockback, stun  a hit (staggers at CONFIG.damage.staggerAt; stun = ragdoll time if it does)
 //   refSpeed                 impact speed that counts as full power (default CONFIG.throw.maxSpeed)
 //   unblockable              goes right through a carried Big Gourd's shield
 //   breakEvent               the event when it breaks (default 'splat'; null: none, its onBreak shows something)
 //   missesThrower            never touches the one who threw it (passes right through them and their shield)
-//   pierces                  goes right through people, hay bales and flying crows (see PIERCES in pumpkins.js),
+//   pierces                  goes right through people and hay bales (see PIERCES in pumpkins.js),
 //                            hitting each one once, and breaks on anything else
 //   spin                     how fast it spins leaving the hand (radians/s; default 8)
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
@@ -30,7 +31,6 @@
 import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
 import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
-import { peck } from './crows.js'
 import { biteWith, plantTrap } from './traps.js'
 import { knockback } from './pumpkins.js'
 import { r3 } from '../util/math.js'
@@ -171,7 +171,7 @@ export const PUMPKIN_TYPES = {
     },
   },
   homing: {
-    name: 'Homing', color: '#d83a2c', rib: '#9a2219', mark: 'antenna',
+    name: 'Homing', color: '#4f7fc4', rib: '#2f5590', mark: 'antenna',   // (a steel-blue rocket: see BODIES in render/pumpkins.js)
     radius: 0.22, density: 2, restitution: 0.2, refSpeed: 8,   // (homing counts as a full-speed hit; picked green still hits softer)
     damage: 25, knockback: 6.5, stun: 0.9, breakAfterHits: 1,
     // A little missile (see updateHoming in powers.js): `delay` s after leaving your hand it locks onto the
@@ -186,16 +186,6 @@ export const PUMPKIN_TYPES = {
     //   maxChase    smashes after chasing this long (s)
     homing: { delay: 0.5, speed: 20, turnRate: 4, lookAhead: 0.5, maxChase: 3 },
     update: (game, pk, dt) => updateHoming(game, pk, dt),
-  },
-  crow: {   // a dazed crow, picked up and thrown (see crows.js): it pecks whoever it hits, and flies off if it misses
-    name: 'Crow', color: '#2d2a33', rib: '#141218', mark: 'crow', spawnable: false,
-    radius: 0.27, density: 0.6, restitution: 0.1, gravityScale: 0.9,   // (the size of a crow: CONFIG.crow.radius)
-    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1, breakEvent: null,
-    onHitPlayer: (game, pk, player) => { pk.pecking = true; peck(game, player) },
-    onBreak: (game, pk) => {
-      const p = pk.body.getPosition()
-      if (!pk.pecking) game.events.push({ type: 'crowAway', x: r3(p.x), y: r3(p.y) })
-    },
   },
   boomerang: {
     name: 'Boomerang', color: '#f2c230', rib: '#b88a12', mark: 'boomerang',
@@ -217,7 +207,7 @@ export const PUMPKIN_TYPES = {
     throwSpeed: { min: 18, max: 30 }, spin: 30, pierces: true,
   },
   daze: {   // a bottle gourd, tumbling end over end: whoever it bonks goes limp, then gets up dizzy
-    name: 'Dizzy Gourd', color: '#c99a5b', rib: '#86602f', mark: 'bottle',
+    name: 'Dizzy Gourd', color: '#a8693a', rib: '#6e4220', mark: 'bottle',
     radius: 0.2, density: 2, restitution: 0.2, spin: 14,
     damage: 10, knockback: 4, stun: 0.5, breakAfterHits: 1,
     // limp: s knocked limp; dizzy: s more after getting up, left/right swapped (see Player.daze);

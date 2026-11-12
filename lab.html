@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- The effects lab (dev only: the build leaves this page out). Gourd breaks to compare side by side,
+     drawn by the game's own code: see src/lab/lab.js. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Effects Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <style>
+    body { margin: 0; padding: 16px 24px 40px; background: var(--bark); color: var(--paper); font: 500 14px var(--font-text); }
+    h1, h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.03em; margin: 0; }
+    h1 { color: var(--pumpkin); font-size: 34px; }
+    h2 { font-size: 22px; margin: 22px 0 8px; }
+    .lab-head { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+    .lab-head p { margin: 0; color: var(--muted-on-bark); }
+    .lab-bar { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+    select, button { font: 500 14px var(--font-text); border: 0; border-radius: 999px; padding: 6px 12px; background: var(--paper); color: var(--ink); cursor: pointer; }
+    .seg { display: inline-flex; gap: 4px; }
+    input[type=range] { width: 180px; accent-color: var(--pumpkin); }
+    button.on { background: var(--pumpkin); color: var(--white); }
+    .lab-tiles { display: flex; flex-wrap: wrap; gap: 14px; }
+    figure { margin: 0; width: min-content; }
+    canvas { display: block; border-radius: 10px; }
+    figcaption { margin-top: 6px; color: var(--muted-on-bark); line-height: 1.35; }
+    figcaption b { color: var(--paper); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="lab-head">
+    <h1>Effects Lab</h1>
+    <p>Each tile loops: a gourd flies in and breaks on a player (or a player fires one). Pick a letter per row, or mix parts.</p>
+    <div class="lab-bar"></div>
+  </div>
+  <div class="lab-rows"></div>
+  <script type="module" src="/src/lab/lab.js"></script>
+</body>
+</html>

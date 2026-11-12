@@ -6,8 +6,7 @@
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
-import { COLLIDE, CONFIG } from '../config.js'
-import { knockDownCrow } from './crows.js'
+import { CONFIG } from '../config.js'
 import { damageBale, inFire, shoveBale } from './level.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { pumpkinBroke } from './traps.js'
@@ -19,7 +18,7 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
   const radius = type.radius * (quality?.size ?? 1)
   const body = game.world.createBody({ type: 'dynamic', position: pos, bullet: true, gravityScale: type.gravityScale ?? 1 })
   const fixture = body.createFixture(new planck.Circle(radius), {
-    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution, filterCategoryBits: COLLIDE.pumpkin,
+    density: type.density, friction: type.friction ?? 0.4, restitution: type.restitution,
     filterGroupIndex: group ?? (owner ? owner.group : 0),
   })
   body.setLinearVelocity(vel)
@@ -45,7 +44,7 @@ export function recordPumpkinContact(game, fixture, other) {
 
 // What a piercing gourd (type.pierces) goes right through instead of breaking on, by kind: the thing
 // itself (so it hits each only once, however many of its parts it touches).
-const PIERCES = { player: ud => ud.player, bale: ud => ud.bale, crow: ud => ud.crow }
+const PIERCES = { player: ud => ud.player, bale: ud => ud.bale }
 export const piercesThrough = (pumpkin, ud) => !!(pumpkin.type.pierces && ud && PIERCES[ud.kind])
 
 export function handlePumpkinContacts(game) {
@@ -61,9 +60,8 @@ export function handlePumpkinContacts(game) {
       const pos = p.body.getPosition(), d = unit(c.velocity)   // (chips fly off it as it cuts through)
       game.events.push({ type: 'pierce', x: r3(pos.x), y: r3(pos.y), dx: r3(d.x), dy: r3(d.y), typeName: p.typeName })
     }
-    const hitPlayer = ud && ud.kind === 'player', hitCrow = ud && ud.kind === 'crow'
-    if (hitCrow) knockDownCrow(game, ud.crow)   // (a crow flying over: it drops what it's carrying)
-    else if (hitPlayer) {
+    const hitPlayer = ud && ud.kind === 'player'
+    if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
       if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
@@ -78,7 +76,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (!pierced && (hitPlayer || hitCrow || p.hits >= p.type.breakAfterHits)) breakPumpkin(game, p)
+    if (!pierced && (hitPlayer || p.hits >= p.type.breakAfterHits)) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }

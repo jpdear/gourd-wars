@@ -36,7 +36,7 @@ export function startTransition(game, nextMap) {
     const c = p.torso.getPosition()
     p.moveBy(starts[p.index].x - MAP_SHIFT - c.x, starts[p.index].y - c.y)
     p.stun(game.transition.duration + 0.05)   // limp: dangling while carried
-    p.setGhost(true)                          // passes through platforms, scythes... on the way
+    p.setGhost(true)                          // passes through platforms... on the way
   })
 }
 

@@ -791,7 +791,7 @@ export class Player {
         const ud = fixture.getBody().getUserData()
         // ignore all players (another player's body under you isn't ground; the hover spring
         // would launch you), pumpkins, and hazards (you'd hover over pitchforks instead of landing on them)
-        if (ud && ['player', 'pumpkin', 'hazard', 'crow'].includes(ud.kind)) return -1
+        if (ud && ['player', 'pumpkin', 'hazard'].includes(ud.kind)) return -1
         hit = fraction
         hitBody = fixture.getBody()
         return fraction
@@ -980,6 +980,7 @@ export class Player {
     const tv = this.torso.getLinearVelocity()
     const pos = new Vec2(hand.x + dx * 0.15, hand.y + dy * 0.15)
     spawnPumpkin(game, 'seed', pos, new Vec2(dx * type.seedSpeed + tv.x * 0.3, dy * type.seedSpeed + tv.y * 0.3), this, this.held)
+    game.events.push({ type: 'spit', typeName: this.held.typeName, ripeness: r3(this.held.ripeness), x: r3(pos.x), y: r3(pos.y), dx: r3(dx), dy: r3(dy) })   // (just for looks: a puff at its mouth)
     this.sprayTimer = type.fireInterval
     if (--this.held.ammo <= 0) this.held = null
   }

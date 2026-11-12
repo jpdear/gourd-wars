@@ -1,17 +1,15 @@
 import { Vec2 } from 'planck'
 import { expect, it } from 'vitest'
-import { sendCrow } from '../src/game/crows.js'
 import { addPlayer, createGame, resetRound, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 
 const B = PUMPKIN_TYPES.buzzsaw
-// Practice (no crows but the ones a test sends); everyone standing.
+// Practice; everyone standing.
 function setup(map) {
   const game = createGame()
   if (map) { game.mapChoice = map; resetRound(game) }
-  game.crowTimer = Infinity
   steps(game, 30)   // (stand up)
   return { game, me: game.players[0], dummy: game.players[1] }
 }
@@ -56,17 +54,6 @@ it('cuts through hay bales (damaging them) instead of breaking on them', () => {
   expect(saw.body.getPosition().x).toBeGreaterThanOrEqual(12.5)   // (past them: short of the ferry, which it does break on)
   const low = bales.filter(b => b.body.getPosition().y < 5)   // (the bottom two: right in its way)
   for (const b of low) expect(b.hp).toBeLessThan(b.maxHp)
-})
-
-it('knocks a flying crow down and keeps going', () => {
-  const { game, me } = setup()
-  const crow = sendCrow(game)
-  crow.body.setTransform(new Vec2(16, 9), 0)
-  crow.body.setLinearVelocity(new Vec2(0, 0))
-  const saw = throwSaw(game, me, 13, 9)
-  for (let i = 0; i < 20 && crow.state !== 'down'; i++) steps(game, 1)
-  expect(crow.state).toBe('down')
-  expect(saw.broken).toBe(false)
 })
 
 it('breaks on the level', () => {

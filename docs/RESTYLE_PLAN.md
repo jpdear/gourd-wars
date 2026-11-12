@@ -98,6 +98,8 @@
 - Toggle that's on: `accent` with white text and an `accentEdge` ledge
 - Danger button: `hit` with white text and a `hitEdge` ledge
 
+**HUD chips change per map (decided 2026-11-10, after step 4):** the user found paper chips hard to see on light maps and the ink harvest bubble hard to see on dark ones. So the chips, score tiles, the harvest-key bubble and the harvest ring are **ink (with paper text, on an `inkEdge` ledge) on maps with a light sky, and paper (with ink text, on a `paperEdge` ledge) on dark ones**. During the pan to the next map they fade from one look to the other along with the camera; the text flips between ink and paper halfway. Code: `hudSurface` in `src/render/hud.js` ("light" = the sky's brightness over 140 of 255). Damage numbers (paper outline) and banners (dark outline) are the same on every map.
+
 **Logo, headings and banners:** Luckiest Guy with a `0.08em` stroke in `logoEdge` (`-webkit-text-stroke` plus `paint-order: stroke fill`) and a `0.07em` drop (`text-shadow: 0 0.07em 0 logoEdge`). The logo fill is `pumpkin`.
 
 ### 4.2 Fonts
@@ -157,6 +159,7 @@
   - A white dot (`#ffffff`) of radius `0.05 m`, set forward `0.07 m` along `facing` and up `0.03 m` from the head center.
   - A **pupil** (`#1d1a2a`) of radius `0.026 m`, nudged another `0.018 m` forward.
   - **Stunned:** white X eyes (two strokes, width `0.025–0.03 m`, half-size `0.035 m`), as now.
+  - **Eyes follow the aim (added 2026-11-10 at the user's request):** the eye sits `0.065 m` from the head's center (and `0.015 m` up) toward where that player aims (`p.aim` in the snapshot, sent for everyone), always on the front of the head, and it stops at `25°` below level and `50°` above (so it never sits on the bottom or top of the head); the pupil points right at the aim, inside the eye. Code: `lookDir` and `drawFace` in `src/render/players.js`.
 - **States** (all flat, no outlines):
   - **Frozen:** the color mixed 70% toward `#cdeefa`, as now. Remove the white stroked outline and add two small white diamonds on the head instead (like the Frost gourd's mark).
   - **Glued:** goo blobs in the Splat Pie color on the feet, as now.
@@ -641,7 +644,8 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
    - The blade is flat steel (`#c9ced2`) with no stroke and a darker `#9aa1a6` back edge band, shaded.
    - The hub is flat.
 5. **Cannon:** already mostly flat. Remove any strokes, shade the mount and barrel (as separate silhouettes), and keep the orange muzzle ring and fuse sparks. Reuse the gourd spark-burst look for the fuse.
-6. **Crows** (`crows.js`):
+4b. **The scarecrow was removed from the game** (the user's call, after step 8): the hazard, its tool in the editor and its look. Saved custom maps that had one load without it. It comes back in step 9 as part of the Scarecrow Field backdrop (the silhouette in the field mockup).
+6. **Crows** (`crows.js`) — **skipped (the user's call, during step 8); then, on 2026-11-12, crows were removed from the game entirely (the user's call).**
    - Remove the `EDGE` strokes. Make the body, wings, head and legs flat fills: `INK` for the near side and `FAR` for the far wing.
    - The beak split becomes a thin filled wedge, not a stroke.
    - The eye stays white and dark.
@@ -667,7 +671,7 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 **Files:** `src/maps/themes.js`, `src/render/scenery.js` (a rewrite), `render.js` (passing the theme), `src/ui/editor/editor.js` (its uses of `theme.sky[1]` and other changed fields), and `tests/mapData.test.js` (new checks).
 
 **Do:**
-1. **`themes.js`:** rewrite the 6 entries with the 4.5 schema and values. Keep the keys. `paper` gets `name: 'Midday'`; the others keep their names. Document every field in the header comment. Then search the code for every use of the old fields (`theme.sky[0]`, `theme.sky[1]`, …) and update each one. The editor's `theme.sky[1]` stroke becomes `theme.bands ? theme.bands.at(-1) : theme.sky`, or better, a `skyColor(theme)` helper.
+1. **`themes.js`:** rewrite the 6 entries with the 4.5 schema and values. (Step 7 already added `smoke` to each, from the 4.5 table.) Keep the keys. `paper` gets `name: 'Midday'`; the others keep their names. Document every field in the header comment. Then search the code for every use of the old fields (`theme.sky[0]`, `theme.sky[1]`, …) and update each one. The editor's `theme.sky[1]` stroke becomes `theme.bands ? theme.bands.at(-1) : theme.sky`, or better, a `skyColor(theme)` helper.
 2. **`scenery.js`:** rewrite `drawMapBase` as follows.
    - **`drawSky`:** a flat `sky`, or flat `bands`, over the arena rectangle. No gradient.
    - **`SCENERY`:** a handler map, by `theme.scenery`, porting `hills`, `barn`, `field`, `rocks`, `camp` and `lab` (as `grid`) from `style-guide.html`. Run them through `mockView` (section 6), using `drawShaded` for the shaded pieces (hills sideways `[1, 0]` with a mockup shift of `0.16`, and props) with `theme.shade`.
@@ -719,10 +723,12 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 6. Document the new themes in `docs/DESIGN.md` (the Maps section) and the new fields in `themes.js`'s header.
 
 **Check:**
-- [ ] For each new theme: open the map editor, make a quick test map with a few platforms and a pit, set the theme, play it, and compare with `style-guide.html`.
-- [ ] Gourds and players read clearly on each one (this feeds step 13).
-- [ ] Frame time with snow or embers running.
-- [ ] Tests and build pass.
+- [x] For each new theme: open the map editor, make a quick test map with a few platforms and a pit, set the theme, play it, and compare with `style-guide.html`.
+- [x] Gourds and players read clearly on each one (this feeds step 13).
+- [x] Frame time with snow or embers running.
+- [x] Tests and build pass.
+
+**Notes:** checked by switching Bonfire Camp's map to each theme in Practice (60 fps on all four, with snow and embers running). Graveyard's fence and graves stand on its far hill (at the mockup's ground level they'd be hidden behind the arena floor), and its tree on the near hill. After feedback (picked in the effects lab): Graveyard has no fog (the user's pick), a taller far hill with a row of small faded graves along its crest, cut off at its surface, and a sharp-angled forked tree; Lava's platforms are webs of cracks from the user's reference picture (black on floating ones, glowing on the floor: any platform 1 m thick or more); Winter, Lava and Synthwave got more shading on their mountains (Lava's ranges also a glowing rim); Synthwave's platforms are lighter with a dark frame and no seams. Lava has no lava sea (the user removed it), an ash-grey sky, and an animated crater and lava flow (ANIMATED); Graveyard has puffy storm clouds half hiding the moon, and Graveyard's crosses are flat (a shadow side blended them into the sky).
 
 **Hand over:** screenshots of the 4 new themes in a test map. Ask to start step 11.
 
@@ -747,8 +753,10 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - **Canvas overlay** (`editor.js`): the grid uses `theme.ink` at the current alphas (fine with the new per-theme `ink`). The selection, markers and handles use the `UI` colors (`pumpkin` for the selection, `paper` with an `ink` edge for handles). Remove strokes only where they edge a filled shape; handles and guides are UI, so they keep their strokes.
 
 **Check:**
-- [ ] Every editor tool, the panel, saving and loading, import and export, on a light theme and a dark theme.
-- [ ] Tests and build pass.
+- [x] Every editor tool, the panel, saving and loading, import and export, on a light theme and a dark theme.
+- [x] Tests and build pass.
+
+**Notes:** checked on My map (Midday and Night) with select, moving platform and gourd cannon, every change undone, nothing saved (the editor's save, load, import and export code wasn't touched). Problems are now yellow (warning) and red (error) dashes, so warnings don't look like the orange selection. The overlay's text is Fredoka.
 
 **Hand over:** screenshots of the editor. Ask to start step 12.
 
@@ -769,8 +777,10 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - Check the new "Shading" toggle from step 5 is here and works.
 
 **Check:**
-- [ ] Every tab and control.
-- [ ] Tests and build pass.
+- [x] Every tab and control.
+- [x] Tests and build pass.
+
+**Notes:** the changed marker is `pumpkin` mixed 45% toward `paper` (the `--changed` token). The old `--panel-*` tokens and `--font-system` are gone from tokens.css (only the editor's status colors are left). Checked: tabs, a group opening, a slider (changed marker, then reset by double-click), Shading off and on.
 
 **Hand over:** a screenshot. Ask to start step 13.
 
@@ -791,6 +801,8 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 
 **Hand over:** the options as screenshots, plus a clear question. Then stop.
 
+**Done (2026-11-12):** mocked up in the effects lab (a halo, lighter colors, a paper rim on all 4 dark maps; orange gourds in the air on Scarecrow Field and Lava). The user isn't worried by either: no change to gourds on dark or warm maps.
+
 ---
 
 ### Step 14: Final pass
@@ -798,16 +810,23 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 **Goal:** clean up, measure, document and hand over.
 
 **Do:**
-- [ ] `grep` for leftover hard-coded colors outside `palette.js`, `tokens.css`, `themes.js` and `pumpkinTypes.js`, for `Gradient`, and for strokes that outline filled shapes. Fix or explain each.
-- [ ] Remove dead code: the old `roundPumpkin` rib strokes, `drawWheat`'s old version, unused palette entries, the step 5 fallback tint.
-- [ ] **Performance:** record the frame time in a busy scene (4 players, about 10 gourds, a blast, snow) with shading on and off. If the render takes more than about 4 ms per frame on the user's machine, tell the user and suggest skipping shading on particles or small gourds when the frame time is high.
-- [ ] **Docs:**
+- [x] `grep` for leftover hard-coded colors outside `palette.js`, `tokens.css`, `themes.js` and `pumpkinTypes.js`, for `Gradient`, and for strokes that outline filled shapes. Fix or explain each.
+- [x] Remove dead code: the old `roundPumpkin` rib strokes, `drawWheat`'s old version, unused palette entries, the step 5 fallback tint.
+- [x] **Performance:** record the frame time in a busy scene (4 players, about 10 gourds, a blast, snow) with shading on and off. If the render takes more than about 4 ms per frame on the user's machine, tell the user and suggest skipping shading on particles or small gourds when the frame time is high.
+- [x] **Docs:**
   - `docs/DESIGN.md` **Look** section: replace it with a short summary of the new style (section 3), the main palette, the fonts, and a pointer to `docs/restyle/mockups/style-guide.html`.
   - `README.md`: the file map (`palette.js`, `shading.js`, `tokens.css`, `docs/restyle/`).
   - `docs/HANDOFF.md`: a "Restyle: done" section listing what changed and where.
   - Every touched file's header comment.
-- [ ] Full checklist in the browser (section 8) on every map and theme.
-- [ ] Tests and build pass.
+- [x] Full checklist in the browser (section 8) on every map and theme.
+- [x] Tests and build pass.
+
+**Notes (2026-11-12):**
+- Colors: everything outside the palette files is a mix toward pure black or white (darker or lighter versions of a color), the players' colors (`config.js`), or the shading mask. No gradients. Every stroke is a line by nature (limbs, strings, vines, stems, cracks, rings, the crosshair, the editor's marks) or a text outline (the logo, banners).
+- Dead code: no `roundPumpkin`, old `drawWheat` or fallback tint left; the unused `system` canvas font removed; helpers only used inside their own file no longer exported. `TOOLS` stays exported for the effects lab's tries.
+- Performance (Retina, 2940×1684 canvas; 4 players, 10 gourds in the air, a blast, Winter's snow): `render()` takes about **5.6 ms** of CPU with shading on, **0.2 ms** with it off; the game holds **60 fps** either way (95% of frames under 17.3 ms). Over the 4 ms flag, so offered to the user: skip shading on particles and small gourds when frames run long (not done).
+- The page color behind the game is now bark (the user's pick); the editor's instant HUD switch on a theme change was left as is (the user's call).
+- `DESIGN.md` **Look** got a short style summary at the top; the detailed bullets stay under it (asked the user whether to trim them).
 
 **Hand over:** a short summary (what changed, the performance numbers, any parked items), plus side-by-side screenshots of before (the step 0 baseline) and after for 3 maps and the main menu.
 
@@ -819,7 +838,7 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - **Practice:** main menu → **Practice**. Esc → **Settings** → **Practice Map** switches maps, and **Practice Dummies** adds dummies (use 3).
 - **One gourd type at a time:** Esc → Settings → **Pumpkins**. Turn everything off except the type you're checking, and set its rarity high.
 - **Damage numbers:** Esc → Settings → **Damage Numbers** on.
-- **Debug mode and the tuning panel:** press **`** (backquote). Debug mode also turns on testing keys (see `src/app/controls.js`, for example **T** sends a crow). After step 5, the tuning panel has the Shading toggle.
+- **Debug mode and the tuning panel:** press **`** (backquote). After step 5, the tuning panel has the Shading toggle.
 - **A match with rounds and transitions:** **Host Game** → **Play vs Dummies While Waiting**, with map rotation on (Match Settings).
 - **The map editor:** main menu → **Map Editor**. Make a map, set its theme, and press Play.
 - **Every step:** check the console for errors, try a light map and a dark map, and try resizing the window.

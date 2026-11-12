@@ -11,7 +11,7 @@ import { clamp, r3 } from '../util/math.js'
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
 export const MAP_CODE_PREFIX = 'PFMAP1:'
-export const MAP_LIMITS = { platforms: 80, patches: 12, bales: 30, spikes: 20, fires: 10, scythes: 6, movers: 12, cannons: 8 }
+export const MAP_LIMITS = { platforms: 80, patches: 12, bales: 30, spikes: 20, fires: 10, movers: 12, cannons: 8 }
 const newMapId = () => 'c_' + Math.random().toString(36).slice(2, 10)
 
 // Clean up a map from anywhere (storage, an imported code, a host): known fields only,
@@ -26,7 +26,7 @@ export function sanitizeMap(raw) {
     id: typeof raw.id === 'string' && /^c_[a-z0-9]{4,16}$/.test(raw.id) ? raw.id : newMapId(),
     custom: true,
     name: String(raw.name || 'Custom map').replace(/[\u0000-\u001f]/g, '').slice(0, 32) || 'Custom map',
-    theme: THEMES[raw.theme] ? raw.theme : 'paper',
+    theme: Object.hasOwn(THEMES, raw.theme) ? raw.theme : 'paper',
     platforms: list(raw.platforms, MAP_LIMITS.platforms).map(o => ({
       ...pt(o), w: num(o.w, 0.25, W, 2), h: num(o.h, 0.25, H, 0.5), ...(o.wall ? { wall: true } : {}),
     })),
@@ -35,9 +35,6 @@ export function sanitizeMap(raw) {
     bales: list(raw.bales, MAP_LIMITS.bales).map(pt),
     spikes: list(raw.spikes, MAP_LIMITS.spikes).map(o => ({ ...pt(o), w: num(o.w, 0.3, W, 2) })),
     fires: list(raw.fires, MAP_LIMITS.fires).map(o => ({ ...pt(o), w: num(o.w, 0.4, 6, 1.4) })),
-    scythes: list(raw.scythes, MAP_LIMITS.scythes).map(o => ({
-      ...pt(o), length: num(o.length, 1.4, 6, 2.6), pole: num(o.pole, 0, H, 2.6), turnTime: num(o.turnTime, 0.5, 10, 3),
-    })),
     movers: list(raw.movers, MAP_LIMITS.movers).map(o => {
       const a = pt(o)
       return {
@@ -59,7 +56,7 @@ export function sanitizeMap(raw) {
 
 // The version the game plays: the theme name becomes the theme itself.
 export function toRuntimeMap(def) {
-  return { ...def, theme: THEMES[def.theme] || THEMES.paper, playable: checkMap(def).errors.length === 0 }
+  return { ...def, theme: Object.hasOwn(THEMES, def.theme) ? THEMES[def.theme] : THEMES.paper, playable: checkMap(def).errors.length === 0 }
 }
 
 export function encodeMapCode(def) {
@@ -90,11 +87,10 @@ export function duplicateMap(id, name) {
 const mapTop = p => p.y + p.h / 2
 const onTopOf = (pt, p) => Math.abs(mapTop(p) - pt.y) < 0.06 && pt.x > p.x - p.w / 2 && pt.x < p.x + p.w / 2
 const insideOf = (pt, p) => Math.abs(pt.x - p.x) < p.w / 2 && Math.abs(pt.y - p.y) < p.h / 2
-// is pt within pad meters of a pitchfork row, a bonfire or a scythe's reach?
+// is pt within pad meters of a pitchfork row or a bonfire?
 const mapHazardAt = (def, pt, pad) =>
   def.spikes.some(sp => pt.x > sp.x - sp.w / 2 - pad && pt.x < sp.x + sp.w / 2 + pad && pt.y > sp.y - pad && pt.y < sp.y + 0.6 + pad) ||
-  def.fires.some(f => pt.x > f.x - f.w / 2 - pad && pt.x < f.x + f.w / 2 + pad && pt.y > f.y - pad && pt.y < f.y + 0.9 + pad) ||
-  def.scythes.some(sc => Math.hypot(pt.x - sc.x, pt.y - sc.y) < sc.length + 0.3 + pad)
+  def.fires.some(f => pt.x > f.x - f.w / 2 - pad && pt.x < f.x + f.w / 2 + pad && pt.y > f.y - pad && pt.y < f.y + 0.9 + pad)
 
 // What you can get to from the spawns: jump up/across, drop down, or ride a moving platform.
 // Returns { nodes, seen }: nodes = floors (plus both ends of each mover), seen = the reachable ones.

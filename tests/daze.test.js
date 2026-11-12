@@ -7,10 +7,9 @@ import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
 
 const D = PUMPKIN_TYPES.daze
-// Practice on The Patch (no crows): you and a dummy, standing.
+// Practice on The Patch: you and a dummy, standing.
 function setup() {
   const game = createGame()
-  game.crowTimer = Infinity
   steps(game, 30)   // (stand up)
   return { game, me: game.players[0], dummy: game.players[1] }
 }

@@ -50,7 +50,6 @@ const ACTIONS = {
   }),
   'order-toggle': () => changeSettings(m => { m.shuffle = !m.shuffle }),
   'sights-toggle': () => changeSettings(m => { m.sights = !m.sights }),
-  crows: rate => changeSettings(m => { m.crows = rate }),
   'pref-toggle': name => togglePref(name),
   map: id => chooseMap(id),
   'dummies-down': () => changeDummies(dummyCount - 1),

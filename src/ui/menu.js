@@ -1,14 +1,15 @@
-// MENU (the HTML card in #menu)
+// MENU (the HTML card in #menu, plus the main menu's title art and logo: see titleArt.js)
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
-import { CROW_RATES, CROW_RATE_LABELS } from '../game/crows.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
+import { createTitleArt } from './titleArt.js'
 
 export function createMenu(onAction) {
   const root = document.getElementById('menu')
+  createTitleArt(root)
   let screen = 'main'
   root.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]')
@@ -20,11 +21,6 @@ export function createMenu(onAction) {
       <div class="seg"><button data-act="mode:rounds">Rounds</button><button data-act="mode:wins">First To</button><button data-act="mode:endless">Endless</button></div>
       <div class="stepper"><button data-act="num-down">−</button><span data-text="match-num"></span><button data-act="num-up">+</button></div>`
   }
-  // the logo: one span per letter so they can drop in one after another
-  const LOGO = 'Gourd Wars', dropDelay = i => 0.1 + i * 0.06, DROP_TIME = 0.8   // (DROP_TIME: logo-drop's length)
-  const landed = dropDelay(LOGO.length - 1) + DROP_TIME, SWAY_IN = 0.9   // (SWAY_IN: logo-sway-in's length)
-  root.querySelector('.logo').innerHTML = `<span class="wobble" style="animation-delay:${landed}s, ${landed + SWAY_IN}s">` + [...LOGO].map((ch, i) =>
-    ch === ' ' ? '<span class="gap"></span>' : `<span class="ch" style="animation-delay:${dropDelay(i)}s">${ch}</span>`).join('') + '</span>'
   // pumpkin spawn settings: one row per type, under column headings
   const rates = Object.keys(SPAWN_RATES)
   root.querySelector('.pumpkin-list').innerHTML = '<div class="pk-head"><span class="pk-name"></span><span>Enabled</span><span>Rarity</span></div>' + SPAWNABLE_TYPES.map(k => `
@@ -34,8 +30,6 @@ export function createMenu(onAction) {
       <button class="pk-on" data-act="pk-toggle:${k}">On</button>
       <div class="seg">${rates.map(r => `<button data-act="pk-rate:${k}:${r}">${RATE_LABELS[r]}</button>`).join('')}</div>
     </div>`).join('')
-  // how often crows fly over
-  root.querySelector('.crow-rate').innerHTML = CROW_RATES.map(r => `<button data-act="crows:${r}">${CROW_RATE_LABELS[r]}</button>`).join('')
   // keybinds: one row per action
   root.querySelector('.bind-list').innerHTML = BIND_ACTIONS.map(([action, label]) =>
     `<div class="toggle-row"><span>${label}</span><button class="bind" data-act="bind:${action}"></button></div>`).join('')
@@ -110,7 +104,6 @@ export function createMenu(onAction) {
       for (const el of root.querySelectorAll('.match-settings .stepper')) el.classList.toggle('hidden', settings.mode === 'endless')
       this.showToggle('order-toggle', settings.shuffle)
       this.showToggle('sights-toggle', settings.sights)
-      for (const b of root.querySelectorAll('.crow-rate button')) b.classList.toggle('on', b.dataset.act === 'crows:' + settings.crows)
       this.setText('match-num', settings.mode === 'rounds' ? `${settings.rounds} rounds` : `${settings.wins} wins`)
     },
     // an On/Off button

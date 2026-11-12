@@ -47,10 +47,6 @@ const SNAPSHOT_LISTS = {
   },
   holes: fields('id', 'x', 'y', 'r'),
   traps: fields('id', 'kind', 'x', 'y', 'angle', 'open', 'bite'),
-  crows: {   // (down as 0/1)
-    pack: c => [c.id, c.x, c.y, c.angle, c.down ? 1 : 0, c.dir],
-    unpack: ([id, x, y, angle, down, dir]) => ({ id, x, y, angle, down: !!down, dir }),
-  },
   strikes: fields('id', 'x', 'y', 't', 'r'),
   movers: fields('x', 'y'),
   patches: {   // (its state and pumpkin type by number)

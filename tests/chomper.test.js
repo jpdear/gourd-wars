@@ -7,12 +7,11 @@ import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
 
 const T = PUMPKIN_TYPES.chomper.trap
-// Practice (no crows): you and a dummy, standing. The Patch: the main floor's top at 4.4, x 9 to 23 (a
+// Practice: you and a dummy, standing. The Patch: the main floor's top at 4.4, x 9 to 23 (a
 // pumpkin patch at 16: a pumpkin on it would break a Chomper).
 function setup(map) {
   const game = createGame()
   if (map) { game.mapChoice = map; resetRound(game) }
-  game.crowTimer = Infinity
   steps(game, 30)   // (stand up)
   return { game, me: game.players[0], dummy: game.players[1] }
 }

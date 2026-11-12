@@ -42,7 +42,11 @@ Plain JavaScript modules, built with [Vite](https://vite.dev). Physics:
 
 ```
 index.html            the page: canvas, menu screens, editor shell
-styles/               base, menus (and the logo), map editor, tuning panel
+lab.html              the effects lab (dev only: localhost:5199/lab.html; not in the build)
+styles/               base, menus, map editor, tuning panel;
+                      tokens.css: every color and font they use
+docs/                 DESIGN.md (the design doc), HANDOFF.md, RESTYLE_PLAN.md (the 2026-11 restyle);
+                      restyle/mockups/: the style guide and the mockups the look was picked from
 src/
   main.js             starts the app
   version.js          the version (see Releasing)
@@ -52,16 +56,22 @@ src/
     player.js           the active ragdoll stick figure
     pumpkinTypes.js     every pumpkin's numbers + spawn rates
     pumpkins.js         throwing, hits, knockback        powers.js   what the specials do
-    crows.js            crows flying over (knocked down, thrown, pecking)
     traps.js            planted gourds: Chompers (biting) and Landmines (blowing up)
-    pickups.js          what the harvest key can pick up (pumpkins, crows)
-    level.js            hay bales, pitchforks, scarecrows, bonfires, moving platforms
+    pickups.js          what the harvest key can pick up (pumpkins from their patches)
+    level.js            hay bales, pitchforks, bonfires, moving platforms
     cannons.js          gourd cannons (a map piece firing gourds)
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js
   maps/               built-in maps and themes; custom maps (clean-up, checks, map codes)
-  render/             draws a frame from a snapshot (the same on the host and guests)
+  render/             draws a frame from a snapshot (the same on the host and guests);
+                      palette.js: every color and font the canvas uses; shading.js: the two-tone shadow side
+                      scenery.js: map backdrops (cached), their moving parts and weather, and platform tops
+                      effects.js: particles, blast clouds and popups (made locally from game events)
+                      anims.js: the bits of gourds that move on their own (blinking lights, glows, trails)
+                      statusLooks.js: how bales and players look damaged, frozen or glued
   net/                connections (links.js) and the message format (protocol.js)
-  ui/                 the HTML parts: menu, tuning panel, map editor
+  ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
+  lab/                the effects lab: tries for gourd breaks, firing, animations, status looks and backdrop pieces
+                      (variants.js), side by side with what the game does now
   app/                runs it all in the page:
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do
