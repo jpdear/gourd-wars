@@ -37,10 +37,14 @@ export function unpackInput(m) {
 
 // Snapshots (see game/snapshot.js) go 30 times a second, so their lists of things go as arrays
 // instead of objects: each item's fields in a fixed order, without their names. (Everything else
-// in a snapshot goes as it is.) Each list: how to pack an item and unpack it again.
-const fields = (...names) => ({ pack: o => names.map(k => o[k]), unpack: a => Object.fromEntries(names.map((k, i) => [k, a[i]])) })
+// in a snapshot goes as it is.) Each list: how to pack an item and unpack it again. Fields left out
+// at the end (a pumpkin's fuse: only fused ones have one) are left off the array, and stay out.
+const fields = (...names) => ({
+  pack: o => { const a = names.map(k => o[k]); while (a.length && a[a.length - 1] === undefined) a.pop(); return a },
+  unpack: a => Object.fromEntries(names.slice(0, a.length).map((k, i) => [k, a[i]])),
+})
 const SNAPSHOT_LISTS = {
-  pumpkins: fields('id', 'x', 'y', 'angle', 'typeName', 'ripeness', 'owner', 'radius', 'heading'),
+  pumpkins: fields('id', 'x', 'y', 'angle', 'typeName', 'ripeness', 'owner', 'radius', 'heading', 'fuse'),
   bales: {   // (its effects as bit flags: 1 frozen, 2 sticky, 4 floating)
     pack: b => [b.id, b.x, b.y, b.angle, b.health, (b.frozen ? 1 : 0) | (b.sticky ? 2 : 0) | (b.floating ? 4 : 0)],
     unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4) }),

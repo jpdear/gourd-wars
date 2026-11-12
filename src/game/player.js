@@ -47,7 +47,7 @@ const freshLife = () => ({
   hopCooldown: 0,             // bonfire pop-out
   spikeTimer: 0,              // just hurt by pitchforks: not again until this runs out
   // hands
-  held: null,                 // { typeName, power, ripeness, ammo?, blocks? } while holding a pumpkin
+  held: null,                 // { typeName, power, ripeness, ammo?, blocks?, fuseLeft? } while holding a pumpkin (fuseLeft: a fused one caught ticking)
   charging: false,
   punchTimer: 0,              // > 0 while a jab is out
   pickup: null,               // what we could pick up from where we stand (see pickups.js)
@@ -265,9 +265,18 @@ export class Player {
     return (this.held && PUMPKIN_TYPES[this.held.typeName].carry) || {}
   }
 
-  holdPumpkin(typeName, power, ripeness) {
-    this.held = { typeName, power, ripeness, ammo: PUMPKIN_TYPES[typeName].ammo, blocks: 0 }
+  // fuseLeft: a fused gourd caught while ticking (s left; it keeps ticking in our hand)
+  holdPumpkin(typeName, power, ripeness, fuseLeft) {
+    this.held = { typeName, power, ripeness, ammo: PUMPKIN_TYPES[typeName].ammo, blocks: 0, fuseLeft }
     this.sprayTimer = 0
+  }
+
+  // A ticking gourd in our hand runs out: it goes off right there.
+  heldGoesOff(game) {
+    const h = this.handPosition(), held = this.held
+    this.dropHeld()
+    game.events.push({ type: 'splat', x: r3(h.x), y: r3(h.y), typeName: held.typeName, ripeness: held.ripeness, rot: 0 })
+    PUMPKIN_TYPES[held.typeName].goOff(game, h.x, h.y, held.power)
   }
 
   // Where the shoulders are (throws and punches are aimed from here).
@@ -386,6 +395,7 @@ export class Player {
       this.sinceStun += dt
     }
     if (input.ragdoll && !this.prev.ragdoll) this.stun(1.5)
+    if (this.held?.fuseLeft !== undefined && (this.held.fuseLeft -= dt) <= 0) this.heldGoesOff(game)   // (caught ticking: see holdPumpkin)
     const canAct = !this.helpless
     const control = !canAct ? 0 : Math.min(1, this.sinceStun / C.recoverTime)
     const carry = this.carry
@@ -743,10 +753,11 @@ export class Player {
     if (!game.match) this.reviveTimer = 1.2
   }
 
-  // Limp for the rest of the round. A pumpkin in hand is lost.
+  // Limp for the rest of the round. A pumpkin in hand is lost (one ticking away drops, still ticking).
   knockOut(game) {
     this.ko = true
     this.stunTimer = Infinity
+    if (this.held?.fuseLeft !== undefined) spawnPumpkin(game, this.held.typeName, this.handPosition(), (v => new Vec2(v.x, v.y))(this.torso.getLinearVelocity()), this, this.held)
     this.dropHeld()
     this.harvestTarget = null
     this.harvestProgress = 0

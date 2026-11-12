@@ -27,6 +27,7 @@ export function makeSnapshot(game) {
       held: p.held && !p.dead ? p.held.typeName : null,
       heldRipeness: p.held ? r3(p.held.ripeness) : 0,
       heldCracks: p.held ? p.held.blocks || 0 : 0,
+      ...(p.held?.fuseLeft !== undefined && !p.dead && { heldFuse: r3(p.held.fuseLeft) }),   // a fused gourd ticking in their hand: s left
       frozen: p.frozen,
       glued: p.glued,
       floating: p.floating,
@@ -43,12 +44,14 @@ export function makeSnapshot(game) {
         return [r3(pos.x), r3(pos.y), r3(wrapAngle(body.getAngle()))]
       }),
     })),
-    // owner: the thrower's slot (-1: nobody); heading: the way a Homing gourd chasing someone is flying (else null)
+    // owner: the thrower's slot (-1: nobody); heading: the way a Homing gourd chasing someone is flying (else null);
+    // fuse: s left on a fused gourd (a Bouncing Bomb; only on those)
     pumpkins: game.pumpkins.map(pk => {
       const pos = pk.body.getPosition()
       return {
         id: pk.id, x: r3(pos.x), y: r3(pos.y), angle: r3(wrapAngle(pk.body.getAngle())), typeName: pk.typeName, ripeness: r3(pk.ripeness),
         owner: pk.owner ? pk.owner.index : -1, radius: r3(pk.radius), heading: pk.target ? r3(pk.heading) : null,
+        ...(pk.fuseLeft !== undefined && { fuse: r3(Math.max(0, pk.fuseLeft)) }),
       }
     }),
     // health: 0..1; frozen (icy), sticky (goo), floating (a Balloon carrying it off)

@@ -10,7 +10,8 @@ import { blastTraps } from './traps.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
-// straight outward, harder the closer it was; splats pumpkins still on their patches.
+// straight outward, harder the closer it was; splats pumpkins still on their patches; sets off a
+// fused gourd (a Bouncing Bomb) a moment later.
 export function explode(game, x, y, blast, power) {
   game.events.push({ type: 'boom', x: r3(x), y: r3(y), r: blast.radius })
   blastTraps(game, x, y, blast.radius)   // (a Landmine it reaches goes off too)
@@ -30,7 +31,9 @@ export function explode(game, x, y, blast, power) {
   for (const pk of game.pumpkins) {
     if (pk.broken) continue
     const a = away(pk.body.getPosition())
-    if (a.f > 0) pushAway([pk.body], a, blast.knockback * a.f * power)
+    if (a.f <= 0) continue
+    pushAway([pk.body], a, blast.knockback * a.f * power)
+    if (pk.fuseLeft !== undefined) pk.fuseLeft = Math.min(pk.fuseLeft, pk.type.chainDelay)   // (a Bouncing Bomb goes off too, a moment later)
   }
   for (const patch of game.patches) {
     if (patch.state !== 'empty' && away(patchPumpkin(patch)).f > 0) splatPatch(game, patch)

@@ -1,6 +1,7 @@
 // PUMPKINS
 // quality: { power, ripeness } of the harvested pumpkin (full power if left out), and size: its
-//   radius as a share of the type's (an Airstrike's airdrop picked green is smaller)
+//   radius as a share of the type's (an Airstrike's airdrop picked green is smaller); fuseLeft: a
+//   fused one (type.fuse) that was already ticking when it was caught (else its fuse starts now)
 // group: collision group for the first 0.25 s (default: the thrower's, so it doesn't hit them on the way out;
 //   for good if it missesThrower)
 
@@ -29,6 +30,8 @@ export function spawnPumpkin(game, typeName, pos, vel, owner, quality, group) {
     power: quality ? quality.power : 1,          // from how ripe it was when picked
     ripeness: quality ? quality.ripeness : 1,
     launch: { x: vel.x, y: vel.y },              // how it was thrown (a Boomerang curves back from this)
+    fuseLeft: type.fuse ? quality?.fuseLeft ?? type.fuse : undefined,   // s until it goes off (a fused type)
+    reboundTimer: 0,                             // just bounced off someone: they can't be hit again for a moment
   }
   body.setUserData({ kind: 'pumpkin', pumpkin })
   game.pumpkins.push(pumpkin)
@@ -47,6 +50,24 @@ export function recordPumpkinContact(game, fixture, other) {
 const PIERCES = { player: ud => ud.player, bale: ud => ud.bale }
 export const piercesThrough = (pumpkin, ud) => !!(pumpkin.type.pierces && ud && PIERCES[ud.kind])
 
+// A fused gourd (type.fuse) only breaks when it goes off: people and shields bounce it back instead.
+const fused = p => p.fuseLeft !== undefined
+const REBOUND_TIME = 0.25   // s after bouncing off someone before it can hit anyone again
+
+// Bounce a pumpkin off someone (or their shield): straight back the way it came, as bouncy as it is.
+// (Pumpkins pass through people physically, so this does it by hand.)
+export function rebound(p) {
+  const v = p.body.getLinearVelocity(), k = -p.type.restitution
+  p.body.setLinearVelocity(new Vec2(v.x * k, v.y * k))
+  p.reboundTimer = REBOUND_TIME
+}
+
+// Stopped by a shield: a fused one bounces back off it, anything else breaks.
+function stopped(game, p) {
+  if (fused(p)) rebound(p)
+  else breakPumpkin(game, p)
+}
+
 export function handlePumpkinContacts(game) {
   for (const c of game.contacts) {
     const p = c.pumpkin
@@ -64,7 +85,8 @@ export function handlePumpkinContacts(game) {
     if (hitPlayer) {
       const player = ud.player
       const pos = p.body.getPosition()
-      if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { breakPumpkin(game, p); continue }
+      if (p.reboundTimer > 0) continue
+      if (!p.type.unblockable && player.tryBlock(game, pos, p.radius + 0.3, unit(c.velocity))) { stopped(game, p); continue }
       if (p.type.onHitPlayer) p.type.onHitPlayer(game, p, player, c.other, c.velocity)
       else knockback(game, player, c.other, p, c.velocity)
     } else {
@@ -76,7 +98,7 @@ export function handlePumpkinContacts(game) {
         if (p.type.onHitBale) p.type.onHitBale(game, p, ud.bale, c.velocity)
       } else if (p.type.onHitWorld) p.type.onHitWorld(game, p, c.other)
     }
-    if (!pierced && (hitPlayer || p.hits >= p.type.breakAfterHits)) breakPumpkin(game, p)
+    if (!pierced && ((hitPlayer && !fused(p)) || p.hits >= p.type.breakAfterHits)) breakPumpkin(game, p)
   }
   game.contacts.length = 0
 }
@@ -93,6 +115,13 @@ export function knockback(game, player, hitBody, pumpkin, vel) {
   const t = pumpkin.type
   const power = hitPower(pumpkin, vel)
   applyHit(game, player, hitBody, vel.x / speed, vel.y / speed, t.knockback * power, t.damage * power, t.stun * power)
+}
+
+// Just a push, no damage (a Bouncing Bomb bonking someone): the small shove a hit too weak to stagger gives.
+export function shove(player, hitBody, pumpkin, vel) {
+  const speed = Math.hypot(vel.x, vel.y)
+  if (speed < 0.5) return
+  launch(player, hitBody, vel.x / speed, vel.y / speed, pumpkin.type.knockback * hitPower(pumpkin, vel) * CONFIG.damage.shoveScale)
 }
 
 // Deal `damage` (which may stagger them for `stun` seconds) and push the player at `speed` m/s
@@ -142,6 +171,11 @@ export function updatePumpkins(game, dt) {
     if (p.age > 0.25 && !p.type.missesThrower && p.fixture.getFilterGroupIndex() !== 0) p.fixture.setFilterGroupIndex(0)
     if (p.body.getPosition().y < CONFIG.killY) p.broken = true
     if (p.broken) continue
+    p.reboundTimer = Math.max(0, p.reboundTimer - dt)
+    if (fused(p) && (p.fuseLeft -= dt) <= 0) {
+      breakPumpkin(game, p)
+      continue
+    }
     if (p.type.lifetime && p.age >= p.type.lifetime) {
       if (p.type.fizzle) popPumpkin(game, p)
       else breakPumpkin(game, p)
@@ -158,17 +192,17 @@ export function updatePumpkins(game, dt) {
       continue
     }
     // a carried Big Gourd blocks it (not the thrower's own, if it missesThrower)
-    const blocks = pl => !(p.type.missesThrower && pl === p.owner) && pl.tryBlock(game, pos, p.radius, unit(p.body.getLinearVelocity()))
+    const blocks = pl => p.reboundTimer <= 0 && !(p.type.missesThrower && pl === p.owner) && pl.tryBlock(game, pos, p.radius, unit(p.body.getLinearVelocity()))
     if (!p.type.unblockable && game.players.some(blocks)) {
-      breakPumpkin(game, p)
-      continue
+      stopped(game, p)
+      if (p.broken) continue
     }
-    // hitting a pumpkin still on the vine knocks it off (both splat)
+    // hitting a pumpkin still on the vine knocks it off (both splat; a fused one flies on)
     for (const patch of game.patches) {
       if (patch.state === 'empty') continue
       const target = patchPumpkin(patch)
       if (Math.hypot(pos.x - target.x, pos.y - target.y) < p.radius + target.r) {
-        breakPumpkin(game, p)
+        if (!fused(p)) breakPumpkin(game, p)
         splatPatch(game, patch)
         break
       }
@@ -176,4 +210,20 @@ export function updatePumpkins(game, dt) {
   }
   for (const p of game.pumpkins) if (p.broken) game.world.destroyBody(p.body)
   game.pumpkins = game.pumpkins.filter(p => !p.broken)
+}
+
+// Fused gourds ticking in the air or on the ground, as pickups (see pickups.js): anyone with empty
+// hands can grab one, even flying past at head height, and it keeps ticking in their hand.
+const CATCH = { time: 0.05, above: 1.4 }   // s holding the key (just a press, really); m above your hips it can be
+export function fusePickups(game) {
+  return game.pumpkins.filter(p => fused(p) && !p.broken).map(p => {
+    const pos = p.body.getPosition()
+    return {
+      key: p, x: pos.x, y: pos.y - p.radius, at: { x: pos.x, y: pos.y, r: p.radius }, time: CATCH.time, above: CATCH.above,
+      take: player => {
+        player.holdPumpkin(p.typeName, p.power, p.ripeness, p.fuseLeft)
+        p.broken = true   // (gone from the air: it's in their hand now)
+      },
+    }
+  })
 }

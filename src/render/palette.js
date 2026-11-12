@@ -52,6 +52,8 @@ export const GOURD = freeze({
   stem: '#4f8a34',
   leaf: '#76b046',                      // (on the stem; the Vine's too)
   dark: '#3b3631',                      // (a fuse, an antenna, a rocket's nozzle)
+  rubberBand: '#f6efe3',                // (round a Bouncing Bomb's middle)
+  fuseFlash: { color: '#ffd23f', rib: '#d9a21a' },   // (a ticking Bouncing Bomb, each time it blinks)
   superRare: { gold: '#ffd54a', sparkle: '#fff6c8' },
   spark: ['#ff9a2e', '#ffe08a', '#ffc94d', '#ffe08a'],   // (a fuse's spark burst: the big star, the small one, the spark lines, the flying dots)
   ice: '#ffffff',

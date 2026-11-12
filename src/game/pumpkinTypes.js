@@ -15,6 +15,12 @@
 //   breakAfterHits           breaks after touching anything that isn't a player this many times
 //                            (hitting a player always breaks it; pumpkins pass through people physically)
 //   lifetime                 pops after this many seconds in the air (fizzle: quietly, no splat)
+//   fuse                     goes off this many seconds after it first leaves a hand (onBreak), and until then
+//                            nothing else breaks it: it bonks people and bounces off them (and off shields),
+//                            knocks pumpkins off patches without stopping; only fire, a Black Hole or a blast
+//                            (chainDelay: it goes off that many seconds later) sets it off sooner. While it's
+//                            ticking anyone can grab it, even in the air (see fusePickups in pumpkins.js), and it
+//                            keeps ticking in their hand (and goes off there: goOff(game, x, y, power))
 //   throwMode                'throw' (charge & release), 'lob' (short and slow), 'spray' (hold to fire seeds)
 //   throwSpeed               { min, max }: a quick tap → a full charge (default CONFIG.throw minSpeed/maxSpeed;
 //                            see throwSpeeds)
@@ -32,7 +38,7 @@ import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
 import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { biteWith, plantTrap } from './traps.js'
-import { knockback } from './pumpkins.js'
+import { knockback, rebound, shove } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
 export const PUMPKIN_TYPES = {
@@ -254,6 +260,16 @@ export const PUMPKIN_TYPES = {
       const p = pk.body.getPosition()
       if (!pk.used) game.events.push({ type: 'pop', x: r3(p.x), y: r3(p.y), color: pk.type.color })
     },
+  },
+  bouncebomb: {   // a red ball squash with a rubber band round it and a stubby fuse: thrown, it ticks, bouncing everywhere, then blows up
+    name: 'Bouncing Bomb', color: '#d9433f', rib: '#8f2226', mark: 'rubberball',
+    radius: 0.21, density: 1.5, restitution: 0.85, breakAfterHits: Infinity,
+    damage: 0, knockback: 4, stun: 0,     // (bonking someone on the way: no damage, just a small push, and it bounces off them)
+    fuse: 3, chainDelay: 0.15,            // (see fuse above; the flash speeds up as it burns down: see render/pumpkins.js)
+    blast: { radius: 1.8, damage: 25, knockback: 18, stun: 1.2 },   // (× power: picked green, a smaller bang)
+    goOff: (game, x, y, power) => explode(game, x, y, PUMPKIN_TYPES.bouncebomb.blast, power),
+    onHitPlayer: (game, pk, player, part, vel) => { shove(player, part, pk, vel); rebound(pk) },
+    onBreak: (game, pk) => { const p = pk.body.getPosition(); pk.type.goOff(game, p.x, p.y, pk.power) },
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

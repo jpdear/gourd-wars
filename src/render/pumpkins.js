@@ -115,6 +115,10 @@ const BODIES = {
   bottle: (c, r, colors, f) => drawBottleGourd(c, r, colors, f),
   mine: (c, r, colors, f) => mineGourd(c, r, colors, f),
   chomper: (c, r, colors, f) => shutChomper(c, r, colors, f),   // (thrown or held: shut, lying on its side)
+  rubberball: (c, r, colors, f) => {   // a Bouncing Bomb: a round ball squash (no lobes sticking out, no stem)
+    f(lobeColor(colors)); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.fill()
+    f(colors.color); c.beginPath(); c.ellipse(0, 0, r * 0.6, r * 0.99, 0, 0, TAU); c.fill()
+  },
 }
 
 // Ones that draw themselves, flat and unshaded: a seed (tiny, and fired by the dozen).
@@ -199,6 +203,13 @@ const MARKS = {
     c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(r * 0.15, -r * 1.75); c.stroke()
     ANIM.antennaTip(c, r * 0.15, -r * 1.8, r, clock.now())
   },
+  rubberball: (c, r) => {   // a wide rubber band round its middle and a stubby fuse for a stem (it sparks once it's ticking: see fusedLook)
+    c.save(); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.clip()
+    c.fillStyle = GOURD.rubberBand; c.fillRect(-r * 1.2, -r * 0.19, r * 2.4, r * 0.38)
+    c.restore()
+    c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.12); c.lineCap = 'round'
+    c.beginPath(); c.moveTo(0, -r * 0.92); c.quadraticCurveTo(r * 0.05, -r * 1.25, r * 0.26, -r * 1.3); c.stroke(); c.lineCap = 'butt'
+  },
   string: (c, r, colors) => {   // a balloon's string, and the knot at its bottom
     c.strokeStyle = GOURD.string; c.lineWidth = Math.max(1, r * 0.05)
     c.beginPath(); c.moveTo(0, r); c.quadraticCurveTo(r * 0.3, r * 1.6, 0, r * 2.2); c.stroke()
@@ -255,12 +266,33 @@ const IN_FLIGHT = {
   buzzsaw: (ctx, pk, colors, snap, X, Y, s) => spinBlur(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, 'saw'),
 }
 
+// A fused gourd ticking (a Bouncing Bomb: `left` s to go): it blinks, faster and faster (2 → 12 a
+// second over its whole fuse, then stays lit for the last moment), and each blink it flashes bright
+// yellow and puffs up 20% bigger, shrinking back. Its fuse sparks the whole time.
+const FLASH = { from: 2, to: 12, on: 0.45, swell: 0.2, solid: 0.15 }   // blinks/s at the start, at the end; share of each blink lit; how much bigger; s lit at the end
+const FUSE_TIP = [0.3, -1.34]   // where its spark is (of r, in its frame)
+function fusedLook(type, colors, r, left) {
+  const T = type.fuse, e = clamp(T - left, 0, T)
+  const cyc = left < FLASH.solid ? 0 : (FLASH.from * e + (FLASH.to - FLASH.from) * e ** 3 / (3 * T * T)) % 1
+  if (cyc >= FLASH.on) return { colors, r }
+  return { colors: GOURD.fuseFlash, r: r * (1 + FLASH.swell * (1 - cyc / FLASH.on)) }
+}
+// Draw a pumpkin that may be ticking (left: s left on its fuse, or null/undefined if it isn't).
+function drawMaybeTicking(ctx, x, y, r, angle, colors, type, left, shade) {
+  if (left === undefined || left === null) return drawPumpkin(ctx, x, y, r, angle, colors, type.mark, shade)
+  const look = fusedLook(type, colors, r, left)
+  drawPumpkin(ctx, x, y, look.r, angle, look.colors, type.mark, shade)
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-angle)
+  drawSparkBurst(ctx, FUSE_TIP[0] * look.r, FUSE_TIP[1] * look.r, look.r * 0.8, clock.now())
+  ctx.restore()
+}
+
 // A thrown pumpkin (pk: as in IN_FLIGHT; shade: the map's shade tint).
 export function drawFlyingPumpkin(ctx, pk, snap, X, Y, s, shade) {
   const type = PUMPKIN_TYPES[pk.typeName]
   const colors = pumpkinColors(type, pk.ripeness, 0)
   IN_FLIGHT[pk.typeName]?.(ctx, pk, colors, snap, X, Y, s)
-  drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, type.mark, shade)
+  drawMaybeTicking(ctx, X(pk.x), Y(pk.y), pk.radius * s, pk.angle, colors, type, pk.fuse, shade)
 }
 
 // Types held some other way than in the hand, by type name. hand: [x, y] of the front hand.
@@ -277,13 +309,14 @@ const HELD = {
 }
 
 // The pumpkin a player (from the snapshot) is holding: in their front hand, growing a little while
-// they charge a throw. A Big Gourd shield shows a crack for each hit it has blocked.
+// they charge a throw. A Big Gourd shield shows a crack for each hit it has blocked; a Bouncing Bomb
+// caught ticking keeps blinking.
 export function drawHeldPumpkin(ctx, p, X, Y, s, shade) {
   const hand = handOf(p), [hx, hy] = hand
   const type = PUMPKIN_TYPES[p.held]
   const colors = pumpkinColors(type, p.heldRipeness, 0)
   if (HELD[p.held]) HELD[p.held](ctx, type, colors, hand, X, Y, s, shade)
-  else drawPumpkin(ctx, X(hx), Y(hy), type.radius * (1 + 0.25 * p.charge) * s, 0, colors, type.mark, shade)
+  else drawMaybeTicking(ctx, X(hx), Y(hy), type.radius * (1 + 0.25 * p.charge) * s, 0, colors, type, p.heldFuse, shade)
   if (p.heldCracks) {
     ctx.strokeStyle = mixHex(colors.rib, '#000000', 0.4)
     ctx.lineWidth = 0.025 * s

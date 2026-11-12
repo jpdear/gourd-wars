@@ -134,6 +134,16 @@ const TUNABLES = [
       [T_ + 'boom.blast.knockback', 0, 40, 0.5, 'blast knockback'],
       [T_ + 'boom.blast.stun', 0, 3, 0.05, 'blast ragdoll'],
     ]],
+    ['Bouncing Bomb', [
+      [T_ + 'bouncebomb.fuse', 0.5, 8, 0.25, 'fuse (s)'],
+      [T_ + 'bouncebomb.restitution', 0, 1, 0.05, 'bounciness'],
+      [T_ + 'bouncebomb.knockback', 0, 20, 0.5, 'bonk push'],
+      [T_ + 'bouncebomb.blast.radius', 0.5, 6, 0.1, 'blast radius'],
+      [T_ + 'bouncebomb.blast.damage', 0, 100, 1, 'blast damage'],
+      [T_ + 'bouncebomb.blast.knockback', 0, 40, 0.5, 'blast knockback'],
+      [T_ + 'bouncebomb.blast.stun', 0, 3, 0.05, 'blast ragdoll'],
+      [T_ + 'bouncebomb.chainDelay', 0, 1, 0.05, 'chain delay (s)'],
+    ]],
     ['Gourd Cluster', [
       [T_ + 'mini.damage', 0, 40, 1, 'piece damage'],
       [T_ + 'mini.knockback', 0, 20, 0.5, 'piece knockback'],
