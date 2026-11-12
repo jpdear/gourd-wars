@@ -1,44 +1,55 @@
-/* The map editor: toolbar and side panel. (Colors and fonts: tokens.css.) */
-#editor { display: none; font: 13px var(--font-system); color: var(--panel-text); }
+/* The map editor: toolbar and side panel, in Pumpkin & Bark (docs/RESTYLE_PLAN.md step 11): bark bars,
+   flat 1 px bark-3 edges, compact rounded buttons with a ledge, Fredoka text. (Colors and fonts: tokens.css.) */
+#editor { display: none; font: 500 13px var(--font-text); color: var(--paper); }
 #editor.open { display: block; }
 #editor .bar {
-  position: fixed; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-  padding: 6px 8px; box-sizing: border-box; background: var(--panel); box-shadow: 0 1px 0 var(--panel-deep);
+  position: fixed; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+  padding: 6px 8px 8px; box-sizing: border-box; background: var(--bark); border-bottom: 1px solid var(--bark-3);
 }
 #editor .bar .gap { flex: 1; }
+#editor .bar .label { margin: 0 2px 0 6px; color: var(--muted-on-bark); }
+
+/* buttons: compact, with a ledge under them that they press down onto */
 #editor button {
-  padding: 6px 9px; border: 0; border-radius: 5px; cursor: pointer; background: var(--panel-button); color: var(--panel-text); font: inherit;
+  box-sizing: border-box; padding: 5px 9px; border: 0; border-radius: 8px; cursor: pointer; font: inherit;
+  background: var(--bark-3); color: var(--paper); box-shadow: 0 2px 0 var(--ink-edge);
 }
-#editor button:hover:not(:disabled) { background: var(--panel-button-hover); }
-#editor button.on { background: var(--panel-on); color: var(--panel-deep); font-weight: 600; }
-#editor .bar .label { margin: 0 2px 0 6px; color: var(--panel-label); }
-#editor button.spawn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 7px; }
-#editor button.spawn .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px var(--panel-dot-ring); }
-#editor button.primary { background: var(--panel-primary); color: var(--panel-deep); font-weight: 600; }
-#editor button.primary:hover { background: var(--panel-on); }
-#editor button.danger { background: var(--panel-danger); }
+#editor button:hover:not(:disabled) { background: var(--bark-3-hover); }
+#editor button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+#editor button.on { background: var(--pumpkin); color: var(--ink); box-shadow: 0 2px 0 var(--pumpkin-edge); font-weight: 600; }
+#editor button.on:hover:not(:disabled) { background: var(--pumpkin-hover); }
+#editor button.primary { background: var(--pumpkin); color: var(--white); box-shadow: 0 2px 0 var(--pumpkin-edge); font-weight: 600; }
+#editor button.primary:hover:not(:disabled) { background: var(--pumpkin-hover); }
+#editor button.danger { background: var(--hit); color: var(--white); box-shadow: 0 2px 0 var(--hit-edge); }
+#editor button.danger:hover:not(:disabled) { background: var(--hit-hover); }
 #editor button:disabled { opacity: 0.4; cursor: default; }
+#editor button.spawn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 7px; }
+#editor button.spawn .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px var(--dot-ring); }
+
+/* the side panel */
 #editor .panel {
   overflow-x: hidden; position: fixed; right: 0; bottom: 0; top: 44px; width: 250px; overflow-y: auto; box-sizing: border-box;
-  padding: 4px 12px 12px; background: var(--panel); box-shadow: -1px 0 0 var(--panel-deep);
+  padding: 4px 12px 12px; background: var(--bark-2); border-left: 1px solid var(--bark-3);
 }
-#editor h3 { margin: 14px 0 6px; color: var(--panel-heading); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-#editor label { display: block; color: var(--panel-label); }
+#editor h3 { margin: 16px 0 6px; color: var(--pumpkin); font: 600 11px var(--font-text); text-transform: uppercase; letter-spacing: 0.06em; }
+#editor label { display: block; color: var(--muted-on-bark); }
 #editor .field { margin: 6px 0; }
 #editor input, #editor select {
-  box-sizing: border-box; width: 100%; margin-top: 2px; padding: 5px 6px; border: 1px solid var(--panel-button); border-radius: 4px;
-  background: var(--panel-deep); color: var(--panel-text); font: inherit;
+  box-sizing: border-box; width: 100%; margin-top: 3px; padding: 5px 7px; border: 1px solid var(--bark-3); border-radius: 6px;
+  background: var(--bark); color: var(--paper); font: inherit; outline: none;
 }
+#editor input:focus, #editor select:focus { border-color: var(--pumpkin); }
 #editor .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #editor .check { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
-#editor .check input { width: auto; margin: 0; }
+#editor .check input { width: auto; margin: 0; accent-color: var(--pumpkin); }
 #editor .panel > div > button { width: 100%; margin-top: 8px; }
-#editor .hint { margin: 0; color: var(--panel-label); line-height: 1.4; }
+#editor .hint { margin: 0; color: var(--muted-on-bark); line-height: 1.4; }
 #editor .status { min-height: 1.2em; margin: 6px 0 0; color: var(--panel-ok); }
 #editor .status.bad { color: var(--panel-bad); }
-#editor .problem { display: block; width: 100%; margin: 0 0 4px; padding: 5px 7px; border-radius: 4px; text-align: left; line-height: 1.35; }
+#editor .problem { display: block; box-sizing: border-box; width: 100%; margin: 0 0 6px; padding: 5px 8px; border-radius: 6px; text-align: left; line-height: 1.35; box-shadow: none; }
 #editor .problem.err { background: var(--problem-err); color: var(--problem-err-text); }
 #editor .problem.warn { background: var(--problem-warn); color: var(--problem-warn-text); }
 #editor .problem.ok { background: var(--problem-ok); color: var(--problem-ok-text); }
 #editor button.problem.err:hover { background: var(--problem-err-hover); }
 #editor button.problem.warn:hover { background: var(--problem-warn-hover); }
+#editor button.problem:active { transform: none; }

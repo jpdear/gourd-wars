@@ -10,7 +10,7 @@ import { MAPS } from '../../maps/builtin.js'
 import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
 import { THEMES, skyColor } from '../../maps/themes.js'
 import { drawBale, drawBonfire, drawCannon, drawPitchforks } from '../../render/level.js'
-import { EDITOR, FONT } from '../../render/palette.js'
+import { EDITOR, font } from '../../render/palette.js'
 import { drawPumpkin } from '../../render/pumpkins.js'
 import { EDITOR_MAP_ID, EDITOR_TOOLS, PIECE_FIELDS, PIECE_KINDS, PIECE_NAMES, TOOL_KINDS, cannonSpeedAt, drawSpawnMarker, moverEnd, pieceBox, pieceHandles } from './tools.js'
 import { hexA } from '../../util/color.js'
@@ -505,7 +505,7 @@ export function createEditor(canvas, view, hooks) {
         ctx.fill()
       }
     }
-    ctx.font = `bold ${Math.round(0.28 * s)}px ${FONT.system}`
+    ctx.font = font('text', 0.28 * s, 600)
     ctx.textAlign = 'center'
     for (const pt of def.patches) {
       if (!pt.only) continue
@@ -576,7 +576,7 @@ export function createEditor(canvas, view, hooks) {
       }
     }
     // help + where the cursor is, along the bottom
-    ctx.font = `${Math.round(0.32 * s)}px ${FONT.system}`
+    ctx.font = font('text', 0.32 * s)
     ctx.fillStyle = theme.muted
     ctx.strokeStyle = skyColor(theme)
     ctx.lineWidth = 3

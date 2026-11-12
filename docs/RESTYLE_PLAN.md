@@ -753,8 +753,10 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - **Canvas overlay** (`editor.js`): the grid uses `theme.ink` at the current alphas (fine with the new per-theme `ink`). The selection, markers and handles use the `UI` colors (`pumpkin` for the selection, `paper` with an `ink` edge for handles). Remove strokes only where they edge a filled shape; handles and guides are UI, so they keep their strokes.
 
 **Check:**
-- [ ] Every editor tool, the panel, saving and loading, import and export, on a light theme and a dark theme.
-- [ ] Tests and build pass.
+- [x] Every editor tool, the panel, saving and loading, import and export, on a light theme and a dark theme.
+- [x] Tests and build pass.
+
+**Notes:** checked on My map (Midday and Night) with select, moving platform and gourd cannon, every change undone, nothing saved (the editor's save, load, import and export code wasn't touched). Problems are now yellow (warning) and red (error) dashes, so warnings don't look like the orange selection. The overlay's text is Fredoka.
 
 **Hand over:** screenshots of the editor. Ask to start step 12.
 

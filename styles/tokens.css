@@ -33,6 +33,7 @@
 
   /* made from the main palette: hovers (a little lighter, or darker on paper), and a few in-betweens */
   --ink-hover: color-mix(in srgb, var(--ink), white 10%);
+  --bark-3-hover: color-mix(in srgb, var(--bark-3), white 8%);
   --pumpkin-hover: color-mix(in srgb, var(--pumpkin), white 12%);
   --accent-hover: color-mix(in srgb, var(--accent), white 12%);
   --hit-hover: color-mix(in srgb, var(--hit), white 12%);

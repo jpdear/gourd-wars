@@ -26,7 +26,7 @@ export const UI = freeze({
 })
 
 // Canvas fonts, by role: display (Luckiest Guy: big text, numbers, banners), text (Fredoka: small
-// print), mono (debug lines), system (the map editor's marks). font(role, px) builds a ctx.font string;
+// print, the map editor's marks), mono (debug lines), system (plain system text). font(role, px) builds a ctx.font string;
 // the weight defaults to 500 for text and 400 for the rest.
 export const FONT = freeze({
   display: '"Luckiest Guy", "Arial Black", sans-serif',
@@ -147,13 +147,14 @@ export const TITLE = freeze({
   seed: FX.seed,
 })
 
-// The map editor's marks over the map (ui/editor).
+// The map editor's marks over the map (ui/editor), in the main palette: the selection pumpkin, handles
+// paper with an ink edge, problems yellow (a warning) or red (an error).
 export const EDITOR = freeze({
-  warning: '#e89a1c',
-  error: '#e0302a',
-  hover: 'rgba(43, 155, 255, 0.6)',
-  select: '#2b9bff',
-  handle: '#fff',
-  handleEdge: '#1d6fb8',
+  warning: '#f7c531',
+  error: '#e8384f',
+  hover: 'rgba(242, 140, 40, 0.55)',
+  select: UI.pumpkin,
+  handle: UI.paper,
+  handleEdge: UI.ink,
   cannonPath: { strong: 'rgba(242, 140, 40, 0.9)', faint: 'rgba(242, 140, 40, 0.45)' },
 })
