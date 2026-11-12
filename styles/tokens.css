@@ -8,7 +8,7 @@
   --font-mono: ui-monospace, monospace;
 
   /* the page behind everything */
-  --page: #24211d;
+  --page: var(--bark);                     /* (the strips round the arena when the window isn't its shape: the menus' bark) */
 
   /* the main palette, Pumpkin & Bark (the menus; see docs/RESTYLE_PLAN.md 4.1) */
   --bark: #2e2620;                          /* the menu backdrop */

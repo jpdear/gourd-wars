@@ -121,7 +121,16 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
 - Tuning panel: tabs (Player / Combat / Patches / Pumpkins) with collapsible sections; each section shows how many values you've changed. Every pumpkin type has its own section. Tweaks are saved in your browser; **Copy changes** gives lines to paste back into `src/config.js` / `src/game/pumpkinTypes.js` (or to send to Claude).
 
 ## Look
-- Simple graphics: stick figures made of lines and circles, pumpkins as circles with ribs and a stem.
+**The style in short** (restyled 2026-11; the full spec is `docs/RESTYLE_PLAN.md`, the living style guide `docs/restyle/mockups/style-guide.html`):
+- **Flat vector.** Solid flat shapes, one color each; detail comes from more shapes, never outlines. No gradients, no shine, no cartoony extras. Thin strokes only where the stroke *is* the thing (a fuse, a string, a vine, a limb) and for UI marks (the crosshair, the editor's handles).
+- **Two-tone shading:** players, gourds, hills and level props have one hard shadow side (down and to the right), tinted by the map's own shade color (`render/shading.js`; a Shading toggle in the tuning panel).
+- **A calm world, loud action:** the maps stay softer than the players, gourds and blasts.
+- **Main palette, Pumpkin & Bark** (menus, logo, HUD, editor, tuning; the same on every map): bark `#2e2620` (and `#3a3029`, `#463a31` for panels and buttons), ink `#2e2620`, paper `#f6efe3`, pumpkin `#f28c28`, accent green `#5fae3c`, hit red `#e8384f`. Buttons are pills on a ledge that they press into. CSS tokens: `styles/tokens.css`; canvas colors: `src/render/palette.js`; map colors: `src/maps/themes.js`.
+- **Fonts:** **Luckiest Guy** for display (the logo, titles, buttons, banners, big numbers), **Fredoka** for text (labels, small print, the editor and tuning panels), monospace for debug lines.
+- **HUD:** chips are ink on light maps and paper on dark ones (fading between them during a pan); damage numbers have a paper outline, banners a dark one.
+
+**Details:**
+- Simple graphics: stick figures made of lines and circles, pumpkins as lobed rounds with a stem.
 - Each player has their own bright color (Blue, Red, Green, Yellow), never orange so they don't blend in with the pumpkins.
 - Everyone's eye looks where they're aiming (the snapshot carries each player's aim), so you can see who's aiming at you.
 - **Map backdrops are flat too:** a flat sky (or bands of sky at sunset) and scenery behind the action, shaded in the map's own tint: Midday (The Patch: a sun, clouds, rolling green hills), Barn (Hay Loft: pine plank walls, posts, rafters, a round window in the middle, hay), Sunset (Scarecrow Field: bands of sky with gently waving edges, a big low sun over two rolling fields of wheat, and a small tattered scarecrow far off in the far field), Dusk (Pitchfork Pit: lavender peaks and rocks, each with a lighter face on its sunny side), Night (Bonfire Camp: stars, a crescent moon, and two hills covered in a forest of small moonlit pines, each tier lighter on one side; the far ones a little lighter than the sky so they stand out) and Plain (Testing Grounds: graph paper). Four more are for custom maps only (no built-in map uses them): Winter (a low sun, rocky mountains with snow caps, and hills with pines with snow along their branches, and snow falling over everything), Lava (bands of smoky grey-mauve sky, a hazy far range, a dark ridge and a dark smoking volcano whose crater holds a shimmering, bubbling pool of lava glowing yellow in the middle, three smooth rounded streams pouring from it over the rim (one branching), each orange with a lighter streak and yellow-hot dashes sliding down it, and embers rising over everything), Synthwave (stars, a big striped sun sinking behind purple peaks lit pink on their sunward faces, and a neon grid floor rolling toward you) and Graveyard (a big pale moon half hidden by puffy dark storm clouds with moonlit tops, a tall hill with a row of small graves and an iron fence along its crest, and a bare tree of sharp straight limbs). Platform tops follow the map: grass, a golden strip on Scarecrow Field (its wheat grows on the fields behind, not on the platforms), planks in the barn, snow with drips hanging off it, on Lava, cooled dark rock covered in a web of thin black cracks (its floor: dark red rock whose cracks glow orange and yellow), a neon strip on purple panels with a dark frame, or soil with tufts of grass.
@@ -159,8 +168,8 @@ Each type has its own rules (`PUMPKIN_TYPES` in `src/game/pumpkinTypes.js`). Pic
    - 9.2 ~~Dizzy Gourd (Daze): limp, then dizzy with left/right swapped; head hits twice as long (from the Shovel's Bonk; no bounce)~~ ✅
    - 9.3 ~~Chomper (Bear Trap): lands and falls open flat; bites and holds whoever touches it (from the Rake's Trap)~~ ✅
    - 9.4 ~~Landmine: sinks into the floor; blows up whoever steps on it; pumpkins and blasts set it off too (from the Rake's Trap)~~ ✅
+10. ~~Restyle: one flat vector look for everything (menus, HUD, players, gourds, effects, level pieces, 10 map themes, the map editor, the tuning panel); see `docs/RESTYLE_PLAN.md`~~ ✅ (2026-11-12)
 
 ## Open questions
 - Should a fully charged Classic hit be able to knock someone off from mid-platform? (`knockback` in `PUMPKIN_TYPES`)
-- Art style: stay with the light paper look, or try a darker spooky night theme?
 - Game name?

@@ -810,16 +810,23 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 **Goal:** clean up, measure, document and hand over.
 
 **Do:**
-- [ ] `grep` for leftover hard-coded colors outside `palette.js`, `tokens.css`, `themes.js` and `pumpkinTypes.js`, for `Gradient`, and for strokes that outline filled shapes. Fix or explain each.
-- [ ] Remove dead code: the old `roundPumpkin` rib strokes, `drawWheat`'s old version, unused palette entries, the step 5 fallback tint.
-- [ ] **Performance:** record the frame time in a busy scene (4 players, about 10 gourds, a blast, snow) with shading on and off. If the render takes more than about 4 ms per frame on the user's machine, tell the user and suggest skipping shading on particles or small gourds when the frame time is high.
-- [ ] **Docs:**
+- [x] `grep` for leftover hard-coded colors outside `palette.js`, `tokens.css`, `themes.js` and `pumpkinTypes.js`, for `Gradient`, and for strokes that outline filled shapes. Fix or explain each.
+- [x] Remove dead code: the old `roundPumpkin` rib strokes, `drawWheat`'s old version, unused palette entries, the step 5 fallback tint.
+- [x] **Performance:** record the frame time in a busy scene (4 players, about 10 gourds, a blast, snow) with shading on and off. If the render takes more than about 4 ms per frame on the user's machine, tell the user and suggest skipping shading on particles or small gourds when the frame time is high.
+- [x] **Docs:**
   - `docs/DESIGN.md` **Look** section: replace it with a short summary of the new style (section 3), the main palette, the fonts, and a pointer to `docs/restyle/mockups/style-guide.html`.
   - `README.md`: the file map (`palette.js`, `shading.js`, `tokens.css`, `docs/restyle/`).
   - `docs/HANDOFF.md`: a "Restyle: done" section listing what changed and where.
   - Every touched file's header comment.
-- [ ] Full checklist in the browser (section 8) on every map and theme.
-- [ ] Tests and build pass.
+- [x] Full checklist in the browser (section 8) on every map and theme.
+- [x] Tests and build pass.
+
+**Notes (2026-11-12):**
+- Colors: everything outside the palette files is a mix toward pure black or white (darker or lighter versions of a color), the players' colors (`config.js`), or the shading mask. No gradients. Every stroke is a line by nature (limbs, strings, vines, stems, cracks, rings, the crosshair, the editor's marks) or a text outline (the logo, banners).
+- Dead code: no `roundPumpkin`, old `drawWheat` or fallback tint left; the unused `system` canvas font removed; helpers only used inside their own file no longer exported. `TOOLS` stays exported for the effects lab's tries.
+- Performance (Retina, 2940×1684 canvas; 4 players, 10 gourds in the air, a blast, Winter's snow): `render()` takes about **5.6 ms** of CPU with shading on, **0.2 ms** with it off; the game holds **60 fps** either way (95% of frames under 17.3 ms). Over the 4 ms flag, so offered to the user: skip shading on particles and small gourds when frames run long (not done).
+- The page color behind the game is now bark (the user's pick); the editor's instant HUD switch on a theme change was left as is (the user's call).
+- `DESIGN.md` **Look** got a short style summary at the top; the detailed bullets stay under it (asked the user whether to trim them).
 
 **Hand over:** a short summary (what changed, the performance numbers, any parked items), plus side-by-side screenshots of before (the step 0 baseline) and after for 3 maps and the main menu.
 

@@ -15,14 +15,14 @@ import { LOOKS } from './statusLooks.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
 
-export const PART_HALF_LEN = {
+const PART_HALF_LEN = {
   torso: BODY.torsoLen / 2, head: 0,
   thighL: BODY.legSeg / 2, thighR: BODY.legSeg / 2, shinL: BODY.legSeg / 2, shinR: BODY.legSeg / 2,
   armL: BODY.armSeg / 2, armR: BODY.armSeg / 2, forearmL: BODY.armSeg / 2, forearmR: BODY.armSeg / 2,
 }
 
 // Endpoints of a limb from its [x, y, angle]: [topX, topY, bottomX, bottomY]
-export function partEnds(part, halfLen) {
+function partEnds(part, halfLen) {
   const [x, y, a] = part
   const dx = -Math.sin(a) * halfLen, dy = Math.cos(a) * halfLen
   return [x + dx, y + dy, x - dx, y - dy]

@@ -45,6 +45,8 @@ index.html            the page: canvas, menu screens, editor shell
 lab.html              the effects lab (dev only: localhost:5199/lab.html; not in the build)
 styles/               base, menus, map editor, tuning panel;
                       tokens.css: every color and font they use
+docs/                 DESIGN.md (the design doc), HANDOFF.md, RESTYLE_PLAN.md (the 2026-11 restyle);
+                      restyle/mockups/: the style guide and the mockups the look was picked from
 src/
   main.js             starts the app
   version.js          the version (see Releasing)
@@ -68,7 +70,8 @@ src/
                       statusLooks.js: how bales and players look damaged, frozen or glued
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
-  lab/                the effects lab: tries for gourd breaks, firing and animations (variants.js), side by side
+  lab/                the effects lab: tries for gourd breaks, firing, animations, status looks and backdrop pieces
+                      (variants.js), side by side with what the game does now
   app/                runs it all in the page:
     app.js              startup + the frame loop          session.js  practice / host / join
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do

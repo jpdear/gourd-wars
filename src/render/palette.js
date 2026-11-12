@@ -26,13 +26,12 @@ export const UI = freeze({
 })
 
 // Canvas fonts, by role: display (Luckiest Guy: big text, numbers, banners), text (Fredoka: small
-// print, the map editor's marks), mono (debug lines), system (plain system text). font(role, px) builds a ctx.font string;
+// print, the map editor's marks), mono (debug lines). font(role, px) builds a ctx.font string;
 // the weight defaults to 500 for text and 400 for the rest.
 export const FONT = freeze({
   display: '"Luckiest Guy", "Arial Black", sans-serif',
   text: 'Fredoka, system-ui, sans-serif',
   mono: 'ui-monospace, monospace',
-  system: 'system-ui, sans-serif',
 })
 export const font = (role, px, weight = role === 'text' ? 500 : 400) => `${weight} ${Math.round(px)}px ${FONT[role]}`
 

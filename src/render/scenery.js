@@ -74,7 +74,7 @@ export function paintBackdrop(c, theme, X, Y, s) {
   SCENERY[theme.scenery]?.(c, theme, X, Y, s)
 }
 
-export const BAND_CUTS = [0, 0.2, 0.42, 0.66, 1]   // (of the view's height, from the top)
+const BAND_CUTS = [0, 0.2, 0.42, 0.66, 1]   // (of the view's height, from the top)
 
 // Pieces of the backdrop the effects lab can swap for tries (it puts them back; the game never does):
 //   bandedSky(c, theme, X, Y, s)            a sky in theme.bands (picked: wavy edges)
@@ -240,7 +240,7 @@ function shadedPoly(c, v, theme, color, rawGroups, shift, dir) {
   })
 }
 const HILLS = [[1.2, 2.2, 1.1], [4.6, 2.6, 1.5]]   // [center x, x radius, height], on the ground
-export const FIELD_SUN = [3.9, 1.05, 1.05]               // Scarecrow Field's sun: [x, y, radius]
+const FIELD_SUN = [3.9, 1.05, 1.05]               // Scarecrow Field's sun: [x, y, radius]
 // The wheat along the top of each of Scarecrow Field's fields, in game meters: { every (m), height (m),
 // fade (how far its colors fade toward the field's, with distance) }.
 const FIELD_WHEAT = { far: { every: 0.3, h: 0.22, fade: 0.5 }, near: { every: 0.36, h: 0.3, fade: 0.25 } }
@@ -387,8 +387,8 @@ function fence(c, v, color, { from, to, every, h }, footAt) {
 // Where a forest's trees stand across a hill, only on the hill (so none stand in the foreground):
 // [count, smallest height, how much taller they get] (style guide meters), placed the same every time.
 // Gives [{ x, base, h, i }].
-export const FOREST = { far: [26, 0.16, 0.12], mid: [16, 0.24, 0.14] }
-export function forestSpots(hill, [n, h0, dh]) {
+const FOREST = { far: [26, 0.16, 0.12], mid: [16, 0.24, 0.14] }
+function forestSpots(hill, [n, h0, dh]) {
   const [cx, rx] = hill
   return Array.from({ length: n }, (_, i) => {
     const x = cx - rx * 0.92 + (i + 0.2 + rnd(i * 3 + n) * 0.6) / n * rx * 1.84

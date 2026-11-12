@@ -19,7 +19,7 @@
 //     dir                   which way the shadow side is: [x, y] (default LIGHT; hills use [1, 0])
 //   setShadingEnabled(on)   a debug switch (the tuning panel): off draws everything flat
 
-export const LIGHT = (() => { const x = 1, y = 1.15, n = Math.hypot(x, y); return [x / n, y / n] })()   // toward the shadow side: down and right
+const LIGHT = (() => { const x = 1, y = 1.15, n = Math.hypot(x, y); return [x / n, y / n] })()   // toward the shadow side: down and right
 
 let enabled = true
 export const setShadingEnabled = on => { enabled = on }
