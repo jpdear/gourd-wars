@@ -4,8 +4,7 @@
 :root {
   /* fonts */
   --font-display: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;   /* the logo, titles, buttons, big numbers */
-  --font-text: 'Fredoka', system-ui, sans-serif;                       /* labels, status lines, small print */
-  --font-system: system-ui, sans-serif;                                /* the map editor and tuning panels */
+  --font-text: 'Fredoka', system-ui, sans-serif;                       /* labels, status lines, small print, the map editor and tuning panels */
   --font-mono: ui-monospace, monospace;
 
   /* the page behind everything */
@@ -34,6 +33,7 @@
   /* made from the main palette: hovers (a little lighter, or darker on paper), and a few in-betweens */
   --ink-hover: color-mix(in srgb, var(--ink), white 10%);
   --bark-3-hover: color-mix(in srgb, var(--bark-3), white 8%);
+  --changed: color-mix(in srgb, var(--pumpkin), var(--paper) 45%);   /* the tuning panel: a setting you've changed */
   --pumpkin-hover: color-mix(in srgb, var(--pumpkin), white 12%);
   --accent-hover: color-mix(in srgb, var(--accent), white 12%);
   --hit-hover: color-mix(in srgb, var(--hit), white 12%);
@@ -42,24 +42,8 @@
   --paper-2: color-mix(in srgb, var(--paper), var(--paper-edge));               /* a row on a card (My Maps) */
   --dot-ring: rgba(0, 0, 0, 0.25);          /* round each pumpkin's color dot */
 
-  /* dark panels: the map editor and the tuning panel */
-  --panel: #2c2824;
-  --panel-glass: rgba(30, 27, 24, 0.92);    /* the tuning panel, over the game */
-  --panel-deep: #1e1b18;                    /* edges, input fills, text on orange */
-  --panel-tab: #3a3531;
-  --panel-button: #4a4440;
-  --panel-button-hover: #5c5550;
-  --panel-on: #f28c28;
-  --panel-primary: #e07a1a;
-  --panel-text: #eee;
-  --panel-label: #bdb4aa;
-  --panel-faint: #9a9086;
-  --panel-heading: #f2a65a;
-  --panel-changed: #ffcf6e;                 /* tuning: a value you've changed */
-  --panel-note: #4a3a28;
-  --panel-dot-ring: rgba(0, 0, 0, 0.35);
+  /* the map editor's status line (under the map's name) */
   --panel-ok: #9fd47a;
-  --panel-danger: #a8402f;
   --panel-bad: #ffb36e;
 
   /* the map editor's checks */

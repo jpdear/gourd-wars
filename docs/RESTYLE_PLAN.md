@@ -777,8 +777,10 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - Check the new "Shading" toggle from step 5 is here and works.
 
 **Check:**
-- [ ] Every tab and control.
-- [ ] Tests and build pass.
+- [x] Every tab and control.
+- [x] Tests and build pass.
+
+**Notes:** the changed marker is `pumpkin` mixed 45% toward `paper` (the `--changed` token). The old `--panel-*` tokens and `--font-system` are gone from tokens.css (only the editor's status colors are left). Checked: tabs, a group opening, a slider (changed marker, then reset by double-click), Shading off and on.
 
 **Hand over:** a screenshot. Ask to start step 13.
 
