@@ -1,9 +1,14 @@
 import { expect, it } from 'vitest'
+import { Vec2 } from 'planck'
 import { CANNON, cannonParts, clampAim, mountPoint } from '../src/game/cannons.js'
 import { createGame, resetRound, stepGame } from '../src/game/game.js'
 import { emptyInput } from '../src/game/input.js'
 import { MAPS } from '../src/maps/builtin.js'
 import { sanitizeMap } from '../src/maps/mapData.js'
+import { freezeBlast } from '../src/game/powers.js'
+import { spawnPumpkin } from '../src/game/pumpkins.js'
+import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
+import { makeSnapshot } from '../src/game/snapshot.js'
 
 const steps = (game, n, input = emptyInput()) => { for (let i = 0; i < n; i++) stepGame(game, [input, emptyInput()]) }
 // Testing Grounds: its two cannons fire at the left ground
@@ -67,4 +72,46 @@ it('maps keep their cannons (sensible numbers); maps from before have none', () 
   const map = sanitizeMap({ name: 'x', cannons: [{ x: 5, y: 4, face: 'sideways', aim: -90, speed: 999, every: 0, delay: 2 }] })
   expect(map.cannons).toEqual([{ x: 5, y: 4, face: 'top', aim: 90 - CANNON.maxTilt, speed: 30, every: 0.5, delay: 2 }])
   expect(sanitizeMap({ name: 'old' }).cannons).toEqual([])
+})
+
+// --- frozen (a Frost gourd or an Ice Bomb) ---
+
+const shotsBy = (game, def) => { const { muzzle } = cannonParts(def); return game.events.filter(e => e.type === 'cannon' && Math.abs(e.x - muzzle.x) < 0.01 && Math.abs(e.y - muzzle.y) < 0.01).length }
+// A Frost gourd dropped onto a point of the cannon (from just above it, straight down).
+const frostAt = (game, p) => spawnPumpkin(game, 'frost', new Vec2(p.x, p.y + 0.5), new Vec2(0, -6), null)
+
+it('a Frost gourd hitting its barrel freezes it: no shots for a while, then it carries on its countdown', () => {
+  const { game, cannons } = testing()
+  const def = cannons[0], c = game.cannons[0], { pivot, dir } = cannonParts(def)
+  frostAt(game, { x: pivot.x + dir.x * 0.45, y: pivot.y + dir.y * 0.45 })
+  steps(game, 20)
+  expect(c.frozenTimer).toBeGreaterThan(PUMPKIN_TYPES.frost.cannonFreeze - 0.5)
+  const timer = c.timer
+  expect(makeSnapshot(game).frozenCannons).toEqual([0])
+  game.events.length = 0
+  steps(game, Math.floor((c.frozenTimer - 0.05) * 60))
+  expect(shotsBy(game, def)).toBe(0)
+  expect(c.timer).toBe(timer)   // (its countdown waited)
+  steps(game, 5)
+  expect(c.frozenTimer).toBe(0)
+  expect(game.events.some(e => e.type === 'thaw')).toBe(true)
+  expect(makeSnapshot(game).frozenCannons).toBeUndefined()
+  game.events.length = 0
+  steps(game, Math.ceil(timer * 60) + 2)
+  expect(shotsBy(game, def)).toBe(1)
+})
+
+it('a Frost gourd hitting its mount freezes it too', () => {
+  const { game, cannons } = testing()
+  const { base } = cannonParts(cannons[0])
+  frostAt(game, { x: base.x, y: base.y + 0.2 })
+  steps(game, 30)
+  expect(game.cannons[0].frozenTimer).toBeGreaterThan(0)
+})
+
+it('an Ice Bomb bursting near it freezes it', () => {
+  const { game, cannons } = testing()
+  const { pivot } = cannonParts(cannons[0])
+  freezeBlast(game, pivot.x + 1.5, pivot.y, PUMPKIN_TYPES.icebomb.chill, 1)
+  expect(game.cannons[0].frozenTimer).toBe(PUMPKIN_TYPES.icebomb.chill.cannon)
 })

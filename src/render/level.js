@@ -44,6 +44,57 @@ export function drawBale(ctx, { x, y, angle, health: hp, frozen, sticky, floatin
   if (sticky) local(ctx, () => LOOKS.baleGlued(ctx, w, h, s, clock.now()))
 }
 
+// An Ice Bomb's icy floor (zones: the snapshot's ice): a pale sheet over each stretch of platform top with a
+// darker lower edge, white glints, and little icicles hanging under it; it fades out over its last half second.
+export function drawIce(ctx, zones, X, Y, s) {
+  for (const z of zones) {
+    ctx.globalAlpha = Math.min(1, z.t / 0.5)
+    const x0 = X(z.x0), w = (z.x1 - z.x0) * s
+    ctx.fillStyle = LEVEL.ice.edge; ctx.fillRect(x0, Y(z.y + 0.04), w, 0.16 * s)
+    ctx.fillStyle = LEVEL.ice.top; ctx.fillRect(x0, Y(z.y + 0.04), w, 0.1 * s)
+    ctx.strokeStyle = LEVEL.ice.glint; ctx.lineWidth = Math.max(1, 0.025 * s)
+    ctx.beginPath()
+    for (let x = z.x0 + 0.3; x < z.x1 - 0.2; x += 0.9) { ctx.moveTo(X(x), Y(z.y - 0.04)); ctx.lineTo(X(x + 0.18), Y(z.y + 0.03)) }
+    ctx.stroke()
+    ctx.fillStyle = LEVEL.ice.top
+    for (let x = z.x0 + 0.2; x < z.x1 - 0.05; x += 0.55) {
+      const len = 0.18 + ((x * 7) % 1) * 0.1
+      ctx.beginPath(); ctx.moveTo(X(x - 0.06), Y(z.y - 0.12)); ctx.lineTo(X(x + 0.06), Y(z.y - 0.12)); ctx.lineTo(X(x), Y(z.y - 0.12 - len)); ctx.fill()
+    }
+  }
+  ctx.globalAlpha = 1
+}
+
+// A frozen cannon's ice (pivot, aim: its barrel's): a bumpy strip of snow along the side of the barrel facing
+// up (whichever way it's mounted or aimed), a plug of ice jammed in the muzzle with a glint, and three icicles
+// hanging straight down from the side facing down.
+function drawFrozenBarrel(ctx, pivot, aim, X, Y, s) {
+  const I = LEVEL.cannon.ice, L = CANNON.barrel
+  const up = Math.cos(aim) >= 0 ? 1 : -1   // (aimed leftward, the barrel's own "top" faces down: flip it)
+  ctx.save()
+  ctx.translate(X(pivot.x), Y(pivot.y))
+  ctx.rotate(-aim)
+  ctx.scale(1, up)
+  ctx.fillStyle = I.snow
+  ctx.beginPath()
+  ctx.moveTo(-0.3 * s, -0.12 * s)
+  for (let i = 0; i <= 8; i++) ctx.lineTo((-0.3 + i * (L + 0.3) / 8) * s, (-0.18 - (i % 2) * 0.03) * s)
+  ctx.lineTo(L * s, -0.1 * s)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = I.plug
+  ctx.beginPath(); ctx.roundRect((L - 0.04) * s, -0.1 * s, 0.16 * s, 0.2 * s, 0.05 * s); ctx.fill()
+  ctx.fillStyle = I.glint
+  ctx.fillRect((L + 0.02) * s, -0.07 * s, 0.04 * s, 0.1 * s)
+  ctx.restore()
+  ctx.fillStyle = I.icicle
+  const dx = Math.cos(aim), dy = Math.sin(aim)
+  for (const k of [0.15, 0.4, 0.65]) {   // (from the barrel's underside, pointing straight down)
+    const px = pivot.x + dx * k + up * dy * 0.11, py = pivot.y + dy * k - up * dx * 0.11, len = 0.12 + k * 0.1
+    ctx.beginPath(); ctx.moveTo(X(px - 0.04), Y(py)); ctx.lineTo(X(px + 0.04), Y(py)); ctx.lineTo(X(px), Y(py - len)); ctx.fill()
+  }
+}
+
 // A row of upturned pitchfork tines on a wooden bar (the tines: the same shapes as the physics ones).
 export function drawPitchforks(ctx, sp, X, Y, s, shade) {
   const x0 = sp.x - sp.w / 2
@@ -103,8 +154,9 @@ export function drawBonfire(ctx, f, X, Y, s, flames, shade) {
 
 // A gourd cannon (see game/cannons.js): its mount on the surface and an iron barrel along its aim, each
 // shaded. timer: seconds until it fires (the fuse throws sparks just before; the barrel kicks back just
-// after), or null (not counting down: the editor, a map being left).
-export function drawCannon(ctx, c, timer, X, Y, s, shade) {
+// after), or null (not counting down: the editor, a map being left). frozen: iced over (snow along the
+// top of the barrel, icicles hanging under it, a plug of ice in the muzzle; no sparks).
+export function drawCannon(ctx, c, timer, X, Y, s, shade, frozen = false) {
   const { base, angle, pivot, aim } = cannonParts(c), B = CANNON.base, C = LEVEL.cannon
   // the mount: a wooden block on the surface, an iron strap across it
   shaded(ctx, (g, f) => {
@@ -125,7 +177,7 @@ export function drawCannon(ctx, c, timer, X, Y, s, shade) {
   }, around(X(base.x), Y(base.y), Math.max(B.w, B.h) * s), 0.04, s, shade)
   // the barrel, from its pivot (kicked back a little right after a shot)
   const every = Math.max(0.5, c.every ?? 3), since = timer === null ? 9 : every - timer
-  const kick = since >= 0 && since < 0.2 ? 0.14 * (1 - since / 0.2) : 0
+  const kick = !frozen && since >= 0 && since < 0.2 ? 0.14 * (1 - since / 0.2) : 0
   const L = CANNON.barrel
   shaded(ctx, (g, f) => {
     g.save()
@@ -151,8 +203,9 @@ export function drawCannon(ctx, c, timer, X, Y, s, shade) {
   ctx.beginPath()
   ctx.arc(X(pivot.x), Y(pivot.y), 0.06 * s, 0, TAU)
   ctx.fill()
+  if (frozen) drawFrozenBarrel(ctx, pivot, aim, X, Y, s)
   // the fuse throwing sparks at the back, just before it fires (like a Jack-o'-Boom's)
-  if (timer !== null && timer < 0.6) {
+  else if (timer !== null && timer < 0.6) {
     const back = { x: pivot.x - Math.cos(aim) * 0.36, y: pivot.y - Math.sin(aim) * 0.36 }
     drawSparkBurst(ctx, X(back.x), Y(back.y), 0.2 * s, Date.now() / 1000)
   }

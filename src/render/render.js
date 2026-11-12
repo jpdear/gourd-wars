@@ -14,7 +14,7 @@ import { snapPlayer } from '../game/snapshot.js'
 import { MAP_SHIFT, ease, transitionCamera } from '../game/transition.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups, hudSurface } from './hud.js'
-import { drawBale, drawBonfire, drawCannon } from './level.js'
+import { drawBale, drawBonfire, drawCannon, drawIce } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
 import { drawEffects } from './effects.js'
@@ -55,10 +55,11 @@ export function render(ctx, view, snap, effects, ui) {
   }
   drawMapBase(ctx, map, X, Y, s, snap && snap.movers)
   const cannons = map.cannons || []
-  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s, map.theme.shade)   // (timer: seconds to its next shot)
+  for (let i = 0; i < cannons.length; i++) drawCannon(ctx, cannons[i], snap?.cannons?.[i] ?? null, X, Y, s, map.theme.shade, !!snap?.frozenCannons?.includes(i))   // (timer: seconds to its next shot)
 
   if (snap) {
     const shade = map.theme.shade   // (the map's tint for two-tone shading)
+    if (snap.ice) drawIce(ctx, snap.ice, X, Y, s)   // (an Ice Bomb's icy floor)
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s, shade)
     drawPatches(ctx, snap, X, Y, s, shade)
     drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, ui.surface, X, Y, s)

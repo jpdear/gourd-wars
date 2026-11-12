@@ -5,7 +5,7 @@ import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { CONFIG, MAX_PLAYERS, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
 import { emptyInput } from './input.js'
-import { buildMover, buildPitchforks, recordHazardContact, resetBales, updateBales, updateHazards, updateMovers } from './level.js'
+import { buildMover, buildPitchforks, recordHazardContact, resetBales, updateBales, updateHazards, updateIce, updateMovers } from './level.js'
 import { buildCannon, resetCannons, updateCannons } from './cannons.js'
 import { updateMatch } from './match.js'
 import { createPatches, resetPatches, updatePatches } from './patches.js'
@@ -28,9 +28,10 @@ export function createGame() {
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
   // traps: Chompers planted on the floor or biting someone (see traps.js)
+  // ice: icy stretches of floor an Ice Bomb left (see iceOver in level.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], ice: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextIceId: 1,
     match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
@@ -117,7 +118,7 @@ export function loadMap(game, id) {
   game.movers = map.movers.map(def => ({ def, body: buildMover(game, def) }))
   game.mapBodies.push(...game.movers.map(m => m.body))
   const cannons = map.cannons || []
-  game.cannons = cannons.map(def => ({ def, timer: def.delay }))
+  game.cannons = cannons.map(def => ({ def, timer: def.delay, frozenTimer: 0 }))
   game.mapBodies.push(...cannons.map(def => buildCannon(game, def)))
   game.map = id
   game.patches = createPatches(map)
@@ -134,6 +135,7 @@ export function resetRound(game) {
   game.pumpkins = []
   game.holes = []
   game.strikes = []
+  game.ice = []
   clearTraps(game)
   resetBales(game)
   game.roundTime = 0
@@ -162,6 +164,7 @@ export function stepGame(game, inputs) {
   updateTraps(game, dt)
   updateHazards(game, dt)
   updateBales(game, dt)
+  updateIce(game, dt)
   updatePatches(game, dt)
   for (const p of game.players) p.checkDeath(dt, game)
   updateMatch(game, CONFIG.dt)

@@ -53,9 +53,9 @@ const SNAPSHOT_LISTS = {
   traps: fields('id', 'kind', 'x', 'y', 'angle', 'open', 'bite'),
   strikes: fields('id', 'x', 'y', 't', 'r'),
   movers: fields('x', 'y'),
-  patches: {   // (its state and pumpkin type by number)
-    pack: p => [PATCH_STATES.indexOf(p.state), p.growth, p.rot, PUMPKIN_TYPE_NAMES.indexOf(p.typeName), p.superRare ? 1 : 0],
-    unpack: ([state, growth, rot, type, superRare]) => ({ state: PATCH_STATES[state], growth, rot, typeName: PUMPKIN_TYPE_NAMES[type], superRare: !!superRare }),
+  patches: {   // (its state and pumpkin type by number; a 1 on the end: frozen)
+    pack: p => [PATCH_STATES.indexOf(p.state), p.growth, p.rot, PUMPKIN_TYPE_NAMES.indexOf(p.typeName), p.superRare ? 1 : 0, ...(p.frozen ? [1] : [])],
+    unpack: ([state, growth, rot, type, superRare, frozen]) => ({ state: PATCH_STATES[state], growth, rot, typeName: PUMPKIN_TYPE_NAMES[type], superRare: !!superRare, ...(frozen && { frozen: true }) }),
   },
 }
 const convertLists = (snap, how) =>

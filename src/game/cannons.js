@@ -1,13 +1,15 @@
 // GOURD CANNONS — a map piece: a little iron cannon mounted on a floor, wall or ceiling (never
 // floating), firing a Classic gourd along its aim every so often. Its gourds belong to nobody: they hit
 // anyone. The cannon itself is solid (stand on it, bump it; blades clank off it) and can't be broken.
+// A Frost gourd hitting it (its mount, or its barrel, which isn't solid) or an Ice Bomb bursting near it
+// freezes it: no shots until it thaws, its countdown waiting where it was (then a `thaw` event).
 //
 // In a map (see builtin.js): { x, y (where it sits on the surface), face (which side of the solid
 // it's on: 'top' = a floor, 'bottom' = a ceiling, 'left' / 'right' = a wall's side), aim (degrees,
 // 0 = right, 90 = up: kept within MAX_TILT of straight out from the surface), speed (m/s), every
 // (s between shots), delay (s before the first shot of a round) }.
 //
-// game.cannons: { def, timer (s until it fires) }, in the map's order.
+// game.cannons: { def, timer (s until it fires), frozenTimer (s until it thaws; 0: not frozen) }, in the map's order.
 
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
@@ -75,19 +77,47 @@ export function buildCannon(game, c) {
   const { base, angle } = cannonParts(c)
   const body = game.world.createBody({ type: 'static', position: new Vec2(base.x, base.y), angle })
   body.createFixture(new planck.Box(CANNON.base.w / 2, CANNON.base.h / 2), { friction: 0.8 })
-  body.setUserData({ kind: 'platform', cannon: true, x: base.x, y: base.y, w: CANNON.base.w, h: CANNON.base.h })
+  body.setUserData({ kind: 'platform', cannon: c, x: base.x, y: base.y, w: CANNON.base.w, h: CANNON.base.h })   // (cannon: its def)
   return body
 }
 
-// Start of a round: each waits its delay before its first shot.
+// Start of a round: each waits its delay before its first shot (and nothing's frozen).
 export function resetCannons(game) {
-  for (const c of game.cannons) c.timer = c.def.delay
+  for (const c of game.cannons) { c.timer = c.def.delay; c.frozenTimer = 0 }
 }
 
-// They fire on their own schedules (not while the camera's carrying everyone to the next map).
+// FROZEN: no shots for `seconds`; its countdown waits.
+export function freezeCannon(c, seconds) {
+  c.frozenTimer = Math.max(c.frozenTimer, seconds)
+}
+// How far (m) point p is from a cannon (its def): from its barrel, or the middle of its mount.
+export function cannonDistance(def, p) {
+  const { base, pivot, muzzle } = cannonParts(def)
+  const dx = muzzle.x - pivot.x, dy = muzzle.y - pivot.y
+  const t = Math.max(0, Math.min(1, ((p.x - pivot.x) * dx + (p.y - pivot.y) * dy) / (dx * dx + dy * dy)))
+  return Math.min(Math.hypot(p.x - pivot.x - dx * t, p.y - pivot.y - dy * t), Math.hypot(p.x - base.x, p.y - base.y))
+}
+const BARREL_R = 0.13   // (how thick the barrel is, either side of its middle)
+// The cannon whose barrel something at p (radius r) is touching, or null.
+export const cannonTouching = (game, p, r) => game.cannons.find(c => cannonDistance(c.def, p) < r + BARREL_R) || null
+// The cannon this body is the mount of, or null.
+export function cannonOfBody(game, body) {
+  const ud = body.getUserData()
+  return ud && ud.cannon ? game.cannons.find(c => c.def === ud.cannon) || null : null
+}
+
+// They fire on their own schedules (not while the camera's carrying everyone to the next map; not while frozen).
 export function updateCannons(game, dt) {
   if (game.transition) return
   for (const c of game.cannons) {
+    if (c.frozenTimer > 0) {
+      if ((c.frozenTimer -= dt) <= 0) {
+        c.frozenTimer = 0
+        const { pivot } = cannonParts(c.def)
+        game.events.push({ type: 'thaw', x: r3(pivot.x), y: r3(pivot.y) })   // (the ice breaks off)
+      }
+      continue
+    }
     if ((c.timer -= dt) > 0) continue
     c.timer += Math.max(0.5, c.def.every)
     fire(game, c.def)

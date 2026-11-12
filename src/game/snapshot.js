@@ -71,8 +71,12 @@ export function makeSnapshot(game) {
     })),
     movers: game.movers.map(m => { const pos = m.body.getPosition(); return { x: r3(pos.x), y: r3(pos.y) } }),   // (in the map's order)
     cannons: game.cannons.map(c => r3(c.timer)),   // seconds until each fires (in the map's order)
+    ...(game.cannons.some(c => c.frozenTimer > 0) && { frozenCannons: game.cannons.flatMap((c, i) => (c.frozenTimer > 0 ? [i] : [])) }),   // which are frozen (only while some are)
     // in the map's patch order (where each one is comes from the map: see patchView)
-    patches: game.patches.map(p => ({ state: p.state, growth: r3(p.growth), rot: r3(patchRot(p)), typeName: p.typeName, superRare: p.superRare })),
+    // frozen: an Ice Bomb froze its pumpkin (only on those)
+    patches: game.patches.map(p => ({ state: p.state, growth: r3(p.growth), rot: r3(patchRot(p)), typeName: p.typeName, superRare: p.superRare, ...(p.frozenTimer > 0 && { frozen: true }) })),
+    // icy stretches of floor (an Ice Bomb's: see iceOver in level.js): x0..x1 along the top at y; t: s left (only while there are some)
+    ...(game.ice.length && { ice: game.ice.map(z => ({ id: z.id, x0: r3(z.x0), x1: r3(z.x1), y: r3(z.y), t: r3(z.timer) })) }),
     timeScale: game.timeScale,
     sights: game.sights,   // (the host's setting: show each player their own sight)
     transition: game.transition && { from: game.transition.from, t: r3(Math.min(1, game.transition.elapsed / game.transition.duration)) },
@@ -120,11 +124,13 @@ export function interpolateSnapshots(a, b, t) {
     strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? { x: lerp(a.movers[i].x, q.x, t), y: lerp(a.movers[i].y, q.y, t) } : q)),
     cannons: b.cannons,
+    ...(b.frozenCannons && { frozenCannons: b.frozenCannons }),
     map: b.map,
     timeScale: b.timeScale,
     sights: b.sights,
     transition: b.transition,
     patches: b.patches,
+    ...(b.ice && { ice: b.ice }),
     match: b.match,
   }
 }

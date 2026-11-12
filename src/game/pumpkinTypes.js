@@ -36,9 +36,10 @@
 
 import { CONFIG } from '../config.js'
 import { freezeBale } from './level.js'
-import { callAirstrike, explode, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
+import { callAirstrike, explode, freezeBlast, openBlackHole, splitCluster, updateBoomerang, updateHoming, vineYankBale, vineYankOwner, vineYankPlayer } from './powers.js'
 import { biteWith, plantTrap } from './traps.js'
-import { knockback, rebound, shove } from './pumpkins.js'
+import { cannonOfBody, cannonTouching, freezeCannon } from './cannons.js'
+import { breakPumpkin, knockback, rebound, shove } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
 export const PUMPKIN_TYPES = {
@@ -77,7 +78,13 @@ export const PUMPKIN_TYPES = {
     name: 'Frost', color: '#9fd8f0', rib: '#5aa9cc', mark: 'ice',
     radius: 0.22, density: 2, restitution: 0.2,
     damage: 8, knockback: 3, stun: 0.6, breakAfterHits: 1, freeze: 2, baleFreeze: 3,
+    cannonFreeze: 5,   // s a gourd cannon it hits stays frozen (no shots: see cannons.js)
     onHitBale: (game, pk, bale) => freezeBale(bale, pk.type.baleFreeze),   // a slippery ice block
+    onHitWorld: (game, pk, body) => { const c = cannonOfBody(game, body); if (c) freezeCannon(c, pk.type.cannonFreeze) },   // (a cannon's mount)
+    update: (game, pk) => {   // (a cannon's barrel isn't solid: touching it counts too)
+      const c = cannonTouching(game, pk.body.getPosition(), pk.radius)
+      if (c) { freezeCannon(c, pk.type.cannonFreeze); breakPumpkin(game, pk) }
+    },
     onHitPlayer: (game, pk, player, part, vel) => {
       knockback(game, player, part, pk, vel)
       player.freeze(pk.type.freeze)
@@ -270,6 +277,20 @@ export const PUMPKIN_TYPES = {
     goOff: (game, x, y, power) => explode(game, x, y, PUMPKIN_TYPES.bouncebomb.blast, power),
     onHitPlayer: (game, pk, player, part, vel) => { shove(player, part, pk, vel); rebound(pk) },
     onBreak: (game, pk) => { const p = pk.body.getPosition(); pk.type.goOff(game, p.x, p.y, pk.power) },
+  },
+  icebomb: {   // a teal pumpkin capped with snow, its fuse throwing a snowflake spark: bursts on the first thing it hits and freezes everything near
+    name: 'Ice Bomb', color: '#2a9d9a', rib: '#17625f', mark: 'icefuse',
+    radius: 0.22, density: 2, restitution: 0.1,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
+    // The burst (see freezeBlast in powers.js): no damage, no push; everything within `radius` m freezes.
+    //   center, edge   players (the thrower too): frozen this many s right at it, down to this many at the edge
+    //   objects        hay bales (slippery ice blocks) and pumpkins on their patches (can't be picked): s frozen
+    //   floor          platform tops in reach turn to ice for this many s (slippery: CONFIG.player.iceGrip)
+    //   cannon         gourd cannons in reach: s frozen (no shots: see cannons.js)
+    // Picked green, every time is shorter (× power); the reach stays the same.
+    chill: { radius: 2.5, center: 3, edge: 1, objects: 3, floor: 5, cannon: 5 },
+    onHitPlayer: () => {},   // (no damage: the burst freezes them)
+    onBreak: (game, pk) => { const p = pk.body.getPosition(); freezeBlast(game, p.x, p.y, pk.type.chill, pk.power) },
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

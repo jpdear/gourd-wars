@@ -56,6 +56,24 @@ export function shoveBale(bale, dir, speed) {
 }
 
 // Frost: no friction for a while, so it slides a long way.
+// ICE ON THE FLOOR (an Ice Bomb): stretches of platform top that are slippery for a while.
+// game.ice: [{ id, x0, x1, y (the top), timer (s left) }]; Player.update asks onIce where it stands.
+// The tops of the map's platforms (and walls) within `radius` of (x, y) ice over for `seconds`.
+export function iceOver(game, x, y, radius, seconds) {
+  for (const p of currentMap(game).platforms) {
+    const top = p.y + p.h / 2, dy = top - y
+    if (Math.abs(dy) > radius) continue
+    const half = Math.sqrt(radius * radius - dy * dy)
+    const x0 = Math.max(p.x - p.w / 2, x - half), x1 = Math.min(p.x + p.w / 2, x + half)
+    if (x1 - x0 > 0.05) game.ice.push({ id: game.nextIceId++, x0, x1, y: top, timer: seconds })
+  }
+}
+export const onIce = (game, x, y) => game.ice.some(z => x >= z.x0 && x <= z.x1 && Math.abs(y - z.y) < 0.3)
+export function updateIce(game, dt) {
+  for (const z of game.ice) z.timer -= dt
+  game.ice = game.ice.filter(z => z.timer > 0)
+}
+
 export function freezeBale(bale, seconds) {
   bale.frozenTimer = Math.max(bale.frozenTimer, seconds)
   setBaleFriction(bale, 0)

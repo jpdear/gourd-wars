@@ -1,5 +1,7 @@
 // PATCHES — where pumpkins grow.
 //   empty → growing (green → orange) → ripe → rotten → pops → empty → ...
+// An Ice Bomb can freeze the pumpkin on a patch (frozenTimer): it stops growing and rotting and can't
+// be picked until it thaws.
 
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES, isSuperRare, pickPumpkinType } from './pumpkinTypes.js'
@@ -10,7 +12,7 @@ export const PATCH_STATES = ['empty', 'growing', 'ripe', 'rotten']   // index = 
 export function createPatches(map) {
   // only: this patch always grows that pumpkin type (custom maps)
   // superRare: its type is set to Super Rare (it glows gold); never on an "only" patch
-  return map.patches.map(p => ({ x: p.x, y: p.y, only: p.only || null, state: 'empty', timer: 0, growth: 0, typeName: p.only || 'classic', superRare: false }))
+  return map.patches.map(p => ({ x: p.x, y: p.y, only: p.only || null, state: 'empty', timer: 0, growth: 0, typeName: p.only || 'classic', superRare: false, frozenTimer: 0 }))
 }
 
 // A new sprout: pick what it'll be.
@@ -26,12 +28,14 @@ export function resetPatches(game) {
     p.state = 'growing'
     p.growth = clamp(1 - 2 / CONFIG.patch.growTime, 0, 1)
     p.timer = 0
+    p.frozenTimer = 0
   }
 }
 
 export function updatePatches(game, dt) {
   const P = CONFIG.patch
   for (const p of game.patches) {
+    if (p.frozenTimer > 0) { p.frozenTimer -= dt; continue }   // (frozen: everything waits)
     if (p.state === 'empty') {
       p.timer -= dt
       if (p.timer <= 0) { p.state = 'growing'; p.growth = 0; pickPatchType(game, p) }
@@ -59,8 +63,14 @@ export function patchPickups(game) {
   }))
 }
 
+// An Ice Bomb freezes its pumpkin for `seconds`.
+export function freezePatch(p, seconds) {
+  p.frozenTimer = Math.max(p.frozenTimer, seconds)
+}
+
 export function emptyPatch(p) {
   p.state = 'empty'
+  p.frozenTimer = 0
   p.growth = 0
   p.timer = CONFIG.patch.regrowTime * (0.75 + Math.random() * 0.5)
 }
@@ -73,7 +83,7 @@ export function splatPatch(game, p) {
 }
 
 // These work on real patches and on the {state, growth, rot} views made from snapshots.
-export const canHarvest = p => p.state === 'ripe' || (p.state === 'growing' && p.growth >= CONFIG.patch.minGrowth)
+export const canHarvest = p => !(p.frozenTimer > 0) && (p.state === 'ripe' || (p.state === 'growing' && p.growth >= CONFIG.patch.minGrowth))
 export const patchRipeness = p => (p.state === 'growing' ? p.growth : 1)
 export const patchRot = p => (p.state !== 'rotten' ? 0 : p.rot !== undefined ? p.rot : p.timer / CONFIG.patch.rotTime)
 

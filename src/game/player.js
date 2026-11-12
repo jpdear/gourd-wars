@@ -11,13 +11,24 @@ import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { BODY, CONFIG } from '../config.js'
 import { emptyInput } from './input.js'
-import { baleAt, damageBale } from './level.js'
+import { baleAt, damageBale, onIce } from './level.js'
 import { findPickup } from './pickups.js'
 import { applyHit, launch, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES, throwSpeeds } from './pumpkinTypes.js'
 import { clamp, distToSegment, lerp, r3, wrapAngle } from '../util/math.js'
 
-const BODY_FRICTION = 0.3   // every body part (the legs change while crouched: see setLegFriction)
+const BODY_FRICTION = 0.3   // every body part (it changes while crouched or on ice: see GRIPS)
+const isLeg = name => name.startsWith('thigh') || name.startsWith('shin')
+// How much each body part grips what it touches, by situation (see setGrip):
+//   normal   everything at BODY_FRICTION
+//   crouch   the legs go slippery: however they land, they slide out under you and you sit on your butt
+//   ice      on an Ice Bomb's icy floor, all of you: your feet don't grip it, and sitting (crouched) or
+//            lying on it you keep sliding
+const GRIPS = {
+  normal: () => BODY_FRICTION,
+  crouch: name => (isLeg(name) ? CONFIG.player.crouch.legFriction : BODY_FRICTION),
+  ice: () => CONFIG.player.iceFriction,
+}
 
 // how thick a body part is (around its center line), for touching it with a fist or a foot
 const partRadius = part => part.name === 'head' ? BODY.headR : part.name === 'torso' ? BODY.torsoHalfW : BODY.limbHalfW
@@ -102,7 +113,8 @@ export class Player {
     this.fireTimer = 0.2          // bonfire damage ticks (kept up by level.js)
     this.wallGraceDir = 0         // the side of the wall we can still kick off (see wallGrace)
     this.dustTimer = 0
-    this.slipperyLegs = false     // (crouched: see setLegFriction)
+    this.grip = 'normal'          // how the body grips what it touches (a key of GRIPS)
+    this.onIce = false            // standing on an Ice Bomb's icy floor (set each step)
     this.respawnTimer = 0
     this.debugRays = []
 
@@ -402,7 +414,8 @@ export class Player {
     this.crouching = !!input.crouch && canAct
     this.lowTimer = this.crouching ? 0.5 : Math.max(0, this.lowTimer - dt)
     this.sitTime = this.crouching && this.grounded ? this.sitTime + dt : 0
-    if (this.crouching !== this.slipperyLegs) this.setLegFriction(this.crouching)
+    const grip = this.onIce ? 'ice' : this.crouching ? 'crouch' : 'normal'   // (onIce: as of last step)
+    if (grip !== this.grip) this.setGrip(grip)
 
     this.aim.x = input.aimX
     this.aim.y = input.aimY
@@ -410,6 +423,8 @@ export class Player {
 
     // --- ground check ---
     this.senseGround()
+    const hips = torso.getWorldPoint(new Vec2(0, -BODY.torsoLen / 2))
+    this.onIce = this.grounded && onIce(game, hips.x, hips.y - this.groundDist)   // (an Ice Bomb's icy floor: slippery)
     this.coyote = this.grounded ? C.coyoteTime : Math.max(0, this.coyote - dt)
     if (this.pendingGlue > 0 && this.grounded) { this.gluedTimer = this.pendingGlue; this.pendingGlue = 0 }
 
@@ -457,10 +472,10 @@ export class Player {
       // sliding: no walking, just slowing down (harder holding the other way), never past a stop
       const s = this.slide.dir
       const along = (this.bodyVx() - (this.groundVel ? this.groundVel.x : 0)) * s
-      const decel = Math.min(dir === -s ? C.slide.brake : C.slide.friction, Math.max(0, along) / dt)
+      const decel = Math.min((dir === -s ? C.slide.brake : C.slide.friction) * (this.onIce ? C.iceGrip : 1), Math.max(0, along) / dt)
       torso.applyForceToCenter(new Vec2(-s * decel * this.mass, 0), true)
     } else if (this.canWalk) {
-      const maxAccel = this.grounded ? C.groundAccel : C.airAccel
+      const maxAccel = this.grounded ? C.groundAccel * (this.onIce ? C.iceGrip : 1) : C.airAccel
       const crouchSpeed = this.crouching && this.grounded ? C.crouch.speed : 1
       let targetVx = dir * C.moveSpeed * (carry.speed ?? 1) * crouchSpeed + (this.grounded && this.groundVel ? this.groundVel.x : 0)
       // Walking into a hay bale pushes it: it gets a shove, and we walk along at its speed instead
@@ -564,13 +579,11 @@ export class Player {
     this.prev = { ...input }
   }
 
-  // Crouched, the legs go slippery: however they land, they slide out under you and you sit on your butt.
-  setLegFriction(slippery) {
-    this.slipperyLegs = slippery
-    const friction = slippery ? CONFIG.player.crouch.legFriction : BODY_FRICTION
+  // Set how every body part grips what it touches (a key of GRIPS).
+  setGrip(grip) {
+    this.grip = grip
     for (const { name, body } of this.parts) {
-      if (!name.startsWith('thigh') && !name.startsWith('shin')) continue
-      body.getFixtureList().setFriction(friction)
+      body.getFixtureList().setFriction(GRIPS[grip](name))
       for (let edge = body.getContactList(); edge; edge = edge.next) edge.contact.resetFriction()   // (touching things now)
     }
   }
@@ -1024,6 +1037,6 @@ export class Player {
       p.body.setAwake(true)
     }
     Object.assign(this, freshLife())
-    if (this.slipperyLegs) this.setLegFriction(false)
+    if (this.grip !== 'normal') this.setGrip('normal')
   }
 }

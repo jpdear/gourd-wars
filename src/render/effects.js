@@ -73,12 +73,13 @@ function spray(effects, x, y, n, colors, [dx, dy], spread, speed, life, size, li
 }
 
 // A blast's puff cloud (see the top). k: its scale (1 for a 1.25 m blast, the style guide's size).
+// look: its flash and puff colors (FX.boom: fire; FX.iceburst: cold).
 const CLOUD = { puffs: 11, life: 1.6, flash: 0.35 }
-function cloud(effects, x, y, k) {
+function cloud(effects, x, y, k, look = FX.boom) {
   const puffs = Array.from({ length: CLOUD.puffs }, (_, i) => i === 0
     ? { ang: 0, d: 0, r: 0.22 + Math.random() * 0.2, hot: 1 }   // (the first sits in the middle, hottest)
     : { ang: Math.random() * Math.PI * 2, d: 0.15 + Math.random() * 0.45, r: 0.22 + Math.random() * 0.2, hot: 1 - 0.6 * Math.random() })
-  effects.clouds.push({ x, y, k, age: 0, life: CLOUD.life, puffs })
+  effects.clouds.push({ x, y, k, age: 0, life: CLOUD.life, puffs, look })
 }
 
 // What each game event looks like, by event type (events with no entry show nothing).
@@ -86,6 +87,11 @@ const EFFECTS = {
   boom: (fx, ev) => {
     cloud(fx, ev.x, ev.y, ev.r / 1.25)
     burst(fx, ev.x, ev.y, 40, FX.boom.burst, [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
+  },
+  iceburst: (fx, ev) => {   // an Ice Bomb: a cold puff cloud (white to pale blue) and ice shards spinning out to its edge
+    cloud(fx, ev.x, ev.y, ev.r / 1.6, FX.iceburst)
+    emit(fx, { x: ev.x, y: ev.y, n: 22, colors: FX.iceburst.shards, speed: [5, 12], life: [0.3, 0.5], size: [0.06, 0.12], shape: 'shard', gravity: 0.4, drag: 2, spin: 14 })
+    emit(fx, { x: ev.x, y: ev.y, n: 8, colors: [FX.iceburst.flash], speed: [1, 4], life: [0.35, 0.6], size: [0.06, 0.09], shape: 'sparkle', gravity: 0, drag: 3, spin: 4 })
   },
   pierce: (fx, ev) => {   // a Buzzsaw cutting through someone (or a bale): chips of squash spraying on ahead of it
     const t = PUMPKIN_TYPES[ev.typeName], chips = [t.rib, t.color, FX.pierce.rind, FX.pierce.flesh]   // (its ribs, its skin, dark rind, pale flesh)
@@ -108,6 +114,7 @@ const EFFECTS = {
   },
   block: (fx, ev) => burst(fx, ev.x, ev.y, 12, FX.block, [2, 6], [0.2, 0.4], [0.03, 0.07], 1),
   freeze: (fx, ev) => burst(fx, ev.x, ev.y, 16, FX.freeze, [1.5, 5], [0.3, 0.6], [0.03, 0.07]),
+  thaw: (fx, ev) => emit(fx, { x: ev.x, y: ev.y, n: 12, colors: FX.iceburst.shards, speed: [2, 5], life: [0.3, 0.5], size: [0.04, 0.07], shape: 'shard', gravity: 1, spin: 12 }),   // a frozen cannon's ice breaking off
   straw: (fx, ev) => {   // a hay bale breaking (or swallowed by a Black Hole): thin straws spraying out, tumbling and fluttering down, and bits of twine
     emit(fx, { x: ev.x, y: ev.y, n: 26, colors: FX.straw.straws, speed: [2, 7], life: [0.6, 1.1], size: [0.07, 0.095], shape: 'stick', lift: 2, gravity: 0.5, drag: 2, sway: 0.6, spin: 12 })
     emit(fx, { x: ev.x, y: ev.y, n: 3, colors: [FX.straw.twine], speed: [2, 5], life: [0.6, 0.9], size: [0.12, 0.15], shape: 'stick', lift: 2, gravity: 0.8, spin: 10 })
@@ -189,6 +196,7 @@ const BREAKS = {
     emit(fx, { x, y, n: 4, colors: [c.rib, FX.homing.nozzle], speed: [4, 8], life: [0.5, 0.75], size: [0.07, 0.09], shape: 'shard', gravity: 1, spin: 16 })
     emit(fx, { x, y, n: 5, colors: [c.color], speed: [2, 5], life: [0.35, 0.5], size: [0.04, 0.06], shape: 'chunk' })
   },
+  icebomb: (...args) => BREAKS.frost(...args),   // (shattering like Frost, under its burst)
   frost: (fx, { x, y }, c) => {   // ice shards spinning out, a few glints hanging in the air
     emit(fx, { x, y, n: 14, colors: [FX.frost.ice, c.color, FX.frost.pale, c.rib], speed: [3, 8], life: [0.35, 0.6], size: [0.06, 0.11], shape: 'shard', gravity: 0.8, spin: 14 })
     emit(fx, { x, y, n: 5, colors: [FX.frost.ice], speed: [0.5, 2], life: [0.3, 0.5], size: [0.06, 0.09], shape: 'sparkle', gravity: 0, drag: 3, spin: 4 })
@@ -311,7 +319,7 @@ function drawCloud(ctx, c, theme, X, Y, s) {
   if (a < CLOUD.flash) {
     const u = a / CLOUD.flash
     ctx.globalAlpha = (1 - u) * 0.8
-    ctx.fillStyle = FX.boom.flash
+    ctx.fillStyle = c.look.flash
     ctx.beginPath()
     ctx.arc(X(c.x), Y(c.y), lerp(0.15 * k, 1.15 * k, Math.sqrt(u)) * s, 0, TAU)
     ctx.fill()
@@ -324,13 +332,13 @@ function drawCloud(ctx, c, theme, X, Y, s) {
     r: p.r * k * grow * fade * (1 + a * 0.3), heat: Math.max(0, p.hot - a * 1.3),
   })).filter(q => q.r > 0.01).sort((q, w) => q.heat - w.heat)
   for (const q of puffs) {
-    ctx.fillStyle = heatColor(q.heat, theme)
+    ctx.fillStyle = heatColor(q.heat, theme, c.look)
     ctx.beginPath()
     ctx.arc(X(q.x), Y(q.y), q.r * s, 0, TAU)
     ctx.fill()
   }
 }
-const heatColor = (h, theme) => h > 0.66 ? FX.boom.puff.hot : h > 0.33 ? FX.boom.puff.warm : h > 0.12 ? FX.boom.puff.cool : theme.smoke
+const heatColor = (h, theme, look) => h > 0.66 ? look.puff.hot : h > 0.33 ? look.puff.warm : h > 0.12 || look !== FX.boom ? look.puff.cool : theme.smoke   // (a cold cloud stays pale blue)
 
 const TAU = Math.PI * 2
 const darker = c => mixHex(c, '#000000', 0.3)

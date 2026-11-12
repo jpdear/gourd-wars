@@ -50,6 +50,11 @@ export function drawPatches(ctx, snap, X, Y, s, shade) {
     if (patch.superRare) ANIM.superRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
     else if (patch.typeName !== 'classic') ANIM.patchGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
     drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.r * s, 0, pumpkinColors(type, patchRipeness(patch), patch.rot), type.mark, shade)
+    if (patch.frozen) {   // an Ice Bomb froze it: in a block of ice, with a white strip along its top
+      const half = Math.max(0.3, pk.r * 1.45), top = pk.y + pk.r + 0.12
+      ctx.fillStyle = GOURD.iceCube.body; ctx.beginPath(); ctx.roundRect(X(pk.x - half), Y(top), half * 2 * s, (top - patch.y) * s, 0.06 * s); ctx.fill()
+      ctx.fillStyle = GOURD.iceCube.top; ctx.fillRect(X(pk.x - half) + 0.05 * s, Y(top) + 0.05 * s, (half * 2 - 0.1) * s, 0.05 * s)
+    }
   })
 }
 
@@ -115,6 +120,7 @@ const BODIES = {
   bottle: (c, r, colors, f) => drawBottleGourd(c, r, colors, f),
   mine: (c, r, colors, f) => mineGourd(c, r, colors, f),
   chomper: (c, r, colors, f) => shutChomper(c, r, colors, f),   // (thrown or held: shut, lying on its side)
+  icefuse: (c, r, colors, f) => lobed(c, r, colors, f, { stem: false }),   // an Ice Bomb (its fuse and snow cap: MARKS)
   rubberball: (c, r, colors, f) => {   // a Bouncing Bomb: a round ball squash (no lobes sticking out, no stem)
     f(lobeColor(colors)); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.fill()
     f(colors.color); c.beginPath(); c.ellipse(0, 0, r * 0.6, r * 0.99, 0, 0, TAU); c.fill()
@@ -149,6 +155,7 @@ export function drawSparkBurst(c, x, y, r, t) {
     c.beginPath(); c.arc(x + Math.cos(a) * d, y + Math.sin(a) * d + 0.35 * p * p * r, size, 0, TAU); c.fill()
   }
 }
+const SNOW_DRIPS = [[0.85, -0.12], [0.5, -0.38], [0.2, 0.02], [-0.15, -0.36], [-0.5, -0.05], [-0.85, -0.34], [-1.3, -0.3]]   // [x, y] (of r): the bottom edge of an Ice Bomb's snow cap, right to left
 const SPARK_LINES = [[-1.2, 0.5, 0.75], [-0.3, 0.5, 0.82], [0.6, 0.5, 0.7], [-2.1, 0.5, 0.68], [2.6, 0.48, 0.62], [-0.75, 0.5, 0.7], [0.15, 0.48, 0.66], [-1.65, 0.5, 0.78]]   // [angle, from, to (of r)]
 // The fuse's flying dots: [direction (radians, from the spark), radius (of r), where in its flight it starts (0..1)].
 const FUSE_DOTS = [[0.55, 0.06, 0], [-1.75, 0.05, 0.25], [-0.25, 0.045, 0.5], [-2.6, 0.05, 0.75]]
@@ -202,6 +209,28 @@ const MARKS = {
     c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.08)
     c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(r * 0.15, -r * 1.75); c.stroke()
     ANIM.antennaTip(c, r * 0.15, -r * 1.8, r, clock.now())
+  },
+  icefuse: (c, r) => {   // a cap of snow dripping down over its top, and a fuse throwing a spinning snowflake spark
+    c.save()
+    c.beginPath(); for (const side of [-1, 1]) c.ellipse(side * r * 0.42, 0, r * 0.66, r * 0.95, 0, 0, TAU); c.clip()
+    c.fillStyle = GOURD.snowCap; c.beginPath()
+    c.moveTo(-r * 1.3, -r * 1.3); c.lineTo(r * 1.3, -r * 1.3); c.lineTo(r * 1.3, -r * 0.35)
+    let px = 1.3
+    for (const [x, y] of SNOW_DRIPS) { c.quadraticCurveTo((px + x) / 2 * r, (y + 0.12) * r, x * r, y * r); px = x }
+    c.closePath(); c.fill()
+    c.restore()
+    c.strokeStyle = GOURD.dark; c.lineWidth = Math.max(1, r * 0.1); c.lineCap = 'round'
+    c.beginPath(); c.moveTo(r * 0.1, -r * 1.0); c.quadraticCurveTo(r * 0.45, -r * 1.5, r * 0.66, -r * 1.32); c.stroke(); c.lineCap = 'butt'
+    const t = clock.now(), R = r * 0.34 * (1 + 0.12 * Math.sin(t * TAU * 6)), x = r * 0.7, y = -r * 1.4
+    c.fillStyle = GOURD.snowSpark.star; starPath(c, x, y, R, t * 3, 6, 0.45); c.fill()
+    c.strokeStyle = GOURD.snowSpark.flake; c.lineWidth = Math.max(1, r * 0.07); c.lineCap = 'round'
+    c.beginPath()
+    for (let i = 0; i < 6; i++) {   // six arms, each with a pair of twigs
+      const a = -t * 3 + i * TAU / 6, bx = x + Math.cos(a) * R * 0.55, by = y + Math.sin(a) * R * 0.55
+      c.moveTo(x, y); c.lineTo(x + Math.cos(a) * R, y + Math.sin(a) * R)
+      for (const k of [-0.7, 0.7]) { c.moveTo(bx, by); c.lineTo(bx + Math.cos(a + k) * R * 0.32, by + Math.sin(a + k) * R * 0.32) }
+    }
+    c.stroke(); c.lineCap = 'butt'
   },
   rubberball: (c, r) => {   // a wide rubber band round its middle and a stubby fuse for a stem (it sparks once it's ticking: see fusedLook)
     c.save(); c.beginPath(); c.ellipse(0, 0, r * 1.02, r, 0, 0, TAU); c.clip()

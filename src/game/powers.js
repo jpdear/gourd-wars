@@ -2,11 +2,12 @@
 
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
-import { breakBale, damageBale, skyDrop } from './level.js'
-import { patchPumpkin, splatPatch } from './patches.js'
+import { breakBale, damageBale, freezeBale, iceOver, skyDrop } from './level.js'
+import { freezePatch, patchPumpkin, splatPatch } from './patches.js'
 import { breakPumpkin, popPumpkin, spawnPumpkin } from './pumpkins.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { blastTraps } from './traps.js'
+import { cannonDistance, freezeCannon } from './cannons.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
@@ -44,6 +45,26 @@ export function explode(game, x, y, blast, power) {
     damageBale(game, bale, blast.damage * a.f * power * CONFIG.level.baleBlastMultiplier)
     pushAway([bale.body], a, blast.knockback * 0.8 * a.f * power)
   }
+}
+
+// Ice Bomb: everything within chill.radius freezes, with no damage and no push: players (longer the
+// closer their nearest part was), hay bales, pumpkins still on their patches, and the tops of the
+// platforms in reach ice over, and gourd cannons stop firing. (See the icebomb type for the numbers.)
+export function freezeBlast(game, x, y, chill, power) {
+  game.events.push({ type: 'iceburst', x: r3(x), y: r3(y), r: chill.radius })
+  const reach = pos => Math.hypot(pos.x - x, pos.y - y) / chill.radius   // 0 at the center, 1 at the edge
+  for (const pl of game.players) {
+    if (pl.dead) continue
+    const d = Math.min(...pl.parts.map(part => reach(part.body.getPosition())))
+    if (d > 1) continue
+    pl.freeze(lerp(chill.center, chill.edge, d) * power)
+    const c = pl.torso.getPosition()
+    game.events.push({ type: 'freeze', x: r3(c.x), y: r3(c.y) })
+  }
+  for (const bale of game.bales) if (reach(bale.body.getPosition()) <= 1) freezeBale(bale, chill.objects * power)
+  for (const patch of game.patches) if (patch.state !== 'empty' && reach(patchPumpkin(patch)) <= 1) freezePatch(patch, chill.objects * power)
+  for (const c of game.cannons) if (cannonDistance(c.def, { x, y }) <= chill.radius) freezeCannon(c, chill.cannon * power)
+  iceOver(game, x, y, chill.radius, chill.floor * power)
 }
 
 // Send bodies flying straight out from a blast (a = direction away from the center) at `speed` m/s.

@@ -9,6 +9,8 @@ export const CONFIG = {
   player: {
     moveSpeed: 7,            // m/s
     groundAccel: 70,         // how fast you reach moveSpeed on the ground
+    iceGrip: 0.05,           // ...times this on ice (an Ice Bomb's icy floor): slow to speed up, slow to stop (sliding too)
+    iceFriction: 0,          // every body part's friction on ice (normal: 0.3), so sitting or lying on it you slide
     airAccel: 35,            // ...and in the air
     jumpSpeed: 16,
     coyoteTime: 0.1,         // can still jump this long after walking off a ledge

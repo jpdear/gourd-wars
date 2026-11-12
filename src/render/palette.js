@@ -54,6 +54,9 @@ export const GOURD = freeze({
   dark: '#3b3631',                      // (a fuse, an antenna, a rocket's nozzle)
   rubberBand: '#f6efe3',                // (round a Bouncing Bomb's middle)
   fuseFlash: { color: '#ffd23f', rib: '#d9a21a' },   // (a ticking Bouncing Bomb, each time it blinks)
+  snowCap: '#f4fafc',                   // (an Ice Bomb's dripping cap of snow)
+  snowSpark: { star: '#bfe8f5', flake: '#ffffff' },   // (its fuse's spark: a pale star with a white snowflake over it)
+  iceCube: { body: 'rgba(205, 238, 250, 0.72)', top: 'rgba(255, 255, 255, 0.9)' },   // (round a pumpkin frozen on its patch)
   superRare: { gold: '#ffd54a', sparkle: '#fff6c8' },
   spark: ['#ff9a2e', '#ffe08a', '#ffc94d', '#ffe08a'],   // (a fuse's spark burst: the big star, the small one, the spark lines, the flying dots)
   ice: '#ffffff',
@@ -96,6 +99,7 @@ export const FX = freeze({
   cannon: { smoke: ['#d8d4cc', '#b9b4aa', '#8f8a80'] },   // (and the blast's hot colors, boom.puff)
   block: ['#d9b25c', '#9c7a2e', '#3b3631'],
   freeze: ['#ffffff', '#dff4fc', '#9fd8f0'],
+  iceburst: { flash: '#ffffff', puff: { hot: '#ffffff', warm: '#e3f6fc', cool: '#bfe8f5' }, shards: ['#ffffff', '#bfe8f5', '#8fd3ea'] },   // (an Ice Bomb: a cold puff cloud, white to pale blue, and ice shards)
   straw: { straws: ['#e2b84a', '#c9982f', '#f3d77a'], twine: '#8a5a2b' },
   burn: {                                          // (small: a player burning; the rest: a hay bale burning up)
     small: ['#ff8a1f', '#ffd23f'],
@@ -123,10 +127,12 @@ export const LEVEL = freeze({
     balloonString: '#6b6358',
   },
   pitchfork: { bar: '#6b4a2b', tine: '#a3a9ae' },
+  ice: { top: '#dff3fa', edge: '#a9dcee', glint: '#ffffff' },   // (an Ice Bomb's icy floor: the sheet, its darker lower edge and icicles, glints)
   bonfire: { log: '#5b3a1e', glow: ['rgba(255, 160, 60, 0.10)', 'rgba(255, 160, 60, 0.12)', 'rgba(255, 160, 60, 0.14)'], flames: ['#e2481b', '#ff9a2e', '#ffe08a'] },   // (glow: outermost disc first; flames: outer, middle, core)
   cannon: {
     mount: '#6b4a2b', strap: '#3c3f44', barrel: '#2f3338', band: '#4a4f55', muzzle: '#f28c28',
     pin: '#4a4f55',   // (its fuse sparks like a Jack-o'-Boom's: GOURD.spark)
+    ice: { snow: '#dff3fa', icicle: '#bfe8f5', plug: '#cdeefa', glint: '#ffffff' },   // (frozen: snow along the barrel, icicles under it, a plug of ice in the muzzle)
   },
 })
 
