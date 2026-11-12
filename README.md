@@ -54,9 +54,8 @@ src/
     player.js           the active ragdoll stick figure
     pumpkinTypes.js     every pumpkin's numbers + spawn rates
     pumpkins.js         throwing, hits, knockback        powers.js   what the specials do
-    crows.js            crows flying over (knocked down, thrown, pecking)
     traps.js            planted gourds: Chompers (biting) and Landmines (blowing up)
-    pickups.js          what the harvest key can pick up (pumpkins, crows)
+    pickups.js          what the harvest key can pick up (pumpkins from their patches)
     level.js            hay bales, pitchforks, bonfires, moving platforms
     cannons.js          gourd cannons (a map piece firing gourds)
     patches.js, match.js, transition.js (the map pan), input.js, snapshot.js

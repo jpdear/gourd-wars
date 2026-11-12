@@ -1,4 +1,4 @@
-// EFFECTS — purely visual stuff (particles, blast clouds, rings, popups, crows flying off). Not part of
+// EFFECTS — purely visual stuff (particles, blast clouds, rings, popups). Not part of
 // the physics, so each computer makes its own from the game's events. Their colors are in FX
 // (palette.js), by event.
 //
@@ -12,8 +12,7 @@
 //   createEffects()                            the empty set
 //   spawnEffect(effects, ev)                   what a game event looks like (EFFECTS, by event type)
 //   updateEffects(effects, dt)                 moves and ages everything, drops what's done
-//   drawEffects(ctx, effects, theme, X, Y, s)  draws the clouds, particles and rings (popups: hud.js;
-//                                              crows and feathers: crows.js)
+//   drawEffects(ctx, effects, theme, X, Y, s)  draws the clouds, particles and rings (popups: hud.js)
 //   emit(effects, opts), ring(effects, ...)    the building blocks of a break (and the effects lab's tries)
 
 import { CONFIG } from '../config.js'
@@ -27,8 +26,7 @@ export function createEffects() {
   // clouds: blasts' puff clouds { x, y, k (scale), age, life, puffs: [{ ang, d, r, hot }] }
   // popups: floating text (damage numbers, KO!; look: how hud.js draws it); rings: expanding circles (blasts, a Black Hole closing)
   // shake: { amount (m), age, life } fading screen shake (an airdrop landing), or null
-  // birds: crows flying off { x, y, vx, vy, dir, age, life }; feathers: drifting down { x, y, vx, vy, turn, spin, sway, age, life }
-  return { particles: [], clouds: [], popups: [], rings: [], birds: [], feathers: [], shake: null }
+  return { particles: [], clouds: [], popups: [], rings: [], shake: null }
 }
 
 // One particle. shape: one of PARTICLE_SHAPES; seed: a random number fixing a chunk's outline (and its
@@ -83,24 +81,13 @@ function cloud(effects, x, y, k) {
   effects.clouds.push({ x, y, k, age: 0, life: CLOUD.life, puffs })
 }
 
-// n black feathers popping out of (x, y), then drifting down, rocking side to side.
-function feathers(effects, x, y, n, speed) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, v = speed * (0.4 + Math.random() * 0.6)
-    effects.feathers.push({
-      x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v + 1, turn: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 8,
-      sway: Math.random() * Math.PI * 2, age: 0, life: 1 + Math.random() * 0.8,
-    })
-  }
-}
-
 // What each game event looks like, by event type (events with no entry show nothing).
 const EFFECTS = {
   boom: (fx, ev) => {
     cloud(fx, ev.x, ev.y, ev.r / 1.25)
     burst(fx, ev.x, ev.y, 40, FX.boom.burst, [4, 13], [0.35, 0.8], [0.05, 0.14], 2)
   },
-  pierce: (fx, ev) => {   // a Buzzsaw cutting through someone (or a bale, a crow): chips of squash spraying on ahead of it
+  pierce: (fx, ev) => {   // a Buzzsaw cutting through someone (or a bale): chips of squash spraying on ahead of it
     const t = PUMPKIN_TYPES[ev.typeName], chips = [t.rib, t.color, FX.pierce.rind, FX.pierce.flesh]   // (its ribs, its skin, dark rind, pale flesh)
     spray(fx, ev.x, ev.y, 24, chips, [ev.dx, ev.dy], 0.6, [5, 12], [0.35, 0.65], [0.045, 0.08], 1.5, 'chunk')
     burst(fx, ev.x, ev.y, 10, chips, [1.5, 4], [0.25, 0.45], [0.035, 0.06], 0, 'chunk')   // (and some falling off where it cut)
@@ -115,13 +102,6 @@ const EFFECTS = {
   },
   shake: (fx, ev) => { fx.shake = { amount: Math.max(ev.amount, fx.shake ? fx.shake.amount : 0), age: 0, life: 0.45 } },
   pop: (fx, ev) => burst(fx, ev.x, ev.y, 8, [ev.color, FX.seed], [1.5, 4], [0.2, 0.35], [0.03, 0.06]),
-  feathers: (fx, ev) => feathers(fx, ev.x, ev.y, 7, 2.5),   // a crow knocked down
-  peck: (fx, ev) => feathers(fx, ev.x, ev.y, 2, 1.8),       // a crow pecking at someone's head
-  crowAway: (fx, ev) => {   // a crow flying off: a few feathers, and up and away it goes
-    feathers(fx, ev.x, ev.y, 4, 2)
-    const dir = Math.random() < 0.5 ? -1 : 1
-    fx.birds.push({ x: ev.x, y: ev.y, vx: dir * 5, vy: 4, dir, age: 0, life: 2 })
-  },
   cannon: (fx, ev) => {   // a gourd cannon firing: a cone of hot sparks out the barrel, smoke rolling forward and drifting up
     emit(fx, { x: ev.x, y: ev.y, n: 10, colors: [FX.boom.puff.hot, FX.boom.puff.warm, FX.boom.puff.cool], speed: [4, 9], life: [0.08, 0.18], size: [0.06, 0.1], heading: ev.angle, spread: 0.35, gravity: 0, drag: 6 })
     emit(fx, { x: ev.x, y: ev.y, n: 8, colors: FX.cannon.smoke, speed: [1, 3.5], life: [0.6, 1], size: [0.08, 0.14], heading: ev.angle, spread: 0.5, gravity: -0.1, drag: 3 })
@@ -248,22 +228,6 @@ export function updateEffects(effects, dt) {
     t.y += 1.2 * dt
   }
   effects.popups = effects.popups.filter(t => t.age < t.life)
-  for (const b of effects.birds) {
-    b.age += dt
-    b.x += b.vx * dt
-    b.y += b.vy * dt
-  }
-  effects.birds = effects.birds.filter(b => b.age < b.life)
-  for (const f of effects.feathers) {   // (air drag: they soon just float down, rocking)
-    f.age += dt
-    f.vx *= Math.exp(-4 * dt)
-    f.vy = f.vy * Math.exp(-4 * dt) - 0.9 * (1 - Math.exp(-4 * dt))
-    f.sway += dt * 5
-    f.x += (f.vx + Math.cos(f.sway) * 0.4) * dt
-    f.y += f.vy * dt
-    f.turn += f.spin * dt * Math.exp(-2 * f.age)
-  }
-  effects.feathers = effects.feathers.filter(f => f.age < f.life)
   for (const c of effects.clouds) c.age += dt
   effects.clouds = effects.clouds.filter(c => c.age < c.life)
   for (const ring of effects.rings) ring.age += dt

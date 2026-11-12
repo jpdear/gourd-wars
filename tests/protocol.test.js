@@ -6,7 +6,6 @@ import { openBlackHole } from '../src/game/powers.js'
 import { spawnPumpkin } from '../src/game/pumpkins.js'
 import { PUMPKIN_TYPES } from '../src/game/pumpkinTypes.js'
 import { makeSnapshot } from '../src/game/snapshot.js'
-import { knockDownCrow, peck, sendCrow } from '../src/game/crows.js'
 import { makeCode, packInput, packSnapshot, unpackInput, unpackSnapshot } from '../src/net/protocol.js'
 
 it('sends input compactly and gets the same input back', () => {
@@ -25,15 +24,10 @@ it('sends snapshots compactly and gets the same snapshot back', () => {
   game.strikes.push({ id: game.nextStrikeId++, x: 24, y: 4.4, power: 1, age: 0.2, airdrop: null })
   Object.assign(game.bales[0], { frozenTimer: 1, floatTimer: 1 })
   game.bales[1].stickyTimer = 1
-  sendCrow(game)
-  knockDownCrow(game, sendCrow(game))
-  peck(game, game.players[0])
   spawnPumpkin(game, 'chomper', new Vec2(27, 5), new Vec2(0, -5), game.players[0])   // (planted on the floor: a trap)
   for (let i = 0; i < 5; i++) stepGame(game, [emptyInput(), emptyInput()])
   const snap = makeSnapshot(game)
-  for (const k of ['pumpkins', 'bales', 'holes', 'strikes', 'traps', 'crows', 'movers', 'patches']) expect(snap[k].length).toBeGreaterThan(0)
-  expect(snap.crows.map(c => c.down)).toEqual([false, true])
-  expect(snap.players[0].pecked).toBe(true)
+  for (const k of ['pumpkins', 'bales', 'holes', 'strikes', 'traps', 'movers', 'patches']) expect(snap[k].length).toBeGreaterThan(0)
   const packed = JSON.parse(JSON.stringify(packSnapshot(snap)))   // (through JSON, like the network)
   expect(Array.isArray(packed.pumpkins[0])).toBe(true)
   expect(unpackSnapshot(packed)).toEqual(JSON.parse(JSON.stringify(snap)))   // (JSON turns -0 into 0)

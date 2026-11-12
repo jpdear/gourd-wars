@@ -14,7 +14,6 @@ import { updateAirstrikes, updateBlackHoles } from './powers.js'
 import { handlePumpkinContacts, piercesThrough, recordPumpkinContact, updatePumpkins } from './pumpkins.js'
 import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
-import { clearCrows, updateCrows } from './crows.js'
 import { clearTraps, updateTraps } from './traps.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
@@ -29,12 +28,10 @@ export function createGame() {
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
   // traps: Chompers planted on the floor or biting someone (see traps.js)
-  // crows: flying over, or knocked down (pecks: thrown ones on someone's head; crowTimer: until the next one) (see crows.js)
-  // crowRate: how often crows fly over (the host's choice: one of CROW_RATES in crows.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], crows: [], pecks: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextCrowId: 1, crowTimer: 0,
-    crowRate: 'normal', match: null, spawnSettings: defaultSpawnSettings(), sights: false,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1,
+    match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
     joining: [],        // slots waiting to jump in at the start of the next round
@@ -53,7 +50,7 @@ export function createGame() {
   })
   // Pumpkins don't physically shove players; the knockback comes only from applyHit(),
   // so it follows our numbers (damage, stagger, ripeness) instead of raw collision physics.
-  // (And a piercing one goes right through bales and crows too: see PIERCES in pumpkins.js.)
+  // (And a piercing one goes right through bales too: see PIERCES in pumpkins.js.)
   world.on('pre-solve', contact => {
     const a = contact.getFixtureA().getBody().getUserData(), b = contact.getFixtureB().getBody().getUserData()
     const pk = a && a.kind === 'pumpkin' ? a.pumpkin : b && b.kind === 'pumpkin' ? b.pumpkin : null
@@ -130,7 +127,7 @@ export function loadMap(game, id) {
 export const currentMap = game => mapDef(game.map)
 
 // Fresh start: (the chosen map), everyone back at their spawn with empty hands, bales rebuilt,
-// patches almost ripe, no crows around.
+// patches almost ripe.
 export function resetRound(game) {
   if (game.map !== game.mapChoice) loadMap(game, game.mapChoice)
   for (const pk of game.pumpkins) game.world.destroyBody(pk.body)
@@ -138,7 +135,6 @@ export function resetRound(game) {
   game.holes = []
   game.strikes = []
   clearTraps(game)
-  clearCrows(game)
   resetBales(game)
   game.roundTime = 0
   game.moverTime = 0
@@ -166,7 +162,6 @@ export function stepGame(game, inputs) {
   updateTraps(game, dt)
   updateHazards(game, dt)
   updateBales(game, dt)
-  updateCrows(game, dt)
   updatePatches(game, dt)
   for (const p of game.players) p.checkDeath(dt, game)
   updateMatch(game, CONFIG.dt)

@@ -32,7 +32,6 @@ export function makeSnapshot(game) {
       floating: p.floating,
       charge: p.charging ? r3(p.charge) : 0,
       lockedOn: game.pumpkins.some(pk => pk.target === p),   // a Homing gourd is coming for them
-      pecked: game.pecks.some(pk => pk.victim === p),         // a crow's on their head
       grapple: p.grapple && !p.dead ? (({ x, y }) => [r3(x), r3(y)])(p.grapplePoint()) : null,   // where a Vine is reeling them in
       // what they're picking up (harvest: how far along, 0..1), or else could pick up from where they stand: [x, y, r]
       harvest: r3(p.harvestProgress),
@@ -63,11 +62,6 @@ export function makeSnapshot(game) {
     // kind: its pumpkin type; open: 0 shut (or just landed) .. 1 set; bite: a Chomper biting someone (its x, y: on them) (see traps.js)
     traps: game.traps.map(t => ({ id: t.id, kind: t.kind, x: r3(t.x), y: r3(t.y), angle: r3(wrapAngle(t.angle)), open: r3(trapOpen(t)), bite: !!t.victim })),
     holes: game.holes.map(h => ({ id: h.id, x: r3(h.x), y: r3(h.y), r: r3(h.r) })),   // r: the core's radius
-    // down: knocked down (else flying over); dir: which way it faces
-    crows: game.crows.map(c => {
-      const p = c.body.getPosition()
-      return { id: c.id, x: r3(p.x), y: r3(p.y), angle: r3(wrapAngle(c.body.getAngle())), down: c.state === 'down', dir: c.dir }
-    }),
     // t: 0 → 1 when the airdrop is due; r: the airdrop's radius
     strikes: game.strikes.map(st => ({
       id: st.id, x: r3(st.x), y: r3(st.y), t: r3(Math.min(1, st.age / PUMPKIN_TYPES.airstrike.delay)), r: r3(PUMPKIN_TYPES.airdrop.radius * st.power),
@@ -120,7 +114,6 @@ export function interpolateSnapshots(a, b, t) {
     bales: byId(a.bales, b.bales, moved),
     holes: byId(a.holes, b.holes, (r, q) => ({ ...q, r: lerp(r.r, q.r, t) })),
     traps: byId(a.traps, b.traps, moved),
-    crows: byId(a.crows, b.crows, moved),
     strikes: byId(a.strikes, b.strikes, (r, q) => ({ ...q, t: lerp(r.t, q.t, t) })),
     movers: b.movers.map((q, i) => (a.movers[i] && a.map === b.map ? { x: lerp(a.movers[i].x, q.x, t), y: lerp(a.movers[i].y, q.y, t) } : q)),
     cannons: b.cannons,

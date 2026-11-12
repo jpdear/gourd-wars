@@ -17,7 +17,6 @@ import { drawBanner, drawCrosshair, drawDebug, drawHud, drawMessage, drawPopups,
 import { drawBale, drawBonfire, drawCannon } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawTrap } from './pumpkins.js'
-import { drawCrow, drawFeather, drawFlyingOff } from './crows.js'
 import { drawEffects } from './effects.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase, drawWeather } from './scenery.js'
@@ -62,7 +61,6 @@ export function render(ctx, view, snap, effects, ui) {
     const shade = map.theme.shade   // (the map's tint for two-tone shading)
     for (const bale of snap.bales) drawBale(ctx, bale, X, Y, s, shade)
     drawPatches(ctx, snap, X, Y, s, shade)
-    for (const c of snap.crows) drawCrow(ctx, c, X, Y, s)
     drawPickupHints(ctx, snap, ui.localIndex, ui.harvestKey, ui.surface, X, Y, s)
     for (const st of snap.strikes) drawAirstrikeTarget(ctx, st.x, st.y, st.t, st.r, X, Y, s)   // (under the airdrop)
     for (const t of snap.traps) if (!t.bite) drawTrap(ctx, t, X, Y, s, shade)   // (on the floor: under whoever steps on it)
@@ -80,8 +78,6 @@ export function render(ctx, view, snap, effects, ui) {
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players
 
   drawEffects(ctx, effects, map.theme, X, Y, s)   // (blast clouds, particles, rings)
-  for (const b of effects.birds) drawFlyingOff(ctx, b, X, Y, s)
-  for (const f of effects.feathers) drawFeather(ctx, f, X, Y, s)
   drawWeather(ctx, map.theme, X, Y, s)   // (snow, embers: over everything in the world)
   drawPopups(ctx, effects, ui, X, Y, s)   // (in the world: they shake with it)
   ctx.restore()   // (the shake)

@@ -14,7 +14,6 @@ import { patchPumpkin, patchRipeness } from '../game/patches.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
 import { ANIM, clock } from './anims.js'
-import { crowShape } from './crows.js'
 import { GOURD } from './palette.js'
 import { handOf } from './players.js'
 import { drawShaded } from './shading.js'
@@ -118,13 +117,12 @@ const BODIES = {
   chomper: (c, r, colors, f) => shutChomper(c, r, colors, f),   // (thrown or held: shut, lying on its side)
 }
 
-// Ones that draw themselves, flat and unshaded: a seed (tiny, and fired by the dozen) and a crow (near-black).
+// Ones that draw themselves, flat and unshaded: a seed (tiny, and fired by the dozen).
 const OWN_LOOK = {
   seed: (c, r, colors) => {   // dark, on a slightly bigger cream oval so it shows up on any map
     c.fillStyle = colors.rib; c.beginPath(); c.ellipse(0, 0, r * 1.52, r * 1.07, 0, 0, TAU); c.fill()
     c.fillStyle = colors.color; c.beginPath(); c.ellipse(0, 0, r * 1.35, r * 0.9, 0, 0, TAU); c.fill()
   },
-  crow: (c, r) => crowShape(c, r / PUMPKIN_TYPES.crow.radius * CONFIG.crow.length, { flap: Math.sin(Date.now() / 1000 * 20) }),   // (held or thrown, flapping)
 }
 
 // A spark burst at (x, y) (sized for a gourd r across; t: s): two spinning, flickering stars, spark lines
@@ -226,7 +224,7 @@ export function drawPumpkin(ctx, x, y, r, angle, colors, mark, shade) {
   })
 }
 
-// Just a pumpkin's shape, all in one color (no shading, no marks; not seeds or crows, which draw their
+// Just a pumpkin's shape, all in one color (no shading, no marks; not seeds, which draw their
 // own look): e.g. stamped in a ring round it for an outline (the title logo's pumpkin).
 export function drawPumpkinSilhouette(ctx, x, y, r, angle, colors, mark, color) {
   ctx.save()

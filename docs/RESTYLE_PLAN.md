@@ -645,7 +645,7 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
    - The hub is flat.
 5. **Cannon:** already mostly flat. Remove any strokes, shade the mount and barrel (as separate silhouettes), and keep the orange muzzle ring and fuse sparks. Reuse the gourd spark-burst look for the fuse.
 4b. **The scarecrow was removed from the game** (the user's call, after step 8): the hazard, its tool in the editor and its look. Saved custom maps that had one load without it. It comes back in step 9 as part of the Scarecrow Field backdrop (the silhouette in the field mockup).
-6. **Crows** (`crows.js`) — **skipped (the user's call, during step 8): crows stay as they are for now.**
+6. **Crows** (`crows.js`) — **skipped (the user's call, during step 8); then, on 2026-11-12, crows were removed from the game entirely (the user's call).**
    - Remove the `EDGE` strokes. Make the body, wings, head and legs flat fills: `INK` for the near side and `FAR` for the far wing.
    - The beak split becomes a thin filled wedge, not a stroke.
    - The eye stays white and dark.
@@ -801,6 +801,8 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 
 **Hand over:** the options as screenshots, plus a clear question. Then stop.
 
+**Done (2026-11-12):** mocked up in the effects lab (a halo, lighter colors, a paper rim on all 4 dark maps; orange gourds in the air on Scarecrow Field and Lava). The user isn't worried by either: no change to gourds on dark or warm maps.
+
 ---
 
 ### Step 14: Final pass
@@ -829,7 +831,7 @@ Every step has the same parts: **Goal**, **Files**, **Do**, **Don't**, **Check**
 - **Practice:** main menu → **Practice**. Esc → **Settings** → **Practice Map** switches maps, and **Practice Dummies** adds dummies (use 3).
 - **One gourd type at a time:** Esc → Settings → **Pumpkins**. Turn everything off except the type you're checking, and set its rarity high.
 - **Damage numbers:** Esc → Settings → **Damage Numbers** on.
-- **Debug mode and the tuning panel:** press **`** (backquote). Debug mode also turns on testing keys (see `src/app/controls.js`, for example **T** sends a crow). After step 5, the tuning panel has the Shading toggle.
+- **Debug mode and the tuning panel:** press **`** (backquote). After step 5, the tuning panel has the Shading toggle.
 - **A match with rounds and transitions:** **Host Game** → **Play vs Dummies While Waiting**, with map rotation on (Match Settings).
 - **The map editor:** main menu → **Map Editor**. Make a map, set its theme, and press Play.
 - **Every step:** check the console for errors, try a light map and a dark map, and try resizing the window.

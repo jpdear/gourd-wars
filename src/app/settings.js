@@ -5,7 +5,6 @@ import { setDummies } from '../game/game.js'
 import { MATCH_MODES, defaultMatchSettings, defaultRotation } from '../game/match.js'
 import { SPAWNABLE_TYPES, SPAWN_RATES, defaultSpawnSettings } from '../game/pumpkinTypes.js'
 import { startTransition } from '../game/transition.js'
-import { CROW_RATES } from '../game/crows.js'
 import { MAPS } from '../maps/builtin.js'
 import { clamp } from '../util/math.js'
 import { STORAGE_KEYS, loadJSON, loadText, saveJSON, saveText } from '../util/storage.js'
@@ -44,8 +43,7 @@ export function loadSettings(game) {
   matchSettings.shuffle = matchSettings.shuffle !== false
   matchSettings.sights = matchSettings.sights === true
   game.sights = matchSettings.sights
-  if (!CROW_RATES.includes(matchSettings.crows)) matchSettings.crows = 'normal'
-  game.crowRate = matchSettings.crows
+  delete matchSettings.crows   // (crows were removed: settings saved before then still have it)
   matchSettings.maps = { ...defaultRotation(), ...(matchSettings.maps || {}) }   // (new maps start on)
 
   const dummies = loadText(STORAGE_KEYS.dummies)
@@ -83,7 +81,6 @@ export function changeSettings(fn) {
   matchSettings.wins = clamp(Math.round(matchSettings.wins), 1, 50)
   saveJSON(STORAGE_KEYS.match, matchSettings)
   app.game.sights = matchSettings.sights
-  app.game.crowRate = matchSettings.crows
   app.menu.showSettings(matchSettings)
   app.menu.showRotation(matchSettings.maps)
 }

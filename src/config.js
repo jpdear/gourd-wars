@@ -102,20 +102,9 @@ export const CONFIG = {
     spikeCooldown: 0.5,      // ...then no more pitchfork damage for this long, however many tines you touch
     spikeBounce: 12,         // m/s pop up off the tines
   },
-  pickup: {                  // standing at something to pick up with the harvest key (a pumpkin, a crow)
+  pickup: {                  // standing at something to pick up with the harvest key (a pumpkin)
     reach: 1.1,              // how close (sideways) you need to be
     height: 1.6,             // ...with your hips at most this far above where it sits
-  },
-  crow: {                    // crows flying over (see game/crows.js)
-    every: { rare: 45, normal: 25, often: 12 },   // a crow about this often (s, ±25%), by the host's Crows setting
-    firstAfter: 8,           // never in the first this many seconds of a round
-    maxAround: 3,            // no new crow while this many are around (flying or knocked down)
-    speed: 7,                // flying across (m/s)
-    length: 0.75,            // beak to tail (m; a big crow: easy to read at game scale)
-    radius: 0.27,            // (its body, to hit)
-    wakeTime: 8,             // knocked down and left lying there, it comes to and flies off after this long (s)
-    pickTime: 0.15,          // hold the harvest key this long to pick it up
-    peck: { time: 1.5, every: 0.25, damage: 2 },   // thrown into someone: pecks their head this long, this often, this hard
   },
   patch: {
     growTime: 4,             // seconds from sprout to ripe
@@ -127,11 +116,6 @@ export const CONFIG = {
     greenPower: [0.4, 0.75], // power of a green pumpkin, from just-pickable to almost ripe
   },
 }
-
-// Collision categories: what passes through what. Everything else is in category 1 and touches all of these.
-//   pumpkin   thrown pumpkins
-//   crow      a crow flying over: only pumpkins can hit it (people jumping into it don't)
-export const COLLIDE = { pumpkin: 0x0002, crow: 0x0004 }
 
 // Stick figure proportions (meters)
 export const BODY = {

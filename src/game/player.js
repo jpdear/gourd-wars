@@ -791,7 +791,7 @@ export class Player {
         const ud = fixture.getBody().getUserData()
         // ignore all players (another player's body under you isn't ground; the hover spring
         // would launch you), pumpkins, and hazards (you'd hover over pitchforks instead of landing on them)
-        if (ud && ['player', 'pumpkin', 'hazard', 'crow'].includes(ud.kind)) return -1
+        if (ud && ['player', 'pumpkin', 'hazard'].includes(ud.kind)) return -1
         hit = fraction
         hitBody = fixture.getBody()
         return fraction

@@ -129,14 +129,7 @@ export const LEVEL = freeze({
   },
 })
 
-// Crows (crows.js).
-export const CROW = freeze({
-  ink: '#1a191f', far: '#34313c', edge: '#2a2830',
-  xEye: '#f4efe6', eyeRing: '#4a4652', pupil: '#060608', glint: '#ffffff',
-  quill: '#5a5563',
-})
-
-// Stars circling something dazed (a crow, a player).
+// Stars circling a dazed player.
 export const DIZZY = freeze({ star: '#f7c531' })
 
 // The main menu's logo (ui/titleLogo.js): the splat behind the pumpkin that hit it, the puffs round it

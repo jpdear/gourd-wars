@@ -8,8 +8,7 @@ import { boomerangPull } from '../game/powers.js'
 import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { clock } from './anims.js'
-import { drawDizzyStars, drawPeckingCrow } from './crows.js'
-import { PLAYER, UI } from './palette.js'
+import { DIZZY, PLAYER, UI } from './palette.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
 import { LOOKS } from './statusLooks.js'
@@ -191,7 +190,6 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
     drawPumpkin(ctx, X(hx), Y(hy + 0.95), 0.2 * s, 0, PUMPKIN_TYPES.balloon, null, theme.shade)
   }
   if (crowned) drawCrown(ctx, part(p, 'head'), theme, X, Y, s)
-  if (p.pecked) drawPeckingCrow(ctx, p, X, Y, s)
   if (p.dazed) drawDizzyStars(ctx, X(hx), Y(hy + 0.3), s)
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s, theme.shade)
@@ -234,6 +232,27 @@ function drawFace(ctx, p, hx, hy, X, Y, s) {
     ctx.fill()
   }
 
+}
+
+// Little yellow stars circling over something dazed (flat: no edge).
+function drawDizzyStars(ctx, x, y, s) {
+  const t = clock.now() * 3
+  ctx.fillStyle = DIZZY.star
+  for (let i = 0; i < 3; i++) {
+    const a = t + i * 2.1, depth = Math.sin(a)   // (going round: smaller at the back)
+    star(ctx, x + Math.cos(a) * 0.24 * s, y + depth * 0.06 * s, (0.06 + 0.015 * depth) * s, t * 2 + i)
+  }
+}
+
+// A filled five-pointed star centered at (x, y), r px to its points, turned by `turn` radians.
+function star(ctx, x, y, r, turn = 0) {
+  ctx.beginPath()
+  for (let i = 0; i < 10; i++) {
+    const a = turn - Math.PI / 2 + i * Math.PI / 5, d = i % 2 ? r * 0.45 : r
+    ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d)
+  }
+  ctx.closePath()
+  ctx.fill()
 }
 
 // A little gold crown sitting on a head ([x, y, angle]), tilting with it: flat and shaded, with a jewel.
