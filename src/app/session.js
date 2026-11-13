@@ -3,7 +3,8 @@
 // Everything about which of these we're doing is in here: each frame the app just calls
 // advanceSession() for what to draw, and sessionStatus() for what to say about it.
 import { Peer } from 'peerjs'
-import { CONFIG, MAX_PLAYERS, PLAYER_COLOR_NAMES } from '../config.js'
+import { CONFIG, MAX_PLAYERS } from '../config.js'
+import { playerName } from '../render/gfx.js'
 import { addPlayer, queuePlayer, removePlayer, resetRound, setDummies, stepGame } from '../game/game.js'
 import { dummyInput } from '../game/input.js'
 import { describeSettings, startMatch } from '../game/match.js'
@@ -29,7 +30,7 @@ let acc = 0                       // real time not yet run as physics steps (pra
 let steps = 0                     // physics steps run while friends are here (they get a snapshot every few)
 
 export const friendCount = () => links.size
-export const friendNames = () => [...links.keys()].sort().map(slot => PLAYER_COLOR_NAMES[slot]).join(', ')
+export const friendNames = () => [...links.keys()].sort().map(slot => playerName(slot)).join(', ')
 export const playingAlone = () => mode === 'practice' || (mode === 'host' && !links.size)
 // The game this computer runs (practice and the host), or null (a guest only draws the host's).
 export const localGame = () => (mode === 'guest' ? null : app.game)
@@ -87,7 +88,7 @@ export function holdStill() {
 export function sessionStatus(snap, localIndex) {
   const pings = [link, ...links.values()].filter(l => l && l.ping !== null).map(l => l.ping)
   const pingText = pings.length ? ` · ping ${Math.round(Math.max(...pings) * 1000)} ms` : ''
-  const myColor = PLAYER_COLOR_NAMES[localIndex] || '…'
+  const myColor = playerName(localIndex)
   const hud = mode === 'host' && !links.size ? `Waiting for friends · code ${hostCode || '…'}` : playtestId ? 'Play test' : 'Practice'
   let wait = ''
   if (mode === 'guest' && !snap) wait = 'Waiting for the host…'
@@ -98,7 +99,7 @@ export function sessionStatus(snap, localIndex) {
 // One line about what's going on, for the Esc menu.
 export function describeSession() {
   const { snap, ui } = app
-  if (mode === 'guest') return `Playing online as ${PLAYER_COLOR_NAMES[ui.localIndex] || '…'}.${snap && snap.match ? ` Match: ${describeSettings(snap.match)}.` : ''}${snap ? ` Map: ${mapDef(snap.map).name}.` : ''}`
+  if (mode === 'guest') return `Playing online as ${playerName(ui.localIndex)}.${snap && snap.match ? ` Match: ${describeSettings(snap.match)}.` : ''}${snap ? ` Map: ${mapDef(snap.map).name}.` : ''}`
   if (mode === 'host') return links.size ? `Hosting as Blue with ${friendNames()} (code ${hostCode}).` : `Hosting with code ${hostCode || '…'}. Waiting for friends.`
   if (playtestId) return `Play testing "${mapDef(playtestId).name}".`
   return 'Practice mode.'
@@ -207,7 +208,7 @@ function onGuestConnection(conn) {
 // The first friend starts a match; anyone after that jumps in at the start of the next round.
 function admitGuest(l, slot) {
   const { game } = app
-  const name = PLAYER_COLOR_NAMES[slot]
+  const name = playerName(slot)
   l.handlers.onLeave = () => {
     if (links.get(slot) !== l) return
     links.delete(slot)
@@ -291,7 +292,7 @@ export function joinGame(code) {
           clearTimeout(joinTimer)
           ui.localIndex = slot
           menu.hide()
-          showMessage(`You're ${PLAYER_COLOR_NAMES[slot]}!`)
+          showMessage(`You're ${playerName(slot)}!`)
         },
       }, now())
     })

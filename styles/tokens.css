@@ -10,7 +10,7 @@
   /* the page behind everything */
   --page: var(--bark);                     /* (the strips round the arena when the window isn't its shape: the menus' bark) */
 
-  /* the main palette, Pumpkin & Bark (the menus; see docs/RESTYLE_PLAN.md 4.1) */
+  /* the main palette, Pumpkin & Bark (the menus; see docs/style-guide.html) */
   --bark: #2e2620;                          /* the menu backdrop */
   --bark-2: #3a3029;                        /* raised shapes on bark (the title screen's circles) */
   --bark-3: #463a31;                        /* hover and buttons on bark panels */

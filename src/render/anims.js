@@ -18,6 +18,7 @@
 // tile, then puts them back; the game never changes them.
 
 import { GOURD } from './palette.js'
+import { gfx } from './gfx.js'
 import { hexA } from '../util/color.js'
 
 const TAU = Math.PI * 2
@@ -70,7 +71,7 @@ export const ANIM = {
   patchGlow: (ctx, x, y, r, s, color, t) => {   // two see-through discs in its color, pulsing
     const pulse = 0.6 + 0.25 * Math.sin(t * 1000 / 220)
     for (const [grow, a] of [[0.6, 0.18], [0.3, 0.28]]) {
-      ctx.fillStyle = hexA(color, a * pulse)
+      ctx.fillStyle = hexA(color, a * pulse * gfx.glow)   // (Gourd Glow: full or subtle)
       ctx.beginPath()
       ctx.arc(x, y, r + grow * s, 0, TAU)
       ctx.fill()
@@ -80,7 +81,7 @@ export const ANIM = {
   superRareGlow: (ctx, x, y, r, s, color, t) => {   // bigger, faster-pulsing gold discs (its color at the heart), 4 sparkles going round
     const pulse = 0.6 + 0.2 * Math.sin(t * 1000 / 150)
     for (const [c, grow, a] of [[GOURD.superRare.gold, 0.8, 0.18], [GOURD.superRare.gold, 0.45, 0.28], [color, 0.2, 0.3]]) {
-      ctx.fillStyle = hexA(c, a * pulse)
+      ctx.fillStyle = hexA(c, a * pulse * gfx.glow)
       ctx.beginPath()
       ctx.arc(x, y, r + grow * s, 0, TAU)
       ctx.fill()

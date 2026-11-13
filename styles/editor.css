@@ -1,4 +1,4 @@
-/* The map editor: toolbar and side panel, in Pumpkin & Bark (docs/RESTYLE_PLAN.md step 11): bark bars,
+/* The map editor: toolbar and side panel, in Pumpkin & Bark: bark bars,
    flat 1 px bark-3 edges, compact rounded buttons with a ledge, Fredoka text. (Colors and fonts: tokens.css.) */
 #editor { display: none; font: 500 13px var(--font-text); color: var(--paper); }
 #editor.open { display: block; }

@@ -1,6 +1,8 @@
 // Drawing the stick figures (from snapshot data), plus what they hold and wear, their contact shadows,
 // the Vine reeling them in and their sight. Flat and two-tone shaded (see shading.js).
-// Colors: each player's own (from the snapshot), PLAYER (palette.js) and the map's shade and shadow.
+// Colors: each player's own (from the snapshot, or Colorblind Mode's: gfx.js), PLAYER (palette.js) and the
+// map's shade and shadow. Graphics settings (gfx.js): Player Outlines, Sight Dots, and with Colorblind Mode
+// on, a shape floating over each player (with a little sign beside it while they're frozen, glued or burning).
 
 import { BODY, CONFIG } from '../config.js'
 import { BALE, TINE } from '../game/level.js'
@@ -10,6 +12,7 @@ import { PART_NAMES } from '../game/snapshot.js'
 import { clock } from './anims.js'
 import { DIZZY, PLAYER, STATUS, UI } from './palette.js'
 import { flamesLeft, gooLeft } from './endings.js'
+import { gfx, playerColor, playerShape, recolor } from './gfx.js'
 import { drawBurningPlayer } from './flames.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
@@ -115,10 +118,10 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   }
   dots.forEach(([x, y], i) => {
     ctx.globalAlpha = 0.9 * (1 - 0.35 * i / Math.max(dots.length, 1))   // fading a little along the way
-    for (const [color, r] of SIGHT_DOT(flight.color)) {   // (ringed dark and light, so it shows on any map, whatever the gourd's color)
+    for (const [color, r] of SIGHT_DOT(recolor(flight.color))) {   // (ringed dark and light, so it shows on any map, whatever the gourd's color)
       ctx.fillStyle = color
       ctx.beginPath()
-      ctx.arc(X(x), Y(y), r * s, 0, Math.PI * 2)
+      ctx.arc(X(x), Y(y), r * gfx.sightScale * s, 0, Math.PI * 2)   // (Sight Dots: normal or large)
       ctx.fill()
     }
   })
@@ -140,21 +143,21 @@ const LIMB_ORDER = side => {
     [`thigh${near}`, true], [`shin${near}`, true], [`arm${near}`, true], [`forearm${near}`, true]]
 }
 
-// A flat stick figure (see docs/RESTYLE_PLAN.md 4.4): round-capped limbs, the far ones darker, a round
+// A flat stick figure (see docs/style-guide.html): round-capped limbs, the far ones darker, a round
 // head, and two-tone shading in the map's shade tint (theme.shade); the eye (or X eyes while ragdolled)
 // and anything it's wearing go on top, unshaded. Frozen and glued: as statusLooks.js draws them;
 // floating: carried off by a balloon.
 export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
-  const color = p.frozen ? LOOKS.playerFrozen.tint(p.color) : p.color
+  const own = playerColor(p.slot, p.color), color = p.frozen ? LOOKS.playerFrozen.tint(own) : own
   const far = mixHex(color, '#000000', 0.18)
   const limbs = LIMB_ORDER(p.facing).map(([name, near]) => [partEnds(part(p, name), PART_HALF_LEN[name]), name === 'torso' ? 0.16 : 0.11, near])
   const [hx, hy] = part(p, 'head')
-  const figure = (c, one) => {   // (one: everything in that one color, for the silhouette)
+  const figure = (c, one, pad = 0) => {   // (one: everything in that one color, for the silhouette; pad: m fatter all round, for the outline)
     c.lineCap = 'round'
     c.lineJoin = 'round'
     for (const [[x1, y1, x2, y2], width, near] of limbs) {
       c.strokeStyle = one || (near ? color : far)
-      c.lineWidth = width * s
+      c.lineWidth = (width + 2 * pad) * s
       c.beginPath()
       c.moveTo(X(x1), Y(y1))
       c.lineTo(X(x2), Y(y2))
@@ -162,9 +165,10 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
     }
     c.fillStyle = one || color
     c.beginPath()
-    c.arc(X(hx), Y(hy), BODY.headR * s, 0, Math.PI * 2)
+    c.arc(X(hx), Y(hy), (BODY.headR + pad) * s, 0, Math.PI * 2)
     c.fill()
   }
+  if (gfx.outlines) figure(ctx, PLAYER.outline, OUTLINE)   // (Player Outlines: the figure, fatter and dark, under it)
   // the box around it: every limb's ends and the head, plus 0.3 m
   const xs = [hx], ys = [hy]
   for (const [[x1, y1, x2, y2]] of limbs) xs.push(x1, x2), ys.push(y1, y2)
@@ -200,8 +204,42 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
   }
   if (crowned) drawCrown(ctx, part(p, 'head'), theme, X, Y, s)
   if (p.dazed) drawDizzyStars(ctx, X(hx), Y(hy + 0.3), s)
+  const shape = playerShape(p.slot)
+  if (shape) drawShapeMark(ctx, shape, own, [p.frozen && 'frozen', (p.glued || drain) && 'glued', fire && 'burning'].filter(Boolean), X(hx), Y(hy + (p.floating ? 1.45 : 0.68)), s)
 
   if (p.held) drawHeldPumpkin(ctx, p, X, Y, s, theme.shade)
+}
+
+// Colorblind Mode's mark: the player's shape, in their color with a dark edge, floating over their head at
+// (x, y) px; beside it, a little white sign for each state they're in (so it isn't only told by color).
+const OUTLINE = 0.035   // m: Player Outlines' width
+const MARK = { r: 0.18, edge: 0.04, sign: 0.12, gap: 0.08 }   // m
+const SHAPE_PATHS = {
+  circle: (c, x, y, r) => c.arc(x, y, r * 0.9, 0, Math.PI * 2),
+  triangle: (c, x, y, r) => { c.moveTo(x, y - r * 1.1); c.lineTo(x + r * 1.05, y + r * 0.75); c.lineTo(x - r * 1.05, y + r * 0.75); c.closePath() },
+  square: (c, x, y, r) => c.rect(x - r * 0.82, y - r * 0.82, r * 1.64, r * 1.64),
+  diamond: (c, x, y, r) => { c.moveTo(x, y - r * 1.15); c.lineTo(x + r * 0.9, y); c.lineTo(x, y + r * 1.15); c.lineTo(x - r * 0.9, y); c.closePath() },
+}
+const STATE_SIGNS = {
+  frozen: (c, x, y, r) => {   // a snowflake: three crossed bars
+    c.lineWidth = r * 0.32; c.lineCap = 'round'; c.beginPath()
+    for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; c.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); c.lineTo(x - Math.cos(a) * r, y - Math.sin(a) * r) }
+    c.stroke(); c.lineCap = 'butt'
+  },
+  glued: (c, x, y, r) => { c.beginPath(); c.moveTo(x, y - r * 1.2); c.quadraticCurveTo(x + r * 0.95, y + r * 0.1, x, y + r); c.quadraticCurveTo(x - r * 0.95, y + r * 0.1, x, y - r * 1.2); c.fill() },   // a drop
+  burning: (c, x, y, r) => { c.beginPath(); c.moveTo(x, y - r * 1.25); c.quadraticCurveTo(x + r * 1.1, y - r * 0.1, x + r * 0.55, y + r); c.lineTo(x - r * 0.55, y + r); c.quadraticCurveTo(x - r * 1.1, y - r * 0.1, x, y - r * 1.25); c.fill() },   // a flame
+}
+function drawShapeMark(ctx, shape, color, states, x, y, s) {
+  const r = MARK.r * s, signs = states.length, sr = MARK.sign * s, step = 2 * sr + MARK.gap * s
+  const x0 = x - signs * step / 2   // (the shape shifts left to make room for the signs on its right)
+  ctx.beginPath(); SHAPE_PATHS[shape](ctx, x0, y, r + MARK.edge * s); ctx.fillStyle = PLAYER.outline; ctx.fill()
+  ctx.beginPath(); SHAPE_PATHS[shape](ctx, x0, y, r); ctx.fillStyle = color; ctx.fill()
+  states.forEach((st, i) => {
+    const sx = x0 + r + MARK.gap * s + sr + i * step
+    ctx.fillStyle = PLAYER.outline; ctx.beginPath(); ctx.arc(sx, y, sr + MARK.edge * s, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = ctx.strokeStyle = PLAYER.eye
+    STATE_SIGNS[st](ctx, sx, y, sr * 0.75)
+  })
 }
 
 // Which way a player looks: toward where they're aiming (p.aim), on the side they face: [angle above

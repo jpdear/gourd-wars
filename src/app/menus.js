@@ -14,6 +14,7 @@ import {
 import { describeSession, friendCount, hostCode, joinGame, leaveSession, mode, playingAlone, startHosting } from './session.js'
 import { captureBind } from './controls.js'
 import { feedbackReady, feedbackWait, sendFeedback } from './feedback.js'
+import { changeGraphics, toggleFullscreen } from './graphics.js'
 import { binds, resetBinds, setBind } from './keybinds.js'
 import { changeDummies, changeSettings, changeSpawns, chooseMap, dummyCount, matchSettings, togglePref } from './settings.js'
 import { app } from './state.js'
@@ -86,7 +87,7 @@ const ACTIONS = {
   'show-pumpkins': () => { listReturnTo = app.menu.screen; app.menu.show('pumpkins', { solid: app.menu.solid }) },
   'pumpkins-done': () => closeListSettings(),
 
-  // Settings (yours): Gameplay, Controls (keybinds), Graphics
+  // Settings (yours): Gameplay, Controls (keybinds), Graphics, Accessibility
   'show-settings': () => {
     settingsReturnTo = app.menu.screen
     app.menu.show('settings', { solid: app.menu.solid })
@@ -96,6 +97,8 @@ const ACTIONS = {
   'settings-tab': name => { settingsTab = name; app.menu.showTab(name) },
   'settings-done': () => closeSettings(),
   'pref-toggle': name => togglePref(name),
+  gfx: (name, value) => changeGraphics(name, value),   // (graphics and accessibility: see app/graphics.js)
+  fullscreen: () => toggleFullscreen(),
   bind: action => {
     app.menu.showBinds(binds, action)
     captureBind(code => {
@@ -117,8 +120,9 @@ const ACTIONS = {
   'feedback-send': () => {
     const { menu } = app
     menu.setText('feedback-status', FEEDBACK_TEXT.busy())
-    const info = `v${GAME_VERSION} | ${mode} | ${innerWidth}x${innerHeight} | ${navigator.userAgent}`
-    sendFeedback({ category: feedbackCategory, ...menu.feedback }, info).then(status => {
+    const { system, ...fields } = menu.feedback   // (system info only if they ticked it: what the (i) next to it lists)
+    const info = system ? `v${GAME_VERSION} | ${mode} | ${innerWidth}x${innerHeight} | ${navigator.userAgent}` : ''
+    sendFeedback({ category: feedbackCategory, ...fields }, info).then(status => {
       menu.setText('feedback-status', FEEDBACK_TEXT[status]())
       if (status === 'sent') menu.clearFeedback()
     })

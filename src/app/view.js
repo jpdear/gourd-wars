@@ -1,12 +1,13 @@
 // Where the arena goes on the screen.
 import { CONFIG } from '../config.js'
+import { pixelRatio } from '../render/gfx.js'
 import { app } from './state.js'
 
 // Fit the arena (CONFIG.view, in meters) into the window, next to the map editor's toolbar and panel.
 // (Call it whenever either changes size.)
 export function resize() {
   const { canvas, ctx, view } = app
-  const dpr = window.devicePixelRatio || 1
+  const dpr = pixelRatio()   // (the screen's, or 1 with Sharpness on Performance)
   view.w = window.innerWidth
   view.h = window.innerHeight
   canvas.width = view.w * dpr

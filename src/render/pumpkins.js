@@ -15,6 +15,7 @@ import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { patchView, snapPlayer } from '../game/snapshot.js'
 import { ANIM, clock } from './anims.js'
 import { GOURD, STATUS } from './palette.js'
+import { gourdColors, motionTime, recolor } from './gfx.js'
 import { fillGoo, strokeGoo } from './statusLooks.js'
 import { handOf } from './players.js'
 import { drawShaded } from './shading.js'
@@ -25,7 +26,8 @@ const GREEN = GOURD.unripe, BROWN = GOURD.rotten
 const TAU = Math.PI * 2
 
 export function pumpkinColors(type, ripeness, rot) {
-  const t = clamp(ripeness, 0, 1), r = clamp(rot, 0, 1)
+  const t = clamp(ripeness, 0, 1), r = clamp(rot, 0, 1), GREEN = gourdColors(GOURD.unripe)   // (as Colorblind Mode draws them)
+  type = gourdColors(type)
   return {
     color: mixHex(mixHex(GREEN.color, type.color, t), BROWN.color, r),
     rib: mixHex(mixHex(GREEN.rib, type.rib, t), BROWN.rib, r),
@@ -48,8 +50,8 @@ export function drawPatches(ctx, snap, X, Y, s, shade) {
     const pk = patchPumpkin(patch)
     const type = PUMPKIN_TYPES[patch.typeName]
     // specials glow so both players see them coming (Super Rare ones in gold): see anims.js
-    if (patch.superRare) ANIM.superRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
-    else if (patch.typeName !== 'classic') ANIM.patchGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, type.color, clock.now())
+    if (patch.superRare) ANIM.superRareGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, recolor(type.color), motionTime(clock.now()))
+    else if (patch.typeName !== 'classic') ANIM.patchGlow(ctx, X(pk.x), Y(pk.y), pk.r * s, s, recolor(type.color), motionTime(clock.now()))
     drawPumpkin(ctx, X(pk.x), Y(pk.y), pk.r * s, 0, pumpkinColors(type, patchRipeness(patch), patch.rot), type.mark, shade)
     if (patch.frozen) {   // an Ice Bomb froze it: in a block of ice, with a white strip along its top
       const half = Math.max(0.3, pk.r * 1.45), top = pk.y + pk.r + 0.12
@@ -255,7 +257,7 @@ const MARKS = {
     }
   },
   swirl: (c, r) => {   // a pale spiral on its face, slowly turning (a Teleport gourd)
-    c.save(); c.rotate(clock.now() * 2)
+    c.save(); c.rotate(motionTime(clock.now()) * 2)   // (still with Reduced Motion on)
     c.strokeStyle = GOURD.swirl; c.lineWidth = Math.max(1, r * 0.11); c.lineCap = 'round'
     c.beginPath()
     for (let i = 0; i <= 40; i++) { const a = i / 40 * TAU * 1.7, d = r * (0.06 + i / 40 * 0.5); c.lineTo(Math.cos(a) * d, Math.sin(a) * d) }
@@ -279,6 +281,7 @@ const MARKS = {
 // if it isn't there) and decoration (MARKS); shade: the map's shade tint (two-tone shaded with it), or
 // nothing for flat. (x, y, r in pixels; canvas y points down here, so negative y is the top of the pumpkin)
 export function drawPumpkin(ctx, x, y, r, angle, colors, mark, shade) {
+  colors = gourdColors(colors)   // (Colorblind Mode's, if it recolors this one)
   const inFrame = fn => c => { c.save(); c.translate(x, y); c.rotate(-angle); fn(c); c.restore() }
   if (OWN_LOOK[mark]) return inFrame(c => OWN_LOOK[mark](c, r, colors))(ctx)
   const body = BODIES[mark] || BODIES.round, decorate = MARKS[mark]
@@ -378,7 +381,7 @@ export function drawSticky(ctx, st, X, Y, s, shade) {
   ctx.translate(X(st.x), Y(st.y))
   ctx.rotate(Math.PI / 2 - st.angle)   // (now +y points at what it's on)
   if (st.onPlayer) { ctx.translate(0, r * STICKY.squash.shift); ctx.scale(STICKY.squash.wide, STICKY.squash.flat) }
-  else stickyGoo(ctx, r, STATUS.goos.sticky, clock.now(), (st.span || [-9, 9]).map(v => v * s))
+  else stickyGoo(ctx, r, STATUS.goos.sticky, motionTime(clock.now()), (st.span || [-9, 9]).map(v => v * s))
   drawPumpkin(ctx, 0, 0, r, 0, colors, 'slimeStuck', shade)
   stickyFuse(ctx, r, Math.min(1, st.fuse / type.stuckFuse), true)
   ctx.restore()

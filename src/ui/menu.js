@@ -6,6 +6,7 @@ import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
 import { CATEGORIES, LIMITS } from '../app/feedback.js'
+import { GRAPHICS, canFullscreen } from '../app/graphics.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
 import { createTitleArt } from './titleArt.js'
@@ -36,6 +37,17 @@ export function createMenu(onAction) {
   // keybinds: one row per action
   root.querySelector('.bind-list').innerHTML = BIND_ACTIONS.map(([action, label]) =>
     `<div class="toggle-row"><span>${label}</span><button class="bind" data-act="bind:${action}"></button></div>`).join('')
+  // graphics and accessibility settings: one row each on its tab, from GRAPHICS (choices: a segmented row;
+  // a slider: a range with its value), plus Fullscreen at the end of Graphics (if the browser can)
+  for (const [name, spec] of Object.entries(GRAPHICS)) {
+    const control = spec.slider
+      ? `<div class="slider"><input type="range" min="${spec.slider.min}" max="${spec.slider.max}" step="${spec.slider.step}" data-gfx="${name}"><span data-text="gfx-${name}"></span></div>`
+      : `<div class="seg">${spec.choices.map(([k, label]) => `<button data-act="gfx:${name}:${k}">${label}</button>`).join('')}</div>`
+    root.querySelector(`.gfx-list[data-tab=${spec.tab}]`).insertAdjacentHTML('beforeend', `<div class="toggle-row gfx-row"><span>${spec.label}</span>${control}</div>`)
+  }
+  if (canFullscreen()) root.querySelector('.gfx-list[data-tab=graphics]').insertAdjacentHTML('beforeend', '<div class="toggle-row gfx-row"><span>Fullscreen</span><button data-act="fullscreen" data-text="fullscreen-label">Enter Fullscreen</button></div>')
+  for (const input of root.querySelectorAll('input[data-gfx]')) input.addEventListener('input', () => onAction(`gfx:${input.dataset.gfx}:${input.value}`))
+  document.addEventListener('fullscreenchange', () => { for (const el of root.querySelectorAll('[data-text=fullscreen-label]')) el.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Enter Fullscreen' })
   // map buttons (rebuilt whenever custom maps change); maps that can't be played yet are left out
   const buildMapButtons = () => {
     const ids = mapIds().filter(id => MAPS[id].playable !== false)
@@ -57,6 +69,7 @@ export function createMenu(onAction) {
   root.querySelector('.feedback-cats').innerHTML = CATEGORIES.map(c => `<button data-act="feedback-cat:${c}">${c}</button>`).join('')
   const messageInput = root.querySelector('[data-input=feedback-message]')
   const nameInput = root.querySelector('[data-input=feedback-name]'), emailInput = root.querySelector('[data-input=feedback-email]')
+  const systemInput = root.querySelector('[data-input=feedback-system]')
   const showCount = () => { root.querySelector('[data-text=feedback-count]').textContent = `${messageInput.value.length} / ${LIMITS.message}` }
   messageInput.addEventListener('input', showCount)
   // out of the game: the title art behind the card instead of the arena (screens that can be either,
@@ -88,7 +101,8 @@ export function createMenu(onAction) {
     get joinCode() { return codeInput.value.trim().toUpperCase() },
     get mapCode() { return mapCodeInput.value },
     // the Feedback screen: what's typed in it, the picked category, and emptying it after a send
-    get feedback() { return { message: messageInput.value, name: nameInput.value, email: emailInput.value } },
+    // (system: whether they ticked Send System Information)
+    get feedback() { return { message: messageInput.value, name: nameInput.value, email: emailInput.value, system: systemInput.checked } },
     showFeedbackCategory(cat) {
       for (const b of root.querySelectorAll('[data-act^="feedback-cat:"]')) b.classList.toggle('on', b.dataset.act === 'feedback-cat:' + cat)
     },
@@ -143,7 +157,17 @@ export function createMenu(onAction) {
       // (the hint keeps its space when hidden, so the buttons under it don't jump)
       root.querySelector('[data-text=bind-hint]').style.visibility = waiting ? '' : 'hidden'
     },
-    // the Settings screen's tabs (gameplay, controls, graphics)
+    // the graphics and accessibility settings' current choices (values: by name, as app/graphics.js keeps them)
+    showGraphics(values) {
+      for (const [name, spec] of Object.entries(GRAPHICS)) {
+        if (spec.slider) {
+          const input = root.querySelector(`input[data-gfx=${name}]`)
+          if (Number(input.value) !== values[name]) input.value = values[name]
+          this.setText(`gfx-${name}`, `${values[name]}%`)
+        } else for (const b of root.querySelectorAll(`[data-act^="gfx:${name}:"]`)) b.classList.toggle('on', b.dataset.act === `gfx:${name}:${values[name]}`)
+      }
+    },
+    // the Settings screen's tabs (gameplay, controls, graphics, accessibility)
     showTab(name) {
       for (const b of root.querySelectorAll('[data-act^="settings-tab:"]')) b.classList.toggle('on', b.dataset.act === 'settings-tab:' + name)
       for (const p of root.querySelectorAll('.tab-panel')) p.classList.toggle('active', p.dataset.tab === name)

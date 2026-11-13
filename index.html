@@ -78,6 +78,7 @@
         <button data-act="settings-tab:gameplay">Gameplay</button>
         <button data-act="settings-tab:controls">Controls</button>
         <button data-act="settings-tab:graphics">Graphics</button>
+        <button data-act="settings-tab:accessibility">Accessibility</button>
       </div>
       <div class="tab-panel" data-tab="gameplay">
         <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
@@ -90,9 +91,9 @@
         <button data-act="reset-binds">Reset to Defaults</button>
         <div class="toggle-row soon"><span>Controller</span><button class="pk-on" disabled>Coming soon</button></div>
       </div>
-      <div class="tab-panel" data-tab="graphics">
-        <p class="soon-note"><b>Coming soon</b>Graphics settings will live here.</p>
-      </div>
+      <!-- graphics and accessibility: rows built from GRAPHICS (app/graphics.js) -->
+      <div class="tab-panel gfx-list" data-tab="graphics"></div>
+      <div class="tab-panel gfx-list" data-tab="accessibility"></div>
       <button class="primary" data-act="settings-done">Done</button>
     </div>
     <!-- feedback: sent to a Google Form (see app/feedback.js) -->
@@ -102,6 +103,11 @@
       <p class="counter" data-text="feedback-count">0 / 1000</p>
       <label class="field-label">Name (Optional)<input class="field" data-input="feedback-name" maxlength="100" autocomplete="name"></label>
       <label class="field-label">Email (Optional)<input class="field" type="email" data-input="feedback-email" maxlength="100" autocomplete="email"></label>
+      <!-- system info: only if they tick it; the (i) says what that is (on hover, or a tap/focus) -->
+      <div class="check-row">
+        <label><input type="checkbox" data-input="feedback-system"> Send System Information</label>
+        <span class="info" tabindex="0" role="button" aria-label="What system info is sent">i<span class="tip" role="tooltip">Helps us track down bugs. It sends:<ul><li>The game version</li><li>Whether you were practicing, hosting or joining</li><li>Your window size</li><li>Your browser and operating system</li></ul></span></span>
+      </div>
       <button class="primary" data-act="feedback-send">Send</button>
       <p class="status" data-text="feedback-status"></p>
       <button class="quiet" data-act="feedback-back">Back</button>

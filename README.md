@@ -45,8 +45,7 @@ index.html            the page: canvas, menu screens, editor shell
 lab.html              the effects lab (dev only: localhost:5199/lab.html; not in the build)
 styles/               base, menus, map editor, tuning panel;
                       tokens.css: every color and font they use
-docs/                 DESIGN.md (the design doc), HANDOFF.md, RESTYLE_PLAN.md (the 2026-11 restyle);
-                      restyle/mockups/: the style guide and the mockups the look was picked from
+docs/                 DESIGN.md (the design doc), HANDOFF.md, style-guide.html (the look: every value)
 src/
   main.js             starts the app
   version.js          the version (see Releasing)
@@ -67,6 +66,7 @@ src/
                       scenery.js: map backdrops (cached), their moving parts and weather, and platform tops
                       effects.js: particles, blast clouds and popups (made locally from game events)
                       anims.js: the bits of gourds that move on their own (blinking lights, glows, trails)
+                      gfx.js: your graphics settings as the drawing reads them (colorblind colors, shake, ...)
                       statusLooks.js: how bales and players look damaged, frozen or glued
   net/                connections (links.js) and the message format (protocol.js)
   ui/                 the HTML parts: menu (and its title art and animated logo), tuning panel, map editor
@@ -77,6 +77,7 @@ src/
     settings.js         saved choices (pumpkins, maps…)   menus.js    what the buttons do
     customMaps.js       My Maps, editor, play tests       controls.js keyboard + mouse
     feedback.js         Feedback → Google Form            keybinds.js your keybinds
+    graphics.js         graphics + accessibility settings
   util/               math, colors, saved data (storage.js has every key the game saves)
 tests/
   replay.test.js      plays a scripted 3-minute match with fixed randomness and checks it

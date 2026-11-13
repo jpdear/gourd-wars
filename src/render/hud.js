@@ -8,11 +8,14 @@
 // drop like the logo. Colors: UI (palette.js) and the players' own (the map's only picks ink or paper,
 // and colors the debug lines). Fonts: the display font
 // for everything but the banner's sub-line (the text font) and the debug lines (monospace).
+// Graphics settings (gfx.js): UI Size scales the chips, tiles, banners and popups (where they sit stays put);
+// players' colors and names are Colorblind Mode's when it's on.
 
-import { CONFIG, PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../config.js'
+import { CONFIG } from '../config.js'
 import { matchInfoText } from '../game/match.js'
 import { skyColor } from '../maps/themes.js'
 import { UI, font } from './palette.js'
+import { gfx, playerColor, playerName } from './gfx.js'
 import { mixHex } from '../util/color.js'
 import { clamp } from '../util/math.js'
 
@@ -37,20 +40,20 @@ export function drawHud(ctx, snap, ui, X, Y, s) {
   if (ui.debug) snap.players.forEach((p, i) => {   // one small bar per player, along the top
     const x0 = 0.6 + i * (barW + 1.2), y0 = 16.7
     ctx.font = font('text', 0.3 * s, 600)
-    ctx.fillStyle = p.color
+    ctx.fillStyle = playerColor(p.slot, p.color)
     ctx.textAlign = 'left'
-    ctx.fillText(`${PLAYER_COLOR_NAMES[p.slot]}${p.slot === ui.localIndex ? ' (you)' : ''} ${p.health}`, X(x0), Y(y0 + barH + 0.14))
+    ctx.fillText(`${playerName(p.slot)}${p.slot === ui.localIndex ? ' (you)' : ''} ${p.health}`, X(x0), Y(y0 + barH + 0.14))
     ctx.fillStyle = UI.healthTrack
     ctx.fillRect(X(x0), Y(y0 + barH), barW * s, barH * s)
-    ctx.fillStyle = p.color
+    ctx.fillStyle = playerColor(p.slot, p.color)
     ctx.fillRect(X(x0), Y(y0 + barH), barW * clamp(p.health / CONFIG.player.maxHealth, 0, 1) * s, barH * s)
   })
 
-  const m = snap.match, st = ui.surface
+  const m = snap.match, st = ui.surface, u = s * gfx.uiScale   // (u: sizes, with UI Size)
   if (m) {
-    chip(ctx, matchInfoText(m), X(W / 2), Y(16.25), s, st)
-    if (m.phase === 'transition') drawScores(ctx, snap, X, Y, s, 15.3, st)
-  } else if (ui.hud) chip(ctx, ui.hud, X(W / 2), Y(16.75), s, st)
+    chip(ctx, matchInfoText(m), X(W / 2), Y(16.25), u, st)
+    if (m.phase === 'transition') drawScores(ctx, snap, X, Y, u, 15.3, st)
+  } else if (ui.hud) chip(ctx, ui.hud, X(W / 2), Y(16.75), u, st)
 }
 
 // Floating text over the game (effects.popups), by its look: damage numbers in red with a paper
@@ -63,7 +66,7 @@ const POPUP_LOOKS = {
 export function drawPopups(ctx, effects, ui, X, Y, s) {
   for (const t of effects.popups) {
     if (t.damage && !ui.debug && !ui.damageNumbers) continue   // damage numbers: only if you turned them on (or with the tuning panel)
-    const look = POPUP_LOOKS[t.look || 'plain'], x = X(t.x), y = Y(t.y), px = t.size * s
+    const look = POPUP_LOOKS[t.look || 'plain'], x = X(t.x), y = Y(t.y), px = t.size * s * gfx.uiScale
     const alpha = 1 - Math.pow(t.age / t.life, 2)   // (fading out at the end)
     if (alpha >= 1) { look(ctx, t, x, y, px); continue }
     ctx.font = font('display', px)
@@ -94,7 +97,7 @@ function faded(ctx, alpha, x, y, w, h, draw) {
 
 // The message in the middle of the screen (ui.message), on a chip.
 export function drawMessage(ctx, text, st, X, Y, s) {
-  if (text) chip(ctx, text, X(CONFIG.view.w / 2), Y(12.8), s, st)
+  if (text) chip(ctx, text, X(CONFIG.view.w / 2), Y(12.8), s * gfx.uiScale, st)
 }
 
 // Where you're aiming, while the mouse is locked to the game (the real cursor is hidden then):
@@ -116,10 +119,10 @@ export function drawCrosshair(ctx, x, y) {
   }
 }
 
-// Everyone's score on a paper tile in a row, each in their color, centered at height y.
+// Everyone's score on a paper tile in a row, each in their color, centered at height y. (s: sizes, px per m)
 function drawScores(ctx, snap, X, Y, s, y, st) {
   const gap = 0.25 * s
-  const tiles = snap.players.map(p => ({ text: String(snap.match.scores[p.slot]), color: p.color }))
+  const tiles = snap.players.map(p => ({ text: String(snap.match.scores[p.slot]), color: playerColor(p.slot, p.color) }))
   const widths = tiles.map(t => tileWidth(ctx, t.text, s))
   let x = X(CONFIG.view.w / 2) - (widths.reduce((a, b) => a + b, 0) + gap * (tiles.length - 1)) / 2
   tiles.forEach((t, i) => {
@@ -133,18 +136,19 @@ export function drawBanner(ctx, snap, ui, X, Y, s) {
   const m = snap.match
   if (!m) return
   let text = null, sub = null, color = UI.pumpkin
+  const u = s * gfx.uiScale
   if (m.phase === 'roundOver' && m.decided) {   // (shown once the last blow is confirmed, in slow motion)
     if (m.roundWinner === null) text = 'Draw!'
-    else { text = `${PLAYER_COLOR_NAMES[m.roundWinner]} wins!`; color = PLAYER_COLORS[m.roundWinner] }
+    else { text = `${playerName(m.roundWinner)} wins!`; color = playerColor(m.roundWinner) }
   } else if (m.phase === 'matchOver') {
-    text = `${PLAYER_COLOR_NAMES[m.matchWinner]} wins the match!`
-    color = PLAYER_COLORS[m.matchWinner]
+    text = `${playerName(m.matchWinner)} wins the match!`
+    color = playerColor(m.matchWinner)
     sub = `new match in ${Math.max(1, Math.ceil(m.timer))}…`
-    drawScores(ctx, snap, X, Y, s, 12.7, ui.surface)
+    drawScores(ctx, snap, X, Y, u, 12.7, ui.surface)
   }
   if (!text) return
-  bannerText(ctx, text, X(CONFIG.view.w / 2), Y(14.3), color, 1.1 * s)
-  if (sub) outlinedText(ctx, sub, X(CONFIG.view.w / 2), Y(13.5), UI.paper, 0.45 * s, UI.ink, 'text', 600)
+  bannerText(ctx, text, X(CONFIG.view.w / 2), Y(14.3), color, 1.1 * u)
+  if (sub) outlinedText(ctx, sub, X(CONFIG.view.w / 2), Y(13.5), UI.paper, 0.45 * u, UI.ink, 'text', 600)
 }
 
 export function drawDebug(ctx, X, Y, s, ui, XS) {

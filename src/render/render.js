@@ -6,6 +6,7 @@
 //         crosshair (the mouse is locked to the game: draw where it points),
 //         damageNumbers (show them: the player's setting), harvestKey (its name, for the harvest bubble) }
 // Every color and font the drawing uses is in palette.js (plus each map's theme and each pumpkin type's own).
+// The player's graphics settings (shake, reduced motion, ...) are read from gfx.js.
 
 import { CONFIG } from '../config.js'
 import { leaders } from '../game/match.js'
@@ -18,6 +19,8 @@ import { drawBale, drawBonfire, drawCannon, drawGoo, drawIce } from './level.js'
 import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './players.js'
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawSticky, drawTrap } from './pumpkins.js'
 import { drawEffects } from './effects.js'
+import { gfx } from './gfx.js'
+import { UI } from './palette.js'
 import { trackEndings } from './endings.js'
 import { drawFirePatches } from './flames.js'
 import { drawPickupHints } from './pickups.js'
@@ -25,9 +28,12 @@ import { drawMapBase, drawWeather } from './scenery.js'
 
 export function render(ctx, view, snap, effects, ui) {
   const { s, ox, oy, w, h } = view
-  // During a map pan the world slides under a moving camera; the HUD and text stay put.
+  // During a map pan the world slides under a moving camera; the HUD and text stay put. With Reduced
+  // Motion on there's no pan: the old map, a fade through the backdrop color, the new map (and nobody
+  // drawn in between: they're being carried across).
   const tr = snap && snap.transition
-  const camX = tr ? transitionCamera(tr.t) : 0
+  const cut = tr && gfx.reducedMotion
+  const camX = !tr ? 0 : cut ? (tr.t < 0.5 ? -MAP_SHIFT : 0) : transitionCamera(tr.t)
   const X = x => ox + (x - camX) * s    // world
   const XS = x => ox + x * s            // screen (HUD, text)
   const Y = y => oy + (CONFIG.view.h - y) * s
@@ -42,7 +48,7 @@ export function render(ctx, view, snap, effects, ui) {
   // the HUD and text stay put
   const H = PUMPKIN_TYPES.blackhole.hole
   const holeShake = snap ? H.shake * Math.min(1, Math.max(0, ...snap.holes.map(h => h.r)) / H.maxRadius) : 0
-  const shake = Math.max(holeShake, effects.shake ? effects.shake.amount * (1 - effects.shake.age / effects.shake.life) : 0)
+  const shake = gfx.shake * Math.max(holeShake, effects.shake ? effects.shake.amount * (1 - effects.shake.age / effects.shake.life) : 0)   // (Screen Shake: on, low or off)
   ctx.save()
   if (shake) ctx.translate((Math.random() * 2 - 1) * shake * s, (Math.random() * 2 - 1) * shake * s)
 
@@ -74,7 +80,7 @@ export function render(ctx, view, snap, effects, ui) {
     const crowned = snap.match ? leaders(snap.match.scores) : []   // whoever's in the lead wears a crown
     for (const p of snap.players) if (p.grapple && !p.dead) drawGrappleVine(ctx, p, X, Y, s)
     drawContactShadows(ctx, snap, map, map.theme, X, Y, s)
-    for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), map.theme, X, Y, s)
+    if (!cut) for (const p of snap.players) if (!p.dead) drawPlayer(ctx, p, crowned.includes(p.slot), map.theme, X, Y, s)
     for (const t of snap.traps) if (t.bite) drawTrap(ctx, t, X, Y, s, shade)   // (clamped on someone)
     for (const st of snap.stickies || []) if (st.onPlayer) drawSticky(ctx, st, X, Y, s, shade)   // (stuck on someone)
     for (const p of snap.players) if (p.lockedOn && !p.dead) drawLockOn(ctx, X(p.parts[0][0]), Y(p.parts[0][1]), s)
@@ -89,6 +95,12 @@ export function render(ctx, view, snap, effects, ui) {
   drawWeather(ctx, map.theme, X, Y, s)   // (snow, embers: over everything in the world)
   drawPopups(ctx, effects, ui, X, Y, s)   // (in the world: they shake with it)
   ctx.restore()   // (the shake)
+  if (cut) {   // (the fade: darkest halfway, as the map changes)
+    ctx.globalAlpha = 1 - Math.abs(tr.t * 2 - 1)
+    ctx.fillStyle = UI.ink   // (the menus' bark)
+    ctx.fillRect(ox, oy, CONFIG.view.w * s, CONFIG.view.h * s)
+    ctx.globalAlpha = 1
+  }
 
   if (ui.overlay) { ui.overlay(ctx, X, Y, s); ctx.restore(); return }
   if (ui.debug) drawDebug(ctx, X, Y, s, ui, XS)

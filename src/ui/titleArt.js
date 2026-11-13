@@ -2,12 +2,13 @@
 // A canvas behind the menu card: two big circles and a low mound in a lighter bark, a few gourds sitting
 // near the bottom corners (drawn, and two-tone shaded in a tint made from the backdrop, by the game's own
 // gourd renderer: they bob gently and the Jack-o'-Boom's fuse sparks), and the "Gourd Wars" logo with
-// its intro (see titleLogo.js), which plays once per page load, the first time the main menu shows.
+// its intro (see titleLogo.js), which plays the first time the main menu shows, and again each time you come back
+// to it from a game or the map editor.
 //
 // It shows behind every out-of-game ("solid") menu screen: the main menu, Play, Settings from there, the
 // map editor list, ...; the logo only on the main menu (the other screens have a card with their title
 // there). It's redrawn every frame while it shows, and not at all otherwise. With reduced
-// motion on, nothing moves: it's drawn once (and on resize) with the logo already finished.
+// motion on (Settings → Accessibility), nothing moves: the logo is drawn already finished.
 // Where everything goes is in fractions of the screen (x of the width, y and sizes of the height), so it
 // keeps its look at any size. The flat bark backdrop behind it is the menu's own CSS background; the
 // shapes' color is the --bark-2 token.
@@ -15,6 +16,7 @@
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { drawPumpkin } from '../render/pumpkins.js'
 import { font } from '../render/palette.js'
+import { gfx, pixelRatio } from '../render/gfx.js'
 import { mixHex } from '../util/color.js'
 import { LOGO_SETTLED, drawTitleLogo, titleShake } from './titleLogo.js'
 
@@ -37,16 +39,17 @@ export function createTitleArt(root) {
   canvas.setAttribute('aria-label', 'Gourd Wars')
   root.prepend(canvas)
   const ctx = canvas.getContext('2d')
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches
   let fontReady = false, introStart = null, frame = 0
+  let away = false   // (the menu closed since the main menu last showed: played a game or used the map editor)
 
   const draw = now => {
-    const dpr = window.devicePixelRatio || 1, w = window.innerWidth, h = window.innerHeight
+    const still = gfx.reducedMotion   // (Settings → Accessibility; Auto: the computer's own setting)
+    const dpr = pixelRatio(), w = window.innerWidth, h = window.innerHeight
     const W = Math.round(w * dpr), H = Math.round(h * dpr)
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H }
     if (fontReady && introStart === null) introStart = now
     const t = still ? LOGO_SETTLED : introStart === null ? 0 : (now - introStart) / 1000
-    const [sx, sy] = titleShake(t)
+    const [sx, sy] = titleShake(t).map(d => d * gfx.shake)
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, W, H)
     ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr)
@@ -68,11 +71,13 @@ export function createTitleArt(root) {
     if (fontReady && root.dataset.screen === 'main') drawTitleLogo(ctx, w, h, t, shade)
   }
 
-  // the frame loop runs only while an out-of-game screen shows
+  // the frame loop runs only while an out-of-game screen shows (held still, it draws the same picture each frame:
+  // Reduced Motion can change any time)
   const showing = () => root.classList.contains('open') && root.classList.contains('solid')
   const tick = now => { draw(now); frame = requestAnimationFrame(tick) }
   const update = () => {
-    if (still) { if (showing()) draw(performance.now()); return }
+    if (!root.classList.contains('open')) away = true
+    else if (away && root.dataset.screen === 'main') { away = false; introStart = null }   // (back from a game or the editor: the intro plays again)
     if (showing() && !frame) frame = requestAnimationFrame(tick)
     if (!showing() && frame) { cancelAnimationFrame(frame); frame = 0 }
   }

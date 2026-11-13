@@ -1,4 +1,4 @@
-// SHADING: the flat look's "two-tone" shadow side (see docs/RESTYLE_PLAN.md 4.3).
+// SHADING: the flat look's "two-tone" shadow side (see docs/style-guide.html and docs/DESIGN.md → Look).
 // Light comes from the top left, so every shaded thing gets a darker crescent along its bottom-right
 // edge: its silhouette minus a copy of it shifted toward the light. That crescent is drawn in the map's
 // shade tint and multiplied onto the frame, so shadows take on each map's mood (bluish on snow, and

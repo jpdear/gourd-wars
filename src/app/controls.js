@@ -38,6 +38,9 @@ const ESC_FROM = {
   play: () => onMenuAction('play-back'),
   join: () => onMenuAction('leave'),
   feedback: () => onMenuAction('feedback-back'),
+  maps: () => onMenuAction('maps-back'),        // (the Map Editor's list: back to the main menu)
+  import: () => onMenuAction('show-maps'),      // (Import a Map / Map Code: back to the list)
+  export: () => onMenuAction('show-maps'),
   pumpkins: closeListSettings,
   match: closeMatchSettings,
   settings: closeSettings,

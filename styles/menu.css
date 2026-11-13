@@ -77,7 +77,7 @@
 #menu[data-screen=pumpkins] .card { width: min(510px, calc(100vw - 32px)); }   /* (room for 4 rarities) */
 #menu .toggle-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font: 600 15px/1 var(--font-text); }
 #menu .toggle-row button { padding: 8px 6px 5px; font-size: 13px; }
-#menu .bind-list { display: flex; flex-direction: column; gap: 6px; }
+#menu .bind-list { display: flex; flex-direction: column; gap: 12px; }
 #menu .toggle-row button.bind { width: 128px; }
 #menu .toggle-row button.bind.waiting { --edge: var(--pumpkin-edge); background: var(--pumpkin); color: var(--white); }
 #menu .toggle-row button.bind.unbound { color: var(--hit); }
@@ -116,12 +116,11 @@
 /* Settings: tabs across the top (the segmented-button look), one panel per tab; the panels keep one height
    so Done doesn't jump when you switch */
 #menu .tabs { margin-bottom: 4px; }
-#menu .tabs button { padding: 11px 4px 8px; font-size: 16px; }
-#menu .tab-panel { display: none; flex-direction: column; gap: 10px; min-height: 384px; }
+#menu .tabs button { padding: 11px 2px 8px; font-size: 14px; }
+#menu[data-screen=settings] .card { width: min(500px, calc(100vw - 32px)); }   /* (room for 4 tabs and the graphics rows) */
+#menu .tab-panel { display: none; flex-direction: column; gap: 16px; min-height: 440px; }
 #menu .tab-panel.active { display: flex; }
 #menu .toggle-row.soon button { width: 128px; }   /* (not built yet: shown disabled) */
-#menu .soon-note { margin: auto 0; color: var(--muted); font: 600 15px/1.4 var(--font-text); }
-#menu .soon-note b { display: block; color: var(--ink); font: 400 22px var(--font-display); letter-spacing: 0.04em; }
 
 /* Feedback: plain text boxes (.field), labels over them, a character count */
 #menu input.field, #menu textarea.field {
@@ -132,3 +131,34 @@
 #menu .field::placeholder { color: var(--muted); }
 #menu .counter { margin: -6px 0 0; text-align: right; color: var(--muted); font: 600 12px var(--font-text); }
 #menu .field-label { display: flex; flex-direction: column; gap: 4px; text-align: left; color: var(--muted); font: 600 13px var(--font-text); }
+
+/* Graphics and Accessibility rows (built from GRAPHICS in app/graphics.js): a label, then a segmented row
+   of choices or a slider with its value */
+#menu .gfx-list { gap: 16px; }
+#menu .gfx-row .seg, #menu .gfx-row .slider { flex: none; width: 280px; }
+#menu .gfx-row .seg button { padding: 8px 2px 5px; font-size: 13px; }
+#menu .gfx-row > button { width: 280px; padding: 8px 6px 5px; font-size: 13px; }
+#menu .slider { display: flex; align-items: center; gap: 10px; }
+#menu .slider input { flex: 1; min-width: 0; accent-color: var(--pumpkin); }
+#menu .slider span { min-width: 48px; text-align: right; color: var(--ink); font: 400 15px var(--font-display); letter-spacing: 0.04em; }
+
+/* UI Size (Settings → Graphics): the menu cards scale with --ui-scale (set by app/graphics.js), still fitting the window */
+#menu .card { zoom: var(--ui-scale, 1); max-height: calc((100vh - 32px) / var(--ui-scale, 1)); }
+
+/* Feedback: the Send system info checkbox, and the (i) beside it showing what that is (on hover or focus) */
+#menu .check-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 600 13px var(--font-text); }
+#menu .check-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+#menu .check-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--pumpkin); cursor: pointer; }
+#menu .info {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--paper-edge); color: var(--ink); font: 700 12px/1 var(--font-text); cursor: help; outline: none;
+}
+#menu .info:hover, #menu .info:focus { background: var(--ink); color: var(--paper); }
+#menu .info .tip {
+  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 2; width: 240px;
+  padding: 10px 12px; border-radius: 10px; background: var(--ink); color: var(--paper); box-shadow: 0 4px 0 var(--ink-edge);
+  font: 500 12px/1.4 var(--font-text); text-align: left;
+}
+#menu .info:hover .tip, #menu .info:focus .tip { display: block; }
+#menu .info .tip ul { margin: 6px 0 0; padding-left: 16px; }
+#menu .info .tip li + li { margin-top: 2px; }

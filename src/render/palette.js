@@ -39,6 +39,7 @@ export const font = (role, px, weight = role === 'text' ? 500 : 400) => `${weigh
 export const PLAYER = freeze({
   eye: '#fff',                          // (also the X eyes)
   pupil: '#1d1a2a',
+  outline: '#1c1511',                   // (Player Outlines, and the edge round Colorblind Mode's shapes)
   balloonString: '#6b6358',
   crown: { gold: '#f7c531', edge: '#9a6b00', jewel: '#d6303f' },
   grappleVine: '#3c7a22',
@@ -146,7 +147,7 @@ export const LEVEL = freeze({
 export const DIZZY = freeze({ star: '#f7c531' })
 
 // The main menu's logo (ui/titleLogo.js): the splat behind the pumpkin that hit it, the puffs round it
-// (by heat, like a blast's: see docs/RESTYLE_PLAN.md 4.4) and its seeds.
+// (by heat, like a blast's: see docs/style-guide.html) and its seeds.
 export const TITLE = freeze({
   splat: '#c4630f',
   puff: FX.boom.puff,

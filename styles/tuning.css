@@ -1,4 +1,4 @@
-/* The tuning panel (debug: press `), in Pumpkin & Bark (docs/RESTYLE_PLAN.md step 12): a compact bark-2
+/* The tuning panel (debug: press `), in Pumpkin & Bark: a compact bark-2
    panel, bark-3 tabs (the open one pumpkin), Fredoka text, monospace numbers. (Colors and fonts: tokens.css.) */
 #tuning {
   display: none; position: fixed; top: 12px; right: 12px; width: 320px;

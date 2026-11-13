@@ -1,5 +1,5 @@
 // Map looks (built-in maps use these; custom maps pick one by its key, so the keys never change).
-// The colorways are the ones picked in docs/restyle/mockups/style-guide.html (see docs/RESTYLE_PLAN.md 4.5).
+// The colorways are the ones picked in docs/style-guide.html.
 //   name         what the map editor's theme list calls it
 //   scenery      the backdrop drawn behind the map: a key into SCENERY (render/scenery.js)
 //   sky          the sky, one flat color; or

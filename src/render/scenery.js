@@ -12,29 +12,33 @@
 // every frame; it's redrawn when the size changes. Scenery that moves (ANIMATED: the volcano's smoke,
 // the synth grid floor) is drawn live on top.
 //
-// The scenery drawings are the style guide's (docs/restyle/mockups/style-guide.html), drawn in its
-// units through `mock` (docs/RESTYLE_PLAN.md section 6): its world is 6 m wide with the ground at
+// The scenery drawings are the style guide's (docs/style-guide.html), drawn in its
+// units through `mock`: its world is 6 m wide with the ground at
 // y = 0.6, scaled up to the game's 32 m with the ground at y = 0. Shaded pieces (hills sideways, props)
 // get the two-tone shadow side in theme.shade.
 
 import { CONFIG } from '../config.js'
 import { drawBonfire, drawPitchforks } from './level.js'
 import { drawShaded } from './shading.js'
+import { gfx, motionTime } from './gfx.js'
+import { skyColor } from '../maps/themes.js'
 import { hexA, mixHex } from '../util/color.js'
 
 const W = CONFIG.view.w, H = CONFIG.view.h
 const TAU = Math.PI * 2
 
+// (Background on Simple: just the map's flat sky color behind it. Reduced Motion: its moving parts hold still.)
 export function drawMapBase(ctx, map, X, Y, s, moverPos) {
-  drawBackdrop(ctx, map.theme, X, Y, s)
-  drawMapFront(ctx, map, X, Y, s, moverPos, Date.now() / 1000)
+  if (gfx.simpleBackground) { ctx.fillStyle = skyColor(map.theme); ctx.fillRect(X(0), Y(H), W * s, H * s) }
+  else drawBackdrop(ctx, map.theme, X, Y, s)
+  drawMapFront(ctx, map, X, Y, s, moverPos, motionTime(Date.now() / 1000))
 }
 
 // What's drawn over the backdrop every frame: its moving parts, then the map's pieces. t: s, for the
 // moving parts. (Exported for the effects lab, which draws the backdrop uncached: paintBackdrop.)
 export function drawMapFront(ctx, map, X, Y, s, moverPos, t) {
   const theme = map.theme
-  ANIMATED[theme.scenery]?.(ctx, theme, X, Y, s, t)
+  if (!gfx.simpleBackground) ANIMATED[theme.scenery]?.(ctx, theme, X, Y, s, t)
   for (const p of map.platforms) drawPlatform(ctx, theme, p, X, Y, s)
   map.movers.forEach((m, i) => {
     drawMoverTrack(ctx, theme, m, X, Y, s)
@@ -554,7 +558,7 @@ const SCENERY = {
 
 // Scenery that moves, drawn live every frame over the cached backdrop and behind the platforms, by
 // theme.scenery: (ctx, theme, X, Y, s, t). Ground-level pieces are placed in game meters (they have
-// to sit right with the platforms: docs/RESTYLE_PLAN.md section 6).
+// to sit right with the platforms).
 const SMOKE = { puffs: 8, rise: 0.14, grow: 0.18, fade: 0.5 }   // the volcano's: how many puffs, how many times a second each rises its whole way, the share of its rise it takes to grow in, and where (of its rise) it starts fading out
 const ease = u => u * u * (3 - 2 * u)   // (0..1, starting and ending gently)
 const SYNTH_FLOOR = { horizon: 3, lines: 9, scroll: 0.8 }   // m, horizontal lines, lines per second toward you
@@ -611,7 +615,7 @@ const WEATHER = {
     }
   },
 }
-export const drawWeather = (ctx, theme, X, Y, s) => WEATHER[theme.scenery]?.(ctx, theme, X, Y, s, Date.now() / 1000)
+export const drawWeather = (ctx, theme, X, Y, s) => { if (!gfx.simpleBackground) WEATHER[theme.scenery]?.(ctx, theme, X, Y, s, motionTime(Date.now() / 1000)) }
 
 // --- platforms ---
 

@@ -18,6 +18,7 @@
 import { CONFIG } from '../config.js'
 import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { FX } from './palette.js'
+import { gfx, recolor } from './gfx.js'
 import { pumpkinColors } from './pumpkins.js'
 import { mixHex } from '../util/color.js'
 import { lerp } from '../util/math.js'
@@ -32,8 +33,10 @@ export function createEffects() {
 // One particle. shape: one of PARTICLE_SHAPES; seed: a random number fixing a chunk's outline (and its
 // flutter); gravity: times the game's; drag: how fast the air slows it (per s); sway: how hard it
 // flutters side to side (m/s); spin: how fast it tumbles (rad/s).
+// (Effects on Reduced: only some of them are made, at random; colors as Colorblind Mode draws them.)
 function particle(effects, x, y, vx, vy, life, r, color, shape = 'dot', { gravity = 0.6, drag = 0, sway = 0, spin = 8 } = {}) {
-  effects.particles.push({ x, y, vx, vy, life, age: 0, r, color, shape, spin: (Math.random() - 0.5) * 2 * spin, seed: Math.random(), gravity, drag, sway })
+  if (gfx.effects < 1 && Math.random() > gfx.effects) return
+  effects.particles.push({ x, y, vx, vy, life, age: 0, r, color: recolor(color), shape, spin: (Math.random() - 0.5) * 2 * spin, seed: Math.random(), gravity, drag, sway })
 }
 
 // n particles from (x, y): all round, or `spread` radians either side of `heading`. Each picks its
@@ -74,9 +77,9 @@ function spray(effects, x, y, n, colors, [dx, dy], spread, speed, life, size, li
 
 // A blast's puff cloud (see the top). k: its scale (1 for a 1.25 m blast, the style guide's size).
 // look: its flash and puff colors (FX.boom: fire; FX.iceburst: cold).
-const CLOUD = { puffs: 11, life: 1.6, flash: 0.35 }
+const CLOUD = { puffs: 11, fewer: 7, life: 1.6, flash: 0.35 }   // (fewer: with Effects on Reduced)
 function cloud(effects, x, y, k, look = FX.boom) {
-  const puffs = Array.from({ length: CLOUD.puffs }, (_, i) => i === 0
+  const puffs = Array.from({ length: gfx.effects < 1 ? CLOUD.fewer : CLOUD.puffs }, (_, i) => i === 0
     ? { ang: 0, d: 0, r: 0.22 + Math.random() * 0.2, hot: 1 }   // (the first sits in the middle, hottest)
     : { ang: Math.random() * Math.PI * 2, d: 0.15 + Math.random() * 0.45, r: 0.22 + Math.random() * 0.2, hot: 1 - 0.6 * Math.random() })
   effects.clouds.push({ x, y, k, age: 0, life: CLOUD.life, puffs, look })
@@ -332,10 +335,11 @@ const PARTICLE_SHAPES = {
   },
 }
 
-// A blast: the white flash for its first moment, then the puffs (coolest first, so the hot ones sit on top).
+// A blast: the white flash for its first moment (unless Flashes is off), then the puffs (coolest first, so
+// the hot ones sit on top).
 function drawCloud(ctx, c, theme, X, Y, s) {
   const a = c.age, k = c.k
-  if (a < CLOUD.flash) {
+  if (a < CLOUD.flash && gfx.flashes) {
     const u = a / CLOUD.flash
     ctx.globalAlpha = (1 - u) * 0.8
     ctx.fillStyle = c.look.flash

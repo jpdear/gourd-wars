@@ -1,5 +1,5 @@
 // TITLE LOGO (the main menu's "Gourd Wars", drawn on the title art's canvas)
-// The intro, played once per page load: the letters drop in one after another and bounce, a Classic
+// The intro, played the first time the main menu shows and again after a game or the map editor (titleArt.js): the letters drop in one after another and bounce, a Classic
 // pumpkin is lobbed up from the bottom of the screen, spinning, and splats into the gap between the two words (a quick screen
 // shake), and the letters near it get shoved away and tilted. Then it all freezes that way: the pumpkin
 // sits in the gap on a splat, with puffs round it and seeds stuck mid-air, and the whole logo sways gently.

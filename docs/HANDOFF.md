@@ -45,10 +45,11 @@ Read this first, then `docs/DESIGN.md` (the full design: the **Pumpkins** table,
 
 
 ## Restyle: done (2026-11-10 → 2026-11-12)
-The whole game moved to one **flat vector** look: solid flat shapes, one hard shadow side, no outlines, gradients or shine. The plan, with every value and each step's notes, is `docs/RESTYLE_PLAN.md`; the style guide is `docs/restyle/mockups/style-guide.html`; the short version is `docs/DESIGN.md` → **Look**.
+The whole game moved to one **flat vector** look: solid flat shapes, one hard shadow side, no outlines, gradients or shine. The style guide (every value) is `docs/style-guide.html`; the short version is `docs/DESIGN.md` → **Look**.
 - **Palette and fonts:** Pumpkin & Bark (CSS: `styles/tokens.css`; canvas: `src/render/palette.js`); Luckiest Guy for display, Fredoka for text (loaded in `index.html`).
 - **Menus and HUD:** `styles/menu.css`, `src/render/hud.js` (chips ink on light maps, paper on dark ones, fading during a pan: `hudSurface`); the animated title logo: `src/ui/titleLogo.js`, `titleArt.js`.
-- **Menu overhaul (2026-11-13):** Play screen, Host/Practice setup (one Match Settings screen in three contexts: `MATCH_CONTEXTS` in `src/app/menus.js`), tabbed Settings, Feedback → Google Form (`src/app/feedback.js`; the form must stay public). Plan and history: `docs/MENU_OVERHAUL_PLAN.md`; layout mockup: `docs/menu/mockups/main-menu.html` (open via the dev server).
+- **Menu overhaul (2026-11-13):** Play screen, Host/Practice setup (one Match Settings screen in three contexts: `MATCH_CONTEXTS` in `src/app/menus.js`), tabbed Settings, Feedback → Google Form (`src/app/feedback.js`; the form must stay public).
+- **Graphics and accessibility settings (2026-11-13):** Settings → Graphics / Accessibility, drawing only and per player. The table of settings and saving: `src/app/graphics.js` (`GRAPHICS`, `APPLY`); what the drawing reads: `src/render/gfx.js` (knobs, plus the colorblind lookups `playerColor` / `playerName` / `playerShape` / `gourdColors` / `recolor`). Colorblind palettes were picked by simulation (no mockup): the user may want to tweak them. New drawing code should use those lookups for player and gourd colors, so Colorblind Mode keeps covering everything.
 - **Two-tone shading:** `src/render/shading.js` (`drawShaded`; a Shading toggle in the tuning panel). Used by players, gourds, level pieces and the scenery, tinted by each map's `shade`.
 - **Players and gourds:** `src/render/players.js`, `pumpkins.js`; gourd parts that move on their own: `anims.js`; frozen, glued and damaged looks: `statusLooks.js`.
 - **Effects:** `src/render/effects.js` (flat particles in shapes; blast clouds of puffs; each gourd's own break in `BREAKS`).

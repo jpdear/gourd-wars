@@ -12,6 +12,7 @@ import { createMapEditor, loadMyMaps } from './customMaps.js'
 import { binds, keyName, loadBinds } from './keybinds.js'
 import { onMenuAction } from './menus.js'
 import { advanceSession, holdStill, localGame, sessionStatus } from './session.js'
+import { graphics, loadGraphics } from './graphics.js'
 import { changeDummies, dummyCount, loadSettings, prefs, showSettings } from './settings.js'
 import { app, now } from './state.js'
 import { resize } from './view.js'
@@ -19,6 +20,7 @@ import { resize } from './view.js'
 export function boot() {
   app.canvas = document.getElementById('game')
   app.ctx = app.canvas.getContext('2d')
+  loadGraphics()   // (your graphics settings: before anything's drawn)
   // the canvas only draws with a web font once it's loaded: ask for both now (the frame loop picks them
   // up when they arrive; until then it falls back to the next font in the list)
   for (const f of ['400 20px "Luckiest Guy"', '500 20px Fredoka']) document.fonts.load(f).catch(() => {})
@@ -33,6 +35,7 @@ export function boot() {
   loadBinds()
   app.menu = createMenu(onMenuAction)
   showSettings()
+  app.menu.showGraphics(graphics)
   resetRound(game)   // load the saved map choice
   changeDummies(dummyCount)
   createMapEditor()
