@@ -19,6 +19,7 @@ import { drawContactShadows, drawGrappleVine, drawPlayer, drawSight } from './pl
 import { drawAirstrikeTarget, drawBlackHole, drawFlyingPumpkin, drawLockOn, drawPatches, drawSticky, drawTrap } from './pumpkins.js'
 import { drawEffects } from './effects.js'
 import { trackEndings } from './endings.js'
+import { drawFirePatches } from './flames.js'
 import { drawPickupHints } from './pickups.js'
 import { drawMapBase, drawWeather } from './scenery.js'
 
@@ -81,6 +82,7 @@ export function render(ctx, view, snap, effects, ui) {
     const me = !tr && ui.aim && snapPlayer(snap, ui.localIndex)
     if (me && snap.sights && !me.dead && !me.stunned && !me.frozen) drawSight(ctx, me, ui.aim, map, snap, X, Y, s)   // (if there's something to throw)
   }
+  if (snap && snap.fire) drawFirePatches(ctx, snap.fire, X, Y, s, Date.now() / 1000)   // (a Fire Gourd's fire patches: in front of players too)
   for (const f of map.fires) drawBonfire(ctx, f, X, Y, s, true)   // flames in front of players
 
   drawEffects(ctx, effects, map.theme, X, Y, s)   // (blast clouds, particles, rings)

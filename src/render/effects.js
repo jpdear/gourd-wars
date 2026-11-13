@@ -188,6 +188,7 @@ const BREAKS = {
     emit(fx, { x, y, n: 10, colors: [c.color, darker(c.rib)], speed: [5, 10], life: [0.45, 0.7], size: [0.06, 0.1], shape: 'chunk', gravity: 1, lift: 2 })
   },
   bouncebomb: (...args) => BREAKS.boom(...args),   // (the same: shell and sparks under its blast)
+  fire: (...args) => BREAKS.boom(...args),         // (a Fire Gourd bursting: shell and sparks, over its fire)
   biggourd: (fx, { x, y }, c, k) => {   // big chunks dropping hard, a puff of dust and lots of seeds
     const big = ([a, b]) => [a * k, b * k], fast = ([a, b]) => [a * Math.sqrt(k), b * Math.sqrt(k)]
     emit(fx, { x, y, n: 12, colors: [c.color, c.rib], speed: fast([3, 8]), life: [0.6, 0.9], size: big([0.1, 0.17]), shape: 'chunk', gravity: 1.3, lift: 3, spin: 8 })

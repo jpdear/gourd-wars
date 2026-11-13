@@ -2,6 +2,7 @@
 // guest, and everyone draws from them, so both screens look the same.
 // (Over the network they go in a compact form: see packSnapshot in net/protocol.js.)
 
+import { CONFIG } from '../config.js'
 import { patchRot } from './patches.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { trapOpen } from './traps.js'
@@ -31,6 +32,7 @@ export function makeSnapshot(game) {
       frozen: p.frozen,
       glued: p.glued,
       ...(p.glued && p.gooKind !== 'pie' && { goo: p.gooKind }),   // whose goo (no field: a Splat Pie's)
+      ...(p.onFire && !p.dead && { burning: true }),   // on fire (see fire.js; only when they are)
       floating: p.floating,
       charge: p.charging ? r3(p.charge) : 0,
       lockedOn: game.pumpkins.some(pk => pk.target === p),   // a Homing gourd is coming for them
@@ -62,6 +64,7 @@ export function makeSnapshot(game) {
         id: b.id, x: r3(pos.x), y: r3(pos.y), angle: r3(wrapAngle(b.body.getAngle())), health: r3(Math.max(0, b.hp) / b.maxHp),
         frozen: b.frozenTimer > 0, sticky: b.stickyTimer > 0, floating: b.floatTimer > 0,
         ...(b.stickyTimer > 0 && b.gooKind !== 'pie' && { goo: b.gooKind }),   // whose goo (no field: a Splat Pie's)
+        ...(b.burnTimer > 0 && { burn: r3(1 - b.burnTimer / CONFIG.fire.baleBurn) }),   // on fire: 0 → 1 as it burns down (only when it is)
       }
     }),
     // kind: its pumpkin type; open: 0 shut (or just landed) .. 1 set; bite: a Chomper biting someone (its x, y: on them) (see traps.js)
@@ -83,6 +86,7 @@ export function makeSnapshot(game) {
     patches: game.patches.map(p => ({ state: p.state, growth: r3(p.growth), rot: r3(patchRot(p)), typeName: p.typeName, superRare: p.superRare, ...(p.frozenTimer > 0 && { frozen: true }) })),
     // icy stretches of floor (an Ice Bomb's: see iceOver in level.js): x0..x1 along the top at y; t: s left (only while there are some)
     ...(game.ice.length && { ice: game.ice.map(z => ({ id: z.id, x0: r3(z.x0), x1: r3(z.x1), y: r3(z.y), t: r3(z.timer) })) }),
+    ...(game.fire.length && { fire: game.fire.map(z => ({ id: z.id, x0: r3(z.x0), x1: r3(z.x1), y: r3(z.y), t: r3(z.timer) })) }),   // fire patches (a Fire Gourd's), the same
     ...(game.goo.length && { goo: game.goo.map(z => ({ id: z.id, x0: r3(z.x0), x1: r3(z.x1), y: r3(z.y), t: r3(z.timer) })) }),   // sticky stretches (a Sticky Bomb's), the same
     timeScale: game.timeScale,
     sights: game.sights,   // (the host's setting: show each player their own sight)
@@ -139,6 +143,7 @@ export function interpolateSnapshots(a, b, t) {
     patches: b.patches,
     ...(b.ice && { ice: b.ice }),
     ...(b.goo && { goo: b.goo }),
+    ...(b.fire && { fire: b.fire }),
     ...(b.stickies && { stickies: byId(a.stickies || [], b.stickies, moved) }),
     match: b.match,
   }

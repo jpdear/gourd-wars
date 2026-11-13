@@ -54,6 +54,7 @@ export const GOURD = freeze({
   dark: '#3b3631',                      // (a fuse, an antenna, a rocket's nozzle)
   rubberBand: '#f6efe3',                // (round a Bouncing Bomb's middle)
   fuseFlash: { color: '#ffd23f', rib: '#d9a21a' },   // (a ticking Bouncing Bomb, each time it blinks)
+  jack: { cut: '#2a0a04', dim: '#ff9a2e', bright: '#ffe08a' },   // (the Fire Gourd's face: each hole's dark cut edge, and its glow flickering dim to bright)
   swirl: '#ffd1ea',                     // (the Teleport gourd's turning spiral)
   snowCap: '#f4fafc',                   // (an Ice Bomb's dripping cap of snow)
   snowSpark: { star: '#bfe8f5', flake: '#ffffff' },   // (its fuse's spark: a pale star with a white snowflake over it)
@@ -128,6 +129,7 @@ export const STATUS = freeze({
 export const LEVEL = freeze({
   bale: {
     straw: '#e2b84a', bands: '#c9982f', twine: '#8a5a2b', crack: '#6b4a1f',
+    char: '#3a2418',   // (on fire: how dark it chars by the time it burns away)
     balloonString: '#6b6358',
   },
   pitchfork: { bar: '#6b4a2b', tine: '#a3a9ae' },

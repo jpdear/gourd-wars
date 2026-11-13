@@ -42,6 +42,7 @@ function spawnBale(game, x, y) {
     frozenTimer: 0,   // Frost: slippery ice block
     stickyTimer: 0,   // Splat Pie (or a Sticky Bomb's burst): glues whoever touches it
     gooKind: 'pie',   // ...whose goo it is (its color: see STATUS.goos)
+    burnTimer: 0,     // on fire: s until it burns away (see fire.js)
     floatTimer: 0,    // Balloon: floating up
   }
   body.setUserData({ kind: 'bale', bale })
@@ -62,7 +63,7 @@ export function shoveBale(bale, dir, speed) {
 // game.ice, game.goo: [{ id, x0, x1, y (the top), timer (s left) }].
 //   coatFloor(game, kind, x, y, radius, seconds)   the tops of the map's platforms (and walls) within radius of (x, y)
 //   coatAt(game, kind, x, y)                       the stretch of that kind at (x, y) (feet on it), or null
-const COAT_IDS = { ice: 'nextIceId', goo: 'nextGooId' }   // (where each kind's next id comes from)
+const COAT_IDS = { ice: 'nextIceId', goo: 'nextGooId', fire: 'nextFireId' }   // (where each kind's next id comes from; fire: a Fire Gourd's patches, see fire.js)
 export function coatFloor(game, kind, x, y, radius, seconds) {
   for (const p of currentMap(game).platforms) {
     const top = p.y + p.h / 2, dy = top - y
@@ -83,6 +84,7 @@ export function updateCoats(game, dt) {
 
 export function freezeBale(bale, seconds) {
   bale.frozenTimer = Math.max(bale.frozenTimer, seconds)
+  bale.burnTimer = 0   // (it puts out a fire)
   setBaleFriction(bale, 0)
 }
 function setBaleFriction(bale, friction) {
@@ -103,6 +105,10 @@ export function breakBale(game, bale, how) {
   const p = bale.body.getPosition()
   game.events.push({ type: how, x: r3(p.x), y: r3(p.y) })
 }
+
+// Whether any part of player pl (its ends) is touching bale b.
+export const touchingBale = (game, pl, b) => !pl.out && pl.parts.some(part =>
+  [part.body.getWorldPoint(new Vec2(0, part.halfLen)), part.body.getWorldPoint(new Vec2(0, -part.halfLen))].some(pt => baleAt(game, pt, 0.1) === b))
 
 // The bale (if any) at `point`, within `pad` (checked in the bale's own rotated frame).
 export function baleAt(game, point, pad) {
@@ -127,15 +133,15 @@ export function updateBales(game, dt) {
       b.stickyTimer -= dt
       for (const pl of game.players) {
         if (pl.out) continue
-        const touching = pl.parts.some(part =>
-          [part.body.getWorldPoint(new Vec2(0, part.halfLen)), part.body.getWorldPoint(new Vec2(0, -part.halfLen))]
-            .some(pt => baleAt(game, pt, 0.1) === b))
-        if (touching) pl.glue(PUMPKIN_TYPES.pie.glue, b.gooKind)
+        if (touchingBale(game, pl, b)) pl.glue(PUMPKIN_TYPES.pie.glue, b.gooKind)
       }
     }
-    // bonfires burn them (pitchforks and blades break them by touch)
+    // bonfires burn them (pitchforks and blades break them by touch): they catch fire (burning a while: see
+    // fire.js), or with CONFIG.fire.bonfireIgnites off, burn away at once
     for (const [cx, cy] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-      if (inFire(game, b.body.getWorldPoint(new Vec2(cx * BALE.w / 2, cy * BALE.h / 2)), 0)) { breakBale(game, b, 'burn'); break }
+      if (!inFire(game, b.body.getWorldPoint(new Vec2(cx * BALE.w / 2, cy * BALE.h / 2)), 0)) continue
+      if (CONFIG.fire.bonfireIgnites) { if (!(b.burnTimer > 0)) b.burnTimer = CONFIG.fire.baleBurn } else breakBale(game, b, 'burn')
+      break
     }
   }
   for (const b of game.bales) if (b.broken) game.world.destroyBody(b.body)
@@ -231,6 +237,7 @@ export function updateHazards(game, dt) {
         .some(pt => inFire(game, pt, r))
     })
     if (!burning || pl.ko) { pl.fireTimer = 0.2; continue }   // (so the first touch burns right away)
+    if (CONFIG.fire.bonfireIgnites) pl.ignite()   // (and they're on fire: see fire.js)
     pl.fireTimer += dt
     const pos = pl.torso.getPosition()
     if (pl.fireTimer >= 0.2) {

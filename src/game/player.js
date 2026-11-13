@@ -53,6 +53,8 @@ const freshLife = () => ({
   gluedTimer: 0,              // Splat Pie: stuck to the floor
   pendingGlue: 0,             // ...hit in the air: sticks when you land
   gooKind: 'pie',             // ...whose goo it is (a Splat Pie's or a Sticky Bomb's: its color)
+  burnTimer: 0,               // on fire: s left (see fire.js)
+  burnTick: 0,                // ...s since its last damage tick
   trappedTimer: 0,            // bitten by a Chomper: held in place
   floatTimer: 0,              // Balloon: floating helplessly upward
   // hazards (kept up by level.js)
@@ -184,6 +186,7 @@ export class Player {
   get stunned() { return this.stunTimer > 0 }   // ragdolled
   get frozen() { return this.frozenTimer > 0 }
   get glued() { return this.gluedTimer > 0 }
+  get onFire() { return this.burnTimer > 0 }
   get trapped() { return this.trappedTimer > 0 }
   get stuck() { return this.glued || this.trapped }   // can't walk or jump (glued, or in a Chomper's jaws)
   get floating() { return this.floatTimer > 0 }
@@ -250,8 +253,16 @@ export class Player {
 
   freeze(seconds) {
     this.frozenTimer = Math.max(this.frozenTimer, seconds)
+    this.burnTimer = 0   // (it puts out a fire)
     this.charging = false
     this.punchTimer = 0
+  }
+
+  // Catch fire (see fire.js): burning for CONFIG.fire.burnTime s from now. It thaws us out.
+  ignite() {
+    if (this.dead) return
+    this.burnTimer = CONFIG.fire.burnTime
+    this.frozenTimer = 0
   }
 
   // A Chomper's jaws: held in place for `seconds` (we can still aim, throw and punch).

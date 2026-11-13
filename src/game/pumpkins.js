@@ -8,7 +8,8 @@
 import * as planck from 'planck'
 import { Vec2 } from 'planck'
 import { CONFIG } from '../config.js'
-import { damageBale, inFire, shoveBale } from './level.js'
+import { damageBale, shoveBale } from './level.js'
+import { inAnyFire } from './fire.js'
 import { patchPumpkin, splatPatch } from './patches.js'
 import { pumpkinBroke } from './traps.js'
 import { PUMPKIN_TYPES } from './pumpkinTypes.js'
@@ -189,8 +190,8 @@ export function updatePumpkins(game, dt) {
       if (p.broken) continue
     }
     const pos = p.body.getPosition()
-    // bonfires burn pumpkins (pitchforks and blades break them by touch; a Jack-o'-Boom goes off)
-    if (inFire(game, pos, p.radius)) {
+    // bonfires and fire patches burn pumpkins (pitchforks and blades break them by touch; a Jack-o'-Boom goes off)
+    if (inAnyFire(game, pos, p.radius)) {
       breakPumpkin(game, p)
       continue
     }

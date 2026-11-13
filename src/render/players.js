@@ -9,7 +9,8 @@ import { PUMPKIN_TYPES, throwSpeeds } from '../game/pumpkinTypes.js'
 import { PART_NAMES } from '../game/snapshot.js'
 import { clock } from './anims.js'
 import { DIZZY, PLAYER, STATUS, UI } from './palette.js'
-import { gooLeft } from './endings.js'
+import { flamesLeft, gooLeft } from './endings.js'
+import { drawBurningPlayer } from './flames.js'
 import { drawHeldPumpkin, drawPumpkin } from './pumpkins.js'
 import { drawShaded } from './shading.js'
 import { LOOKS } from './statusLooks.js'
@@ -179,6 +180,8 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
   ctx.lineCap = 'butt'
   ctx.lineJoin = 'miter'
 
+  const fire = p.burning ? 1 : flamesLeft('p' + p.slot)   // (on fire, or just put out: its flames dying down)
+  if (fire) drawBurningPlayer(ctx, Object.fromEntries(['torso', 'thighL', 'thighR', 'armL', 'armR'].map(name => [name, partEnds(part(p, name), PART_HALF_LEN[name])])), X, Y, s, clock.now(), fire)
   const drain = p.glued ? null : gooLeft('p' + p.slot)   // (just come unglued: its goo draining away)
   if (p.frozen || p.glued || drain) {
     const g = { head: [hx, hy], facing: p.facing, limbs: limbs.map(([ends, width]) => [...ends, width]), feet: ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2)) }

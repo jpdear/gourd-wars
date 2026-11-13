@@ -41,6 +41,7 @@ import { callAirstrike, explode, freezeBlast, glueBurst, openBlackHole, swapPlac
 import { biteWith, plantTrap } from './traps.js'
 import { cannonOfBody, cannonTouching, freezeCannon } from './cannons.js'
 import { stickTo } from './stickies.js'
+import { douse, firePatch, igniteBale } from './fire.js'
 import { breakPumpkin, knockback, rebound, shove } from './pumpkins.js'
 import { r3 } from '../util/math.js'
 
@@ -83,6 +84,8 @@ export const PUMPKIN_TYPES = {
     cannonFreeze: 5,   // s a gourd cannon it hits stays frozen (no shots: see cannons.js)
     onHitBale: (game, pk, bale) => freezeBale(bale, pk.type.baleFreeze),   // a slippery ice block
     onHitWorld: (game, pk, body) => { const c = cannonOfBody(game, body); if (c) freezeCannon(c, pk.type.cannonFreeze) },   // (a cannon's mount)
+    onBreak: (game, pk) => { const p = pk.body.getPosition(); douse(game, p.x, p.y, pk.type.douse) },   // (puts out fire where it breaks)
+    douse: 0.8,   // m: fire patches and burning bales this close to where it breaks go out
     update: (game, pk) => {   // (a cannon's barrel isn't solid: touching it counts too)
       const c = cannonTouching(game, pk.body.getPosition(), pk.radius)
       if (c) { freezeCannon(c, pk.type.cannonFreeze); breakPumpkin(game, pk) }
@@ -323,6 +326,17 @@ export const PUMPKIN_TYPES = {
     onHitBale: (game, pk, bale) => stickTo(game, pk, bale.body, false),
     onBlocked: (game, pk, player) => stickTo(game, pk, player.facing > 0 ? player.forearmR : player.forearmL, true),   // (onto the arm holding the shield)
     onBreak: (game, pk) => { const p = pk.body.getPosition(); glueBurst(game, p.x, p.y, pk.type.glue, pk.power) },
+  },
+  fire: {   // a dark red jack-o'-lantern with an angry face, glowing from a fire inside: it bursts into flames
+    name: 'Fire Gourd', color: '#8a2a1a', rib: '#521208', mark: 'jack',
+    radius: 0.22, density: 2, restitution: 0.1,
+    damage: 0, knockback: 0, stun: 0, breakAfterHits: 1,
+    // See fire.js. Whatever it hits directly catches fire (a player, a bale); where it breaks, the floor right
+    // under it (within reach m below) catches fire: the platform tops within radius m, for time s (× power).
+    patch: { radius: 1, time: 4, reach: 2.5 },
+    onHitPlayer: (game, pk, player) => player.ignite(),
+    onHitBale: (game, pk, bale) => igniteBale(bale),
+    onBreak: (game, pk) => { const p = pk.body.getPosition(), P = pk.type.patch; firePatch(game, p.x, p.y, P.radius, P.time * pk.power, P.reach) },
   },
 }
 export const PUMPKIN_TYPE_NAMES = Object.keys(PUMPKIN_TYPES)   // index = type code in snapshots

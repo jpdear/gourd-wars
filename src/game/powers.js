@@ -9,6 +9,7 @@ import { PUMPKIN_TYPES } from './pumpkinTypes.js'
 import { blastTraps, freeVictim } from './traps.js'
 import { cannonDistance, freezeCannon } from './cannons.js'
 import { blastStickies } from './stickies.js'
+import { douse } from './fire.js'
 import { clamp, lerp, r3, wrapAngle } from '../util/math.js'
 
 // Jack-o'-Boom: damage falls off from the center; everything in range (thrower too) gets blown
@@ -67,6 +68,7 @@ export function freezeBlast(game, x, y, chill, power) {
   for (const patch of game.patches) if (patch.state !== 'empty' && reach(patchPumpkin(patch)) <= 1) freezePatch(patch, chill.objects * power)
   for (const c of game.cannons) if (cannonDistance(c.def, { x, y }) <= chill.radius) freezeCannon(c, chill.cannon * power)
   coatFloor(game, 'ice', x, y, chill.radius, chill.floor * power)
+  douse(game, x, y, chill.radius)   // (fire patches and burning bales in reach go out; players: freezing puts them out)
 }
 
 // STICKY BOMB's burst: everything within glue.radius is glued, with no push: players (longer the closer

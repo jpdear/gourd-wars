@@ -11,6 +11,8 @@ import { PUMPKIN_TYPES } from '../game/pumpkinTypes.js'
 import { clock } from './anims.js'
 import { LEVEL, STATUS } from './palette.js'
 import { DRAIN, gooLeft } from './endings.js'
+import { drawBaleFire } from './flames.js'
+import { mixHex } from '../util/color.js'
 import { drawPumpkin, drawSparkBurst } from './pumpkins.js'
 import { drawShaded } from './shading.js'
 import { fillGoo, LOOKS } from './statusLooks.js'
@@ -28,7 +30,7 @@ function shaded(ctx, paint, box, shift, s, shade) {
 }
 const around = (cx, cy, r) => [cx - r, cy - r, cx + r, cy + r]
 
-export function drawBale(ctx, { id, x, y, angle, health: hp, frozen, sticky, floating, goo }, X, Y, s, shade) {
+export function drawBale(ctx, { id, x, y, angle, health: hp, frozen, sticky, floating, goo, burn }, X, Y, s, shade) {
   if (floating) {   // the balloon carrying it, drawn upright above it
     ctx.strokeStyle = LEVEL.bale.balloonString
     ctx.lineWidth = 1
@@ -41,6 +43,11 @@ export function drawBale(ctx, { id, x, y, angle, health: hp, frozen, sticky, flo
   const w = BALE.w * s, h = BALE.h * s
   const local = (c, fn) => { c.save(); c.translate(X(x), Y(y)); c.rotate(-angle); fn(); c.restore() }   // (in the bale's own frame)
   shaded(ctx, (c, f) => local(c, () => LOOKS.baleBody(c, w, h, hp, s, f)), around(X(x), Y(y), Math.hypot(w, h) / 2 + 4), 0.05, s, shade)
+  if (burn !== undefined) local(ctx, () => {   // on fire: charring darker as it burns down, flames growing out of its top and front
+    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = mixHex('#ffffff', LEVEL.bale.char, burn * 0.8)
+    ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 0.04 * s); ctx.fill(); ctx.restore()
+    drawBaleFire(ctx, w, h, s, clock.now(), burn)
+  })
   if (frozen) local(ctx, () => LOOKS.baleFrozen(ctx, w, h, s, clock.now()))
   const drain = sticky ? null : gooLeft('b' + id)   // (just worn off: its goo draining away)
   if (sticky) local(ctx, () => LOOKS.baleGlued(ctx, w, h, s, clock.now(), STATUS.goos[goo || 'pie']))

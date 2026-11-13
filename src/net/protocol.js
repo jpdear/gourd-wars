@@ -46,8 +46,8 @@ const fields = (...names) => ({
 const SNAPSHOT_LISTS = {
   pumpkins: fields('id', 'x', 'y', 'angle', 'typeName', 'ripeness', 'owner', 'radius', 'heading', 'fuse'),
   bales: {   // (its effects as bit flags: 1 frozen, 2 sticky, 4 floating, 8 a Sticky Bomb's goo rather than a Splat Pie's)
-    pack: b => [b.id, b.x, b.y, b.angle, b.health, (b.frozen ? 1 : 0) | (b.sticky ? 2 : 0) | (b.floating ? 4 : 0) | (b.goo === 'sticky' ? 8 : 0)],
-    unpack: ([id, x, y, angle, health, flags]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4), ...(flags & 8 && { goo: 'sticky' }) }),
+    pack: b => [b.id, b.x, b.y, b.angle, b.health, (b.frozen ? 1 : 0) | (b.sticky ? 2 : 0) | (b.floating ? 4 : 0) | (b.goo === 'sticky' ? 8 : 0), ...(b.burn !== undefined ? [b.burn] : [])],   // (on fire: how burnt, on the end)
+    unpack: ([id, x, y, angle, health, flags, burn]) => ({ id, x, y, angle, health, frozen: !!(flags & 1), sticky: !!(flags & 2), floating: !!(flags & 4), ...(flags & 8 && { goo: 'sticky' }), ...(burn !== undefined && { burn }) }),
   },
   holes: fields('id', 'x', 'y', 'r'),
   traps: fields('id', 'kind', 'x', 'y', 'angle', 'open', 'bite'),

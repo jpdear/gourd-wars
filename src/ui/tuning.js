@@ -288,6 +288,14 @@ const TUNABLES = [
       [T_ + 'sticky.glue.floor', 0, 15, 0.25, 'sticky floor (s)'],
       [T_ + 'sticky.chainDelay', 0, 1, 0.05, 'chain delay (s)'],
     ]],
+    ['Fire Gourd', [
+      [T_ + 'fire.patch.radius', 0.3, 3, 0.1, 'fire patch radius'],
+      [T_ + 'fire.patch.time', 0.5, 12, 0.25, 'fire patch (s)'],
+      ['CONFIG.fire.burnTime', 0.5, 12, 0.25, 'on fire (s)'],
+      ['CONFIG.fire.dps', 0, 20, 0.5, 'burn dmg / s'],
+      ['CONFIG.fire.spreadReach', 0, 1, 0.05, 'spread reach (m)'],
+      ['CONFIG.fire.baleBurn', 0.5, 12, 0.25, 'bale burns (s)'],
+    ]],
   ]],
 ]
 

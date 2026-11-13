@@ -8,6 +8,8 @@
 //   trackEndings(snap, effects)   call once per frame, before drawing
 //   gooLeft(key)                  how much of a draining goo is left (1 → 0), or null if none is draining;
 //                                 key: 'p' + a player's slot, 'b' + a hay bale's id. { k, goo (whose) }
+//   flamesLeft(key)               a player just put out (key: 'p' + slot): how big their dying flames still
+//                                 are (1 → 0 over DRAIN s), or 0
 
 import { patchPumpkin } from '../game/patches.js'
 import { patchView } from '../game/snapshot.js'
@@ -17,8 +19,9 @@ import { FX } from './palette.js'
 
 export const DRAIN = 0.6   // s for goo to drain away
 
-let last = null               // what was glued / frozen in the last snapshot drawn
+let last = null               // what was glued / frozen / burning in the last snapshot drawn
 const draining = new Map()    // key → { start (clock s), goo }
+const dying = new Map()       // key → start (clock s): flames dying down
 
 const ease = u => 1 - (1 - u) * (1 - u)
 export function gooLeft(key) {
@@ -27,6 +30,14 @@ export function gooLeft(key) {
   const u = (clock.now() - d.start) / DRAIN
   if (u >= 1) { draining.delete(key); return null }
   return { k: 1 - ease(Math.max(0, u)), goo: d.goo }
+}
+
+export function flamesLeft(key) {
+  const start = dying.get(key)
+  if (start === undefined) return 0
+  const u = (clock.now() - start) / DRAIN
+  if (u >= 1) { dying.delete(key); return 0 }
+  return 1 - ease(Math.max(0, u))
 }
 
 // Ice shards bursting from (x, y), n of them, `size` across (m).
@@ -38,7 +49,7 @@ export function trackEndings(snap, effects) {
   const now = clock.now()
   const seen = {
     map: snap.map, round: snap.match ? snap.match.round : 0,
-    players: new Map(snap.players.map(p => [p.slot, { glued: p.glued, frozen: p.frozen, goo: p.goo || 'pie', at: p.parts[0] }])),   // (dead ones too)
+    players: new Map(snap.players.map(p => [p.slot, { glued: p.glued, frozen: p.frozen, burning: !!p.burning, goo: p.goo || 'pie', at: p.parts[0] }])),   // (dead ones too)
     bales: new Map(snap.bales.map(b => [b.id, { sticky: b.sticky, frozen: b.frozen, goo: b.goo || 'pie', x: b.x, y: b.y }])),
     patches: snap.patches.map((p, i) => ({ frozen: !!p.frozen, i })),
     ice: new Map((snap.ice || []).map(z => [z.id, z])),
@@ -49,6 +60,7 @@ export function trackEndings(snap, effects) {
       if (!was) continue
       if (was.at && now_.at && Math.hypot(now_.at[0] - was.at[0], now_.at[1] - was.at[1]) > 3) continue   // (respawned)
       if (was.glued && !now_.glued) draining.set('p' + slot, { start: now, goo: was.goo })
+      if (was.burning && !now_.burning) dying.set('p' + slot, now)
       if (was.frozen && !now_.frozen && now_.at) {   // (along their body: torso, then above and below it)
         const [x, y] = now_.at
         for (const dy of [-0.45, 0, 0.45]) shatter(effects, x, y + dy, 6)

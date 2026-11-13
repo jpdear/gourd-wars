@@ -158,6 +158,16 @@ export function drawSparkBurst(c, x, y, r, t) {
     c.beginPath(); c.arc(x + Math.cos(a) * d, y + Math.sin(a) * d + 0.35 * p * p * r, size, 0, TAU); c.fill()
   }
 }
+// The Fire Gourd's carved face (of r, canvas y down): slanted glaring eyes and a jagged zig-zag mouth.
+const JACK_MOUTH = [-0.55, -0.4, -0.25, -0.1, 0.05, 0.2, 0.35, 0.55]
+const JACK_FACE = [
+  (c, r) => { c.moveTo(-0.55 * r, -0.38 * r); c.lineTo(-0.12 * r, -0.18 * r); c.lineTo(-0.42 * r, -0.08 * r); c.closePath() },
+  (c, r) => { c.moveTo(0.55 * r, -0.38 * r); c.lineTo(0.12 * r, -0.18 * r); c.lineTo(0.42 * r, -0.08 * r); c.closePath() },
+  (c, r) => {
+    c.moveTo(-0.55 * r, 0.2 * r); JACK_MOUTH.forEach((x, i) => c.lineTo(x * r, (i % 2 ? 0.32 : 0.2) * r)); c.lineTo(0.48 * r, 0.55 * r)
+    ;[...JACK_MOUTH].reverse().forEach((x, i) => c.lineTo(x * 0.9 * r, (i % 2 ? 0.48 : 0.6) * r)); c.closePath()
+  },
+]
 const SNOW_DRIPS = [[0.85, -0.12], [0.5, -0.38], [0.2, 0.02], [-0.15, -0.36], [-0.5, -0.05], [-0.85, -0.34], [-1.3, -0.3]]   // [x, y] (of r): the bottom edge of an Ice Bomb's snow cap, right to left
 const SPARK_LINES = [[-1.2, 0.5, 0.75], [-0.3, 0.5, 0.82], [0.6, 0.5, 0.7], [-2.1, 0.5, 0.68], [2.6, 0.48, 0.62], [-0.75, 0.5, 0.7], [0.15, 0.48, 0.66], [-1.65, 0.5, 0.78]]   // [angle, from, to (of r)]
 // The fuse's flying dots: [direction (radians, from the spark), radius (of r), where in its flight it starts (0..1)].
@@ -236,6 +246,14 @@ const MARKS = {
     c.stroke(); c.lineCap = 'butt'
   },
   slime: (c, r) => stickyFuse(c, r, 1, false),   // its fuse, not lit yet
+  jack: (c, r) => {   // a Fire Gourd: an angry jack-o'-lantern face, its holes glowing from the fire flickering inside
+    const t = clock.now(), glow = mixHex(GOURD.jack.dim, GOURD.jack.bright, 0.55 + 0.45 * Math.sin(t * 11) * Math.sin(t * 4.3))
+    for (const [dy, color] of [[0, GOURD.jack.cut], [r * 0.05, glow]]) {   // (the cut's dark top edge, then the glow just below it)
+      c.save(); c.translate(0, dy); c.fillStyle = color
+      for (const hole of JACK_FACE) { c.beginPath(); hole(c, r); c.fill() }
+      c.restore()
+    }
+  },
   swirl: (c, r) => {   // a pale spiral on its face, slowly turning (a Teleport gourd)
     c.save(); c.rotate(clock.now() * 2)
     c.strokeStyle = GOURD.swirl; c.lineWidth = Math.max(1, r * 0.11); c.lineCap = 'round'

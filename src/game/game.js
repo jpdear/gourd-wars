@@ -16,6 +16,7 @@ import { defaultSpawnSettings } from './pumpkinTypes.js'
 import { updateTransition } from './transition.js'
 import { clearTraps, updateTraps } from './traps.js'
 import { clearStickies, updateStickies } from './stickies.js'
+import { updateFire } from './fire.js'
 import { MAPS, mapDef } from '../maps/builtin.js'
 
 export function createGame() {
@@ -29,11 +30,11 @@ export function createGame() {
   // cannons: gourd cannons { def, timer } (see cannons.js)
   // holes: open Black Holes; strikes: Airstrike targets waiting for their airdrop (see powers.js)
   // traps: Chompers planted on the floor or biting someone (see traps.js)
-  // ice, goo: icy / sticky stretches of floor an Ice Bomb / Sticky Bomb left (see coatFloor in level.js)
+  // ice, goo, fire: icy / sticky / burning stretches of floor an Ice Bomb / Sticky Bomb / Fire Gourd left (see coatFloor in level.js)
   // stickies: Sticky Bombs stuck to something, burning down (see stickies.js)
   const game = {
-    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], ice: [], goo: [], stickies: [], contacts: [], events: [],
-    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextIceId: 1, nextGooId: 1, nextStickyId: 1,
+    world, time: 0, players: [], pumpkins: [], patches: [], bales: [], holes: [], strikes: [], traps: [], ice: [], goo: [], fire: [], stickies: [], contacts: [], events: [],
+    nextPumpkinId: 1, nextBaleId: 1, nextHoleId: 1, nextStrikeId: 1, nextTrapId: 1, nextIceId: 1, nextGooId: 1, nextFireId: 1, nextStickyId: 1,
     match: null, spawnSettings: defaultSpawnSettings(), sights: false,
     map: null, mapChoice: 'patch', mapBodies: [], movers: [], cannons: [], moverTime: 0, hazardHits: [], roundTime: 0,
     timeScale: 1,       // < 1 = slow motion (after a round's last knockout)
@@ -139,6 +140,7 @@ export function resetRound(game) {
   game.strikes = []
   game.ice = []
   game.goo = []
+  game.fire = []
   clearTraps(game)
   clearStickies(game)
   resetBales(game)
@@ -168,6 +170,7 @@ export function stepGame(game, inputs) {
   updateTraps(game, dt)
   updateStickies(game, dt)
   updateHazards(game, dt)
+  updateFire(game, dt)
   updateBales(game, dt)
   updateCoats(game, dt)
   updatePatches(game, dt)

@@ -104,6 +104,14 @@ export const CONFIG = {
     spikeCooldown: 0.5,      // ...then no more pitchfork damage for this long, however many tines you touch
     spikeBounce: 12,         // m/s pop up off the tines
   },
+  fire: {                    // being on fire (a Fire Gourd, its fire patches, bonfires: see game/fire.js)
+    burnTime: 5,             // s a player burns once alight (catching fire again starts it over)
+    dps: 3,                  // damage per second while burning...
+    tick: 1,                 // ...dealt every this many s (one damage number a second)
+    spreadReach: 0.25,       // a burning player sets anyone this close (m, part to part) on fire
+    baleBurn: 3,             // s a hay bale burns before it burns away
+    bonfireIgnites: true,    // bonfires set players and bales on fire (false: the old way: bales burn away at once)
+  },
   pickup: {                  // standing at something to pick up with the harvest key (a pumpkin)
     reach: 1.1,              // how close (sideways) you need to be
     height: 1.6,             // ...with your hips at most this far above where it sits
