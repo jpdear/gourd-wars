@@ -1,11 +1,11 @@
 // Your keybinds (this browser; guests too): one key or mouse button per action, set on the
-// Controls screen (Settings → Controls). Bindings are KeyboardEvent codes ('KeyA', 'Space',
+// Controls tab (Settings → Controls). Bindings are KeyboardEvent codes ('KeyA', 'Space',
 // 'ArrowLeft', ...; where the key is, not what it types) or 'Mouse0'-'Mouse4' (left, middle, right,
 // back, forward), or null when an action has none (its key was moved to another action).
 // Esc (menus) and ` (debug) are fixed.
 import { STORAGE_KEYS, loadJSON, saveJSON } from '../util/storage.js'
 
-// the actions, in the order the Controls screen lists them: [action, label, default]
+// the actions, in the order the Controls tab lists them: [action, label, default]
 export const BIND_ACTIONS = [
   ['left', 'Move Left', 'KeyA'],
   ['right', 'Move Right', 'KeyD'],

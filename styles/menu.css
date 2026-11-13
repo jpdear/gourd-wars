@@ -7,11 +7,12 @@
   background: var(--scrim); font: 500 15px var(--font-text); color: var(--ink);
 }
 #menu.open { display: flex; }
-/* out of the game (main menu, joining, map editor list): just a flat backdrop, no arena behind the card */
+/* out of the game (main menu, Play, joining, Host Setup, Settings from the main menu, map editor list): the flat bark
+   backdrop and the title art, no arena behind the card */
 #menu.solid { background: var(--bark); }
-/* the main menu's title art: shapes, gourds and the logo drawn on a canvas behind everything (see ui/titleArt.js) */
+/* the title art behind the out-of-game screens: shapes, gourds and (main menu only) the logo, drawn on a canvas behind everything (see ui/titleArt.js) */
 #menu .menu-art { display: none; position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; cursor: default; }
-#menu[data-screen=main] .menu-art { display: block; }
+#menu.solid .menu-art { display: block; }   /* (every out-of-game screen; the logo only on the main menu) */
 #menu .card {
   position: relative; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 24px;
   max-height: calc(100vh - 32px); overflow-y: auto;
@@ -37,7 +38,7 @@
 #menu button.quiet, #menu button.quiet:hover, #menu button.quiet:active { background: transparent; color: var(--muted); box-shadow: none; transform: none; }
 #menu button.quiet:hover { color: var(--ink); }
 #menu .code { font: 400 56px/1.1 var(--font-display); letter-spacing: 0.12em; color: var(--ink); }
-#menu input {
+#menu input[data-input=join-code] {   /* (the big code box; other text boxes: .field) */
   padding: 12px 10px 8px; border: 2px solid var(--paper-edge); border-radius: 999px; background: var(--paper); color: var(--ink); text-align: center;
   font: 400 32px/1.1 var(--font-display); letter-spacing: 0.15em; text-transform: uppercase;
 }
@@ -98,13 +99,36 @@
 
 /* main menu: the logo across the top (on the title art), big pill buttons right on the backdrop (no card): light ones, the
    main one in pumpkin */
-#menu[data-screen=main] .card { width: min(300px, calc(100vw - 32px)); margin-top: 18vh; background: transparent; box-shadow: none; }
+#menu[data-screen=main] .card { width: min(320px, calc(100vw - 32px)); margin-top: 20vh; background: transparent; box-shadow: none; }
 #menu[data-screen=main] h1 { display: none; }
 #menu[data-screen=main] .screen { gap: 14px; }
 #menu[data-screen=main] .screen button { --edge: var(--paper-edge); padding: 16px 24px 12px; font-size: 22px; background: var(--paper); color: var(--ink); }
 #menu[data-screen=main] .screen button:hover { background: var(--white); }
 #menu[data-screen=main] .screen button.primary { --edge: var(--pumpkin-edge); background: var(--pumpkin); color: var(--white); }
 #menu[data-screen=main] .screen button.primary:hover { background: var(--pumpkin-hover); }
+#menu[data-screen=main] .screen button.big { padding: 20px 24px 15px; font-size: 30px; }   /* Play */
+#menu .pair { display: flex; gap: 12px; }   /* Settings + Feedback, side by side */
+#menu[data-screen=main] .pair button { flex: 1; padding: 13px 10px 10px; font-size: 18px; }
 #menu[data-screen=main] .status { color: var(--muted-on-bark); }
 #menu .version { display: none; position: absolute; right: 16px; bottom: 12px; margin: 0; color: var(--muted-on-bark); font-size: 12px; font-weight: 600; }
 #menu[data-screen=main] .version { display: block; }
+
+/* Settings: tabs across the top (the segmented-button look), one panel per tab; the panels keep one height
+   so Done doesn't jump when you switch */
+#menu .tabs { margin-bottom: 4px; }
+#menu .tabs button { padding: 11px 4px 8px; font-size: 16px; }
+#menu .tab-panel { display: none; flex-direction: column; gap: 10px; min-height: 384px; }
+#menu .tab-panel.active { display: flex; }
+#menu .toggle-row.soon button { width: 128px; }   /* (not built yet: shown disabled) */
+#menu .soon-note { margin: auto 0; color: var(--muted); font: 600 15px/1.4 var(--font-text); }
+#menu .soon-note b { display: block; color: var(--ink); font: 400 22px var(--font-display); letter-spacing: 0.04em; }
+
+/* Feedback: plain text boxes (.field), labels over them, a character count */
+#menu input.field, #menu textarea.field {
+  box-sizing: border-box; width: 100%; padding: 10px 14px; border: 2px solid var(--paper-edge); border-radius: 10px;
+  background: var(--paper); color: var(--ink); text-align: left; font: 500 15px/1.35 var(--font-text); word-break: normal;
+}
+#menu textarea.field { min-height: 120px; }
+#menu .field::placeholder { color: var(--muted); }
+#menu .counter { margin: -6px 0 0; text-align: right; color: var(--muted); font: 600 12px var(--font-text); }
+#menu .field-label { display: flex; flex-direction: column; gap: 4px; text-align: left; color: var(--muted); font: 600 13px var(--font-text); }

@@ -1,10 +1,12 @@
-// TITLE ART (the main menu's backdrop picture and logo, browser only)
-// A canvas behind the main menu: two big circles and a low mound in a lighter bark, a few gourds sitting
+// TITLE ART (the backdrop picture behind the out-of-game menus, and the main menu's logo; browser only)
+// A canvas behind the menu card: two big circles and a low mound in a lighter bark, a few gourds sitting
 // near the bottom corners (drawn, and two-tone shaded in a tint made from the backdrop, by the game's own
 // gourd renderer: they bob gently and the Jack-o'-Boom's fuse sparks), and the "Gourd Wars" logo with
 // its intro (see titleLogo.js), which plays once per page load, the first time the main menu shows.
 //
-// It's redrawn every frame while the main menu is showing, and not at all otherwise. With reduced
+// It shows behind every out-of-game ("solid") menu screen: the main menu, Play, Settings from there, the
+// map editor list, ...; the logo only on the main menu (the other screens have a card with their title
+// there). It's redrawn every frame while it shows, and not at all otherwise. With reduced
 // motion on, nothing moves: it's drawn once (and on resize) with the logo already finished.
 // Where everything goes is in fractions of the screen (x of the width, y and sizes of the height), so it
 // keeps its look at any size. The flat bark backdrop behind it is the menu's own CSS background; the
@@ -63,11 +65,11 @@ export function createTitleArt(root) {
       const type = PUMPKIN_TYPES[name], wave = Math.sin(s / BOB.period[i] * Math.PI * 2 + i * 1.7)
       drawPumpkin(ctx, x * w, (y - BOB.lift * wave) * h, r * h, tilt + BOB.rock * wave, type, type.mark, shade)
     })
-    if (fontReady) drawTitleLogo(ctx, w, h, t, shade)
+    if (fontReady && root.dataset.screen === 'main') drawTitleLogo(ctx, w, h, t, shade)
   }
 
-  // the frame loop runs only while the main menu shows
-  const showing = () => root.classList.contains('open') && root.dataset.screen === 'main'
+  // the frame loop runs only while an out-of-game screen shows
+  const showing = () => root.classList.contains('open') && root.classList.contains('solid')
   const tick = now => { draw(now); frame = requestAnimationFrame(tick) }
   const update = () => {
     if (still) { if (showing()) draw(performance.now()); return }

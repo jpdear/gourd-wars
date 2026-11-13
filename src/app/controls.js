@@ -1,7 +1,7 @@
 // Keyboard and mouse → the local player's input (see game/input.js), by your keybinds (see
 // keybinds.js), plus the keys that aren't for playing: Esc (the menus) and ` (debug).
 //
-// With Lock Mouse on (Settings; off by default, since the browser shows a notice each time it
+// With Lock Mouse on (Settings → Gameplay; off by default, since the browser shows a notice each time it
 // locks), the mouse is locked to the game while you play (pointer lock: the cursor can't wander
 // off onto another screen or the taskbar and take the game out of focus) and we draw a crosshair instead
 // (see render/render.js). It's locked by the click that starts or resumes play (or the first click
@@ -10,7 +10,7 @@
 import { CONFIG } from '../config.js'
 import { emptyInput } from '../game/input.js'
 import { RESERVED_KEYS, binds } from './keybinds.js'
-import { closeControls, closeListSettings, closeMatchSettings, openPauseMenu } from './menus.js'
+import { closeListSettings, closeMatchSettings, closeSettings, onMenuAction, openPauseMenu } from './menus.js'
 import { prefs } from './settings.js'
 import { app } from './state.js'
 
@@ -20,7 +20,7 @@ const mouse = { x: 0, y: 0 }
 const held = code => keys.has(code) || tapped.has(code)
 const press = code => { keys.add(code); tapped.add(code) }
 
-// Waiting for the key (or mouse button) to bind on the Controls screen: called with its code, or
+// Waiting for the key (or mouse button) to bind on the Controls tab: called with its code, or
 // null if Esc cancelled. The clicks that come with a mouse button bound this way don't count.
 let capturing = null
 let swallowing = false   // (from that mouse button going down until just after it comes back up)
@@ -32,11 +32,15 @@ function finishCapture(code) {
 }
 
 // Esc in a menu: back out of it
+// (not the Host screen: backing out of it closes the game you're hosting, so that takes its Back button)
 const ESC_FROM = {
   paused: () => app.menu.hide(),
+  play: () => onMenuAction('play-back'),
+  join: () => onMenuAction('leave'),
+  feedback: () => onMenuAction('feedback-back'),
   pumpkins: closeListSettings,
   match: closeMatchSettings,
-  controls: closeControls,
+  settings: closeSettings,
 }
 
 const canLockMouse = () => prefs.lockMouse && !!app.canvas.requestPointerLock
@@ -65,7 +69,9 @@ export function setupControls() {
       else if (!RESERVED_KEYS.includes(e.code)) finishCapture(e.code)
       return
     }
-    if (e.target.closest && e.target.closest('input, textarea, select')) return   // typing a code, a map name, ...
+    // typing a code, a map name, feedback, ...: keys are for the text box (but Esc still backs out of a menu screen)
+    const box = e.target.closest && e.target.closest('input, textarea, select')
+    if (box && !(e.code === 'Escape' && menu.open && box.closest('#menu'))) return
     if (editor.active) { editor.onKey(e); return }
     if (e.code === 'Backquote') {
       ui.debug = !ui.debug

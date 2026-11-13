@@ -23,11 +23,16 @@
     <h1 data-text="menu-title">Gourd Wars</h1>
     <!-- data-title: the card's heading on that screen (the main menu has the logo instead) -->
     <div class="screen active" data-screen="main" data-title="Gourd Wars">
-      <button class="primary" data-act="host">Host Game</button>
-      <button data-act="show-join">Join Game</button>
-      <button data-act="practice">Practice</button>
+      <button class="primary big" data-act="show-play">Play</button>
       <button data-act="show-maps">Map Editor</button>
+      <div class="pair"><button data-act="show-settings">Settings</button><button data-act="show-feedback">Feedback</button></div>
       <p class="status" data-text="main-status"></p>
+    </div>
+    <div class="screen" data-screen="play" data-title="Play">
+      <button class="primary" data-act="host-setup">Host Game</button>
+      <button data-act="show-join">Join Game</button>
+      <button data-act="practice-setup">Practice</button>
+      <button class="quiet" data-act="play-back">Back</button>
     </div>
     <div class="screen" data-screen="host" data-title="Host Game">
       <p class="label">Join Code</p>
@@ -49,10 +54,12 @@
     <div class="screen" data-screen="paused" data-title="Game Menu">
       <p class="status" data-text="paused-info"></p>
       <button class="primary" data-act="resume">Resume</button>
-      <button data-act="show-match">Settings</button>
+      <button data-act="show-settings">Settings</button>
+      <button data-act="show-match" data-show="match-menu">Match Settings</button>
       <button data-act="exit" data-text="exit-label">Exit</button>
     </div>
-    <!-- Match Settings (from the host screen) / Settings (from the Esc menu): only the parts that apply right now -->
+    <!-- Match Settings: before hosting or practice (their setup screens) and during a game; only the parts that
+         apply right now (see MATCH_CONTEXTS in app/menus.js) -->
     <div class="screen" data-screen="match" data-title="Match Settings">
       <div class="match-settings" data-show="match-length"></div>
       <div class="map-rotation" data-show="rotation"></div>
@@ -60,19 +67,44 @@
       <div class="map-select" data-show="practice-map"></div>
       <div class="dummy-select" data-show="dummies"></div>
       <div class="toggle-row" data-show="host-settings"><span>Sights</span><button class="pk-on" data-act="sights-toggle">Off</button></div>
-      <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
-      <div class="toggle-row"><span>Lock Mouse</span><button class="pk-on" data-act="pref-toggle:lockMouse">Off</button></div>
       <button data-act="show-pumpkins" data-show="host-settings">Pumpkins</button>
-      <button data-act="show-controls">Controls</button>
       <button data-act="restart" data-show="restart">Restart Match</button>
-      <button class="primary" data-act="match-done">Done</button>
+      <button class="primary" data-act="match-primary" data-text="match-primary">Done</button>
+      <button class="quiet" data-act="match-back" data-show="match-back">Back</button>
     </div>
-    <!-- your keybinds: click one, then press the key or mouse button for it -->
-    <div class="screen" data-screen="controls" data-title="Controls">
-      <div class="bind-list"></div>
-      <p class="label note" data-text="bind-hint">Press a key or mouse button (Esc to cancel)</p>
-      <button data-act="reset-binds">Reset to Defaults</button>
-      <button class="primary" data-act="controls-done">Done</button>
+    <!-- your own settings (this browser; guests too), in tabs -->
+    <div class="screen" data-screen="settings" data-title="Settings">
+      <div class="seg tabs">
+        <button data-act="settings-tab:gameplay">Gameplay</button>
+        <button data-act="settings-tab:controls">Controls</button>
+        <button data-act="settings-tab:graphics">Graphics</button>
+      </div>
+      <div class="tab-panel" data-tab="gameplay">
+        <div class="toggle-row"><span>Damage Numbers</span><button class="pk-on" data-act="pref-toggle:damageNumbers">Off</button></div>
+        <div class="toggle-row"><span>Lock Mouse</span><button class="pk-on" data-act="pref-toggle:lockMouse">Off</button></div>
+      </div>
+      <!-- your keybinds: click one, then press the key or mouse button for it -->
+      <div class="tab-panel" data-tab="controls">
+        <div class="bind-list"></div>
+        <p class="label note" data-text="bind-hint">Press a key or mouse button (Esc to cancel)</p>
+        <button data-act="reset-binds">Reset to Defaults</button>
+        <div class="toggle-row soon"><span>Controller</span><button class="pk-on" disabled>Coming soon</button></div>
+      </div>
+      <div class="tab-panel" data-tab="graphics">
+        <p class="soon-note"><b>Coming soon</b>Graphics settings will live here.</p>
+      </div>
+      <button class="primary" data-act="settings-done">Done</button>
+    </div>
+    <!-- feedback: sent to a Google Form (see app/feedback.js) -->
+    <div class="screen" data-screen="feedback" data-title="Feedback">
+      <div class="seg feedback-cats"></div>
+      <textarea class="field" data-input="feedback-message" maxlength="1000" placeholder="What happened, or what would you like to see?"></textarea>
+      <p class="counter" data-text="feedback-count">0 / 1000</p>
+      <label class="field-label">Name (Optional)<input class="field" data-input="feedback-name" maxlength="100" autocomplete="name"></label>
+      <label class="field-label">Email (Optional)<input class="field" type="email" data-input="feedback-email" maxlength="100" autocomplete="email"></label>
+      <button class="primary" data-act="feedback-send">Send</button>
+      <p class="status" data-text="feedback-status"></p>
+      <button class="quiet" data-act="feedback-back">Back</button>
     </div>
     <div class="screen" data-screen="pumpkins" data-title="Pumpkins">
       <div class="pumpkin-list"></div>

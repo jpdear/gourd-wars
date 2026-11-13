@@ -1,8 +1,11 @@
-// MENU (the HTML card in #menu, plus the main menu's title art and logo: see titleArt.js)
+// MENU (the HTML card in #menu, plus the title art behind the out-of-game screens and the main menu's logo:
+// see titleArt.js). Builds the rows that come from data (match length, maps, pumpkins, keybinds, feedback
+// categories) and shows things; what the buttons do is in app/menus.js.
 
 import { MATCH_MODES } from '../game/match.js'
 import { PUMPKIN_TYPES, RATE_LABELS, SPAWNABLE_TYPES, SPAWN_RATES } from '../game/pumpkinTypes.js'
 import { BIND_ACTIONS, keyName } from '../app/keybinds.js'
+import { CATEGORIES, LIMITS } from '../app/feedback.js'
 import { BUILTIN_MAP_IDS, MAPS, mapIds } from '../maps/builtin.js'
 import { GAME_VERSION } from '../version.js'
 import { createTitleArt } from './titleArt.js'
@@ -50,22 +53,32 @@ export function createMenu(onAction) {
   root.querySelector('.dup-builtin').innerHTML = BUILTIN_MAP_IDS.map(id => `<button data-act="dup:${id}">${MAPS[id].name}</button>`).join('')
   const mapCodeInput = root.querySelector('[data-input=map-code]'), exportInput = root.querySelector('[data-input=export-code]')
   const codeInput = root.querySelector('[data-input=join-code]')
-  const SOLID_SCREENS = ['main', 'join', 'maps', 'import', 'export']   // out of the game: no arena behind the card
+  // Feedback: the category buttons, and the message's character count as you type
+  root.querySelector('.feedback-cats').innerHTML = CATEGORIES.map(c => `<button data-act="feedback-cat:${c}">${c}</button>`).join('')
+  const messageInput = root.querySelector('[data-input=feedback-message]')
+  const nameInput = root.querySelector('[data-input=feedback-name]'), emailInput = root.querySelector('[data-input=feedback-email]')
+  const showCount = () => { root.querySelector('[data-text=feedback-count]').textContent = `${messageInput.value.length} / ${LIMITS.message}` }
+  messageInput.addEventListener('input', showCount)
+  // out of the game: the title art behind the card instead of the arena (screens that can be either,
+  // like Settings, are told which by whoever opens them)
+  const SOLID_SCREENS = ['main', 'play', 'join', 'feedback', 'maps', 'import', 'export']
   codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') onAction('connect') })
   return {
     get open() { return root.classList.contains('open') },
     get screen() { return screen },
-    // title: in place of the screen's own data-title
-    show(name, title) {
+    get solid() { return root.classList.contains('solid') },
+    // title: in place of the screen's own data-title; solid: in place of SOLID_SCREENS
+    show(name, { title, solid = SOLID_SCREENS.includes(name) } = {}) {
       screen = name
       root.classList.add('open')
-      root.classList.toggle('solid', SOLID_SCREENS.includes(name))
+      root.classList.toggle('solid', solid)
       root.dataset.screen = name
       for (const el of root.querySelectorAll('.screen')) {
         el.classList.toggle('active', el.dataset.screen === name)
         if (el.dataset.screen === name) this.setText('menu-title', title || el.dataset.title)
       }
       if (name === 'join') setTimeout(() => codeInput.focus(), 0)
+      if (name === 'feedback') setTimeout(() => messageInput.focus(), 0)
       if (name === 'import') { mapCodeInput.value = ''; setTimeout(() => mapCodeInput.focus(), 0) }
     },
     hide() { root.classList.remove('open') },
@@ -74,6 +87,12 @@ export function createMenu(onAction) {
     setShown(key, shown) { for (const el of root.querySelectorAll(`[data-show=${key}]`)) el.classList.toggle('hidden', !shown) },
     get joinCode() { return codeInput.value.trim().toUpperCase() },
     get mapCode() { return mapCodeInput.value },
+    // the Feedback screen: what's typed in it, the picked category, and emptying it after a send
+    get feedback() { return { message: messageInput.value, name: nameInput.value, email: emailInput.value } },
+    showFeedbackCategory(cat) {
+      for (const b of root.querySelectorAll('[data-act^="feedback-cat:"]')) b.classList.toggle('on', b.dataset.act === 'feedback-cat:' + cat)
+    },
+    clearFeedback() { messageInput.value = nameInput.value = emailInput.value = ''; showCount() },
     showExportCode(code) { exportInput.value = code; setTimeout(() => exportInput.select(), 0) },
     // the My maps list (names are shown as plain text: they can come from anywhere)
     showMyMaps(defs, confirmDelete) {
@@ -113,7 +132,7 @@ export function createMenu(onAction) {
         b.textContent = on ? 'On' : 'Off'
       }
     },
-    // the Controls screen: each action's key (waiting: the action waiting for its new key)
+    // Settings' Controls tab: each action's key (waiting: the action waiting for its new key)
     showBinds(binds, waiting = null) {
       for (const [action] of BIND_ACTIONS) {
         const b = root.querySelector(`[data-act="bind:${action}"]`)
@@ -123,6 +142,11 @@ export function createMenu(onAction) {
       }
       // (the hint keeps its space when hidden, so the buttons under it don't jump)
       root.querySelector('[data-text=bind-hint]').style.visibility = waiting ? '' : 'hidden'
+    },
+    // the Settings screen's tabs (gameplay, controls, graphics)
+    showTab(name) {
+      for (const b of root.querySelectorAll('[data-act^="settings-tab:"]')) b.classList.toggle('on', b.dataset.act === 'settings-tab:' + name)
+      for (const p of root.querySelectorAll('.tab-panel')) p.classList.toggle('active', p.dataset.tab === name)
     },
     rebuildMaps: buildMapButtons,
     showMap(id) {
