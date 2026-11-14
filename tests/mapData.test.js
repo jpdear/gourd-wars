@@ -1,7 +1,10 @@
 import { expect, it } from 'vitest'
 import { CONFIG, MAX_PLAYERS } from '../src/config.js'
 import { MAPS } from '../src/maps/builtin.js'
-import { MAP_CODE_PREFIX, MAP_LIMITS, checkMap, decodeMapCode, duplicateMap, encodeMapCode, sanitizeMap } from '../src/maps/mapData.js'
+import { MAP_CODE_PREFIX, MAP_LIMITS, SPAWN_ROOM, checkMap, decodeMapCode, duplicateMap, encodeMapCode, sanitizeMap, spawnBlocked } from '../src/maps/mapData.js'
+import { createGame, resetRound, stepGame } from '../src/game/game.js'
+import { emptyInput } from '../src/game/input.js'
+import { registerMap, unregisterMap } from '../src/maps/mapData.js'
 import { THEMES } from '../src/maps/themes.js'
 
 it('turns a map into a code and back', () => {
@@ -41,6 +44,37 @@ it('fills in spawns 3-4 for maps made before 4 players', () => {
   const def = sanitizeMap(old)
   expect(def.spawns.length).toBe(MAX_PLAYERS)
   expect(checkMap(def).errors).toEqual([])
+})
+
+it('slides a spawn jammed against a wall along its floor until there\'s room to stand', () => {
+  const def = duplicateMap('patch', 'Walled')
+  const sp = def.spawns[0], wall = { x: sp.x + 0.3, y: sp.y + 2, w: 0.5, h: 4, wall: true }   // (right up against spawn 1)
+  def.platforms.push(wall)
+  expect(spawnBlocked(def, sp)).toBe(true)
+  expect(checkMap(def).errors.map(e => e.msg).join()).toMatch(/Spawn 1 has no room/)
+  const fixed = sanitizeMap(def)
+  const moved = fixed.spawns[0]
+  expect(moved.y).toBe(sp.y)
+  expect(moved.x).toBeLessThan(wall.x - wall.w / 2 - SPAWN_ROOM.halfW + 1e-6)   // (off to the open side, clear of the wall)
+  expect(moved.x).toBeGreaterThan(wall.x - wall.w / 2 - SPAWN_ROOM.halfW - 0.1)   // (only as far as it had to)
+  expect(checkMap(fixed).errors).toEqual([])
+})
+
+it('starts a player at a nudged spawn without any part of them inside the wall', () => {
+  const def = duplicateMap('patch', 'Walled')
+  const sp = def.spawns[0], wall = { x: sp.x - 0.25, y: sp.y + 2, w: 0.5, h: 4, wall: true }
+  def.platforms.push(wall)
+  const fixed = sanitizeMap(def)
+  registerMap(fixed)
+  const game = createGame()
+  game.mapChoice = fixed.id
+  resetRound(game)
+  stepGame(game, [emptyInput()])   // (so the physics knows where everything is now)
+  const me = game.players[0]
+  for (const part of me.parts) for (let f = part.body.getFixtureList(); f; f = f.getNext()) {
+    expect(f.getAABB(0).lowerBound.x).toBeGreaterThan(wall.x + wall.w / 2)
+  }
+  unregisterMap(fixed.id)
 })
 
 it('passes the checks for every built-in map', () => {

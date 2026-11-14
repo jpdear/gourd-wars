@@ -7,7 +7,7 @@ import { CANNON, CANNON_FACES, cannonParts, cannonPath, clampAim, mountPoint } f
 import { BALE } from '../../game/level.js'
 import { PUMPKIN_TYPES, SPAWNABLE_TYPES } from '../../game/pumpkinTypes.js'
 import { MAPS } from '../../maps/builtin.js'
-import { MAP_LIMITS, checkMap, fillSpawns, toRuntimeMap } from '../../maps/mapData.js'
+import { MAP_LIMITS, checkMap, fillSpawns, roomToStand, toRuntimeMap } from '../../maps/mapData.js'
 import { THEMES, skyColor } from '../../maps/themes.js'
 import { drawBale, drawBonfire, drawCannon, drawPitchforks } from '../../render/level.js'
 import { EDITOR, font } from '../../render/palette.js'
@@ -110,6 +110,7 @@ export function createEditor(canvas, view, hooks) {
     o.x = clamp(snap(x, free), 0, W)
     const g = groundAt(o.x, y, kind, skip)
     o.y = clamp(g !== null ? g : snap(y, free), 0, H)
+    if (kind === 'spawns') Object.assign(o, roomToStand(def, o))   // (not jammed against a wall: slid clear of it)
   }
   // mount a cannon on the floor, wall or ceiling nearest (x, y): false (and left where it was) if there's none close
   function mountCannon(o, x, y, free) {

@@ -6,6 +6,7 @@
 import { PLAYER_COLORS, PLAYER_COLOR_NAMES } from '../../config.js'
 import { cannonParts } from '../../game/cannons.js'
 import { BALE, TINE } from '../../game/level.js'
+import { SPAWN_ROOM } from '../../maps/mapData.js'
 import { font } from '../../render/palette.js'
 
 export const EDITOR_MAP_ID = '__editor'   // (ids starting with __ stay out of the menus and rotation)
@@ -48,7 +49,7 @@ export const moverEnd = m => ({ ...m, x: m.x2, y: m.y2 })   // the platform at t
 export function pieceBox(kind, o) {
   switch (kind) {
     case 'platforms': case 'movers': return { x0: o.x - o.w / 2, x1: o.x + o.w / 2, y0: o.y - o.h / 2, y1: o.y + o.h / 2 }
-    case 'spawns': return { x0: o.x - 0.4, x1: o.x + 0.4, y0: o.y, y1: o.y + 1.95 }
+    case 'spawns': return { x0: o.x - SPAWN_ROOM.halfW, x1: o.x + SPAWN_ROOM.halfW, y0: o.y, y1: o.y + SPAWN_ROOM.h }   // (the room it needs: see mapData.js)
     case 'patches': return { x0: o.x - 0.5, x1: o.x + 0.5, y0: o.y, y1: o.y + 0.75 }
     case 'bales': return { x0: o.x - BALE.w / 2, x1: o.x + BALE.w / 2, y0: o.y, y1: o.y + BALE.h }
     case 'spikes': return { x0: o.x - o.w / 2, x1: o.x + o.w / 2, y0: o.y, y1: o.y + TINE.tip }

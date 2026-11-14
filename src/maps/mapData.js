@@ -50,6 +50,7 @@ export function sanitizeMap(raw) {
       }
     }),
   }
+  map.spawns = map.spawns.map(sp => roomToStand(map, sp))   // (one jammed against a wall got players stuck)
   if (map.spawns.length) fillSpawns(map)   // (maps from before 4 players had 2 spawns)
   return map
 }
@@ -87,6 +88,24 @@ export function duplicateMap(id, name) {
 const mapTop = p => p.y + p.h / 2
 const onTopOf = (pt, p) => Math.abs(mapTop(p) - pt.y) < 0.06 && pt.x > p.x - p.w / 2 && pt.x < p.x + p.w / 2
 const insideOf = (pt, p) => Math.abs(pt.x - p.x) < p.w / 2 && Math.abs(pt.y - p.y) < p.h / 2
+// The room a player needs to start in (the editor's spawn marker): halfW m either side of the spawn, from
+// just above the floor to h m up. Anything solid in it (a wall, a ledge, a moving platform where it starts)
+// would jam the stick figure into it.
+export const SPAWN_ROOM = { halfW: 0.4, h: 1.95 }
+export const spawnBlocked = (def, sp) => [...def.platforms, ...def.movers].some(p =>
+  Math.abs(sp.x - p.x) < p.w / 2 + SPAWN_ROOM.halfW && sp.y + 0.05 < p.y + p.h / 2 && sp.y + SPAWN_ROOM.h > p.y - p.h / 2)
+// A spawn with no room to stand, slid along its floor to the nearest spot with room (up to 4 m either
+// way, staying on that floor); as it was if there's room already, or none to be found.
+export function roomToStand(def, sp) {
+  const floor = def.platforms.find(p => onTopOf(sp, p))
+  if (!floor || !spawnBlocked(def, sp)) return sp
+  for (let d = 0.05; d <= 4; d += 0.05) for (const x of [sp.x - d, sp.x + d]) {
+    const moved = { x: r3(x), y: sp.y }
+    if (onTopOf(moved, floor) && !spawnBlocked(def, moved)) return moved
+  }
+  return sp
+}
+
 // is pt within pad meters of a pitchfork row or a bonfire?
 const mapHazardAt = (def, pt, pad) =>
   def.spikes.some(sp => pt.x > sp.x - sp.w / 2 - pad && pt.x < sp.x + sp.w / 2 + pad && pt.y > sp.y - pad && pt.y < sp.y + 0.6 + pad) ||
@@ -127,8 +146,7 @@ function mapReach(def) {
 // Is this a good place for a player to start? (on a floor, room to stand, away from hazards)
 const goodSpawnSpot = (def, sp) => {
   const body = { x: sp.x, y: sp.y + 1 }
-  return def.platforms.some(p => !p.wall && onTopOf(sp, p)) &&
-    ![body, { x: sp.x, y: sp.y + 1.9 }].some(q => def.platforms.some(p => insideOf(q, p)) || def.movers.some(m => insideOf(q, m))) &&
+  return def.platforms.some(p => !p.wall && onTopOf(sp, p)) && !spawnBlocked(def, sp) &&
     !mapHazardAt(def, body, 1.5) && !mapHazardAt(def, sp, 1.5)
 }
 
@@ -165,7 +183,7 @@ export function checkMap(def) {
   def.spawns.forEach((sp, i) => {
     const body = { x: sp.x, y: sp.y + 1 }   // middle of a standing stick figure
     if (!def.platforms.some(p => onTopOf(sp, p))) errors.push({ msg: `Spawn ${i + 1} isn't standing on a platform.`, kind: 'spawns', index: i })
-    else if (def.platforms.some(p => insideOf(body, p)) || def.movers.some(m => insideOf(body, m))) errors.push({ msg: `Spawn ${i + 1} is inside a platform or wall.`, kind: 'spawns', index: i })
+    else if (spawnBlocked(def, sp)) errors.push({ msg: `Spawn ${i + 1} has no room to stand: move it away from the wall or platform.`, kind: 'spawns', index: i })
     if (hazardAt(body, 0.2) || hazardAt(sp, 0.2)) errors.push({ msg: `Spawn ${i + 1} is in a hazard.`, kind: 'spawns', index: i })
     else if (hazardAt(body, 1.5)) warnings.push({ msg: `Spawn ${i + 1} is right next to a hazard.`, kind: 'spawns', index: i })
     def.spawns.forEach((o, j) => {
