@@ -86,7 +86,8 @@ function faded(ctx, alpha, x, y, w, h, draw) {
   if (fadeLayer.height < H) fadeLayer.height = H
   const c = fadeLayer.getContext('2d')
   c.setTransform(1, 0, 0, 1, 0, 0)
-  c.clearRect(0, 0, W, H)
+  c.clearRect(0, 0, fadeLayer.width, fadeLayer.height)   // (all of it: smoothing reads a pixel past the W×H
+  // corner when it's copied back, and a bigger popup's leftovers there showed as lines around this one)
   c.setTransform(k, 0, 0, k, -(x - w / 2) * k, -(y - h / 2) * k)
   draw(c)
   ctx.save()
