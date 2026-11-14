@@ -59,6 +59,7 @@ export function drawGrappleVine(ctx, p, X, Y, s) {
 
 // What a player (from the snapshot) would throw right now, and how it'd fly: { x0, y0 (where it
 // starts), dx, dy (which way), speed, gravity, life (s), radius, color, splitAge?, curve? }, or null.
+// (splitAge: a Gourd Cluster, which splits at the top of its arc; its middle piece flies on along it.)
 //   a pumpkin   from the hand (a Seed Spitter's: its seeds')
 function flightOf(p, aim) {
   const [sx, sy] = partEnds(p.parts[PART_NAMES.indexOf('torso')], PART_HALF_LEN.torso)   // (the shoulders: aimed from there)
@@ -88,16 +89,17 @@ function sightObstacles(map, snap, pierces) {
 
 // Your sight (only you see it, when the host has sights on): dots in the colour of what you're
 // throwing, each on a paper disc so they show up on any map, along where it would fly if thrown now (so it grows while you charge), fading a little toward
-// the far end, up to the first thing it would hit, where it would fizzle (Vine) or split (Gourd
-// Cluster), or off screen (a Boomerang: once it's done curving, since it can come back on).
+// the far end, up to the first thing it would hit, where it would fizzle (Vine), or off screen (a
+// Boomerang: once it's done curving, since it can come back on). A Gourd Cluster's: the whole way its
+// middle piece goes (the other two fan out a little either side of it after the split).
 export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
   const flight = flightOf(p, aim)
   if (!flight) return
   const { x0, y0, dx, dy, speed, gravity, life, radius } = flight
-  let end = Math.min(life, 4)
-  if (flight.splitAge) end = Math.min(end, Math.max(flight.splitAge, dy * speed / gravity))   // (the top of its arc)
+  const end = Math.min(life, 4)
+  const split = flight.splitAge ? Math.max(flight.splitAge, dy * speed / gravity) : Infinity   // (the top of its arc)
   const boxes = sightObstacles(map, snap, flight.pierces)
-  const hits = (x, y) => boxes.some(b => x > b.x0 - radius && x < b.x1 + radius && y > b.y0 - radius && y < b.y1 + radius)
+  const hits = (x, y, r) => boxes.some(b => x > b.x0 - r && x < b.x1 + r && y > b.y0 - r && y < b.y1 + r)
 
   // walk the arc in small steps (~5 cm), keeping a dot every 0.45 m
   const dots = [], dt = 0.05 / Math.max(speed, 1), launch = { x: dx * speed, y: dy * speed }
@@ -111,7 +113,7 @@ export function drawSight(ctx, p, aim, map, snap, X, Y, s) {
     if (y < -1) break
     const offScreen = x < -1 || x > CONFIG.view.w + 1
     if (offScreen && !pull) break
-    if (hits(x, y)) break
+    if (hits(x, y, t < split ? radius : PUMPKIN_TYPES.mini.radius)) break   // (the middle piece is smaller)
     travelled += Math.hypot(x - px, y - py)
     if (travelled >= nextDot && !offScreen) dots.push([x, y])
     if (travelled >= nextDot) nextDot += 0.45
