@@ -404,8 +404,21 @@ export function boomerangPull(C, launch, t) {
   return { x: -dx * back + nx * side, y: -dy * back + ny * side, sign }
 }
 
+// Caught: once it's turned back (half its curve), if it passes within catchReach m of its thrower while
+// their hands are empty and they're up (not knocked down, frozen or out), it's back in their hand, as ripe
+// as it was, ready to throw again. No splat: it just goes. Otherwise it flies on past them, as before.
+function caughtBack(game, pk, C) {
+  const me = pk.owner
+  if (!me || pk.age < 2 * C.reach / CONFIG.throw.maxSpeed || !game.players.includes(me)) return false
+  if (me.dead || me.ko || me.stunned || me.frozen || me.handsFull || !me.partAt(pk.body.getPosition(), C.catchReach)) return false
+  me.holdPumpkin(pk.typeName, pk.power, pk.ripeness)
+  pk.broken = true
+  return true
+}
+
 export function updateBoomerang(game, pk, dt) {
   const C = pk.type.curve
+  if (caughtBack(game, pk, C)) return
   const pull = boomerangPull(C, pk.launch, pk.age)
   if (!pull) {   // done curving: on it flies, with its light gravity
     if (pk.body.getGravityScale() === 0) pk.body.setGravityScale(pk.type.gravityScale)

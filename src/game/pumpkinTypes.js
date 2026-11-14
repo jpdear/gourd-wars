@@ -212,10 +212,12 @@ export const PUMPKIN_TYPES = {
     // A crookneck gourd bent like a boomerang (see boomerangPull in powers.js): it flies out, hooks back
     // swinging out underneath, and comes back along the line it left on, as fast as it left, through you (it never touches you)
     // and on, straight, until it hits something. No gravity while it's curving; gravityScale after.
-    //   reach   how far out it gets before turning back, on a full-charge throw (m; a tap: about half)
-    //   width   how far it swings out to the side as it turns (m, at the widest; a tap: about half)
-    //   spin    how fast it spins (radians/s; just for looks)
-    curve: { reach: 15, width: 5, spin: 24 },
+    // Coming back, it's caught if it passes close to its thrower while their hands are empty (see caughtBack).
+    //   reach        how far out it gets before turning back, on a full-charge throw (m; a tap: about half)
+    //   width        how far it swings out to the side as it turns (m, at the widest; a tap: about half)
+    //   spin         how fast it spins (radians/s; just for looks)
+    //   catchReach   how close to the thrower's body it has to pass, on the way back, to be caught (m)
+    curve: { reach: 15, width: 5, spin: 24, catchReach: 0.5 },
     update: (game, pk, dt) => updateBoomerang(game, pk, dt),
   },
   buzzsaw: {   // a pattypan squash with a saw-tooth rim, thrown flat and spinning: through everyone in its way

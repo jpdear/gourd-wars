@@ -138,18 +138,45 @@ it('a Boomerang always bends toward the underside of its throw, whichever way it
   }
 })
 
-it('a Boomerang thrown away from the dummy comes back past the thrower and hits it', () => {
+// A lighter Boomerang throw away from the dummy, from right in front of the thrower's chest, a hair below
+// level (so it swings under, off the end of the platform, not up into the ledge): it comes back through
+// them. setup(me) runs first (fill their hands, knock them down...). Returns what happened.
+function throwBoomerangAwayFromDummy(setup = () => {}) {
   const game = createGame()
   const [me, dummy] = game.players
   for (let i = 0; i < 30; i++) stepGame(game, [emptyInput()])   // (stand up)
+  setup(me)
   const c = me.torso.getPosition(), d = dummy.torso.getPosition()
   const away = Math.sign(c.x - d.x)
-  // a lighter throw from right in front of the thrower's chest, a hair below level (so it swings under,
-  // off the end of the platform, not up into the ledge): it comes back through them and on to the dummy
-  spawnPumpkin(game, 'boomerang', new Vec2(c.x + away * 0.3, c.y + 0.2), new Vec2(away * 16, -0.01), me)
-  for (let i = 0; i < 180 && !dummy.damageTaken; i++) stepGame(game, [emptyInput()])
+  const pk = spawnPumpkin(game, 'boomerang', new Vec2(c.x + away * 0.3, c.y + 0.2), new Vec2(away * 16, -0.01), me, { power: 0.8, ripeness: 0.6 })
+  for (let i = 0; i < 180 && !dummy.damageTaken && game.pumpkins.includes(pk); i++) {
+    stepGame(game, [emptyInput()])
+    if (pk.age < 0.5) expect(me.held?.typeName).not.toBe('boomerang')   // (not caught on the way out)
+  }
+  return { me, dummy, gone: !game.pumpkins.includes(pk) }
+}
+
+it('a Boomerang that comes back to its thrower with their hands empty is caught, as ripe as it was', () => {
+  const { me, dummy, gone } = throwBoomerangAwayFromDummy()
+  expect(gone).toBe(true)
+  expect(me.held).toMatchObject({ typeName: 'boomerang', power: 0.8, ripeness: 0.6 })
+  expect(dummy.damageTaken).toBe(0)
+  expect(me.damageTaken).toBe(0)
+})
+
+it('a Boomerang flies on past a thrower who has their hands full, and hits whoever is behind them', () => {
+  const { me, dummy } = throwBoomerangAwayFromDummy(me => me.holdPumpkin('classic', 1, 1))
+  expect(me.held.typeName).toBe('classic')
   expect(dummy.damageTaken).toBeGreaterThan(0)
   expect(me.damageTaken).toBe(0)
+})
+
+it("a knocked-down or frozen thrower can't catch their Boomerang", () => {
+  for (const setup of [me => me.stun(5), me => { me.frozenTimer = 5 }]) {
+    const { me, dummy } = throwBoomerangAwayFromDummy(setup)
+    expect(me.held).toBeNull()
+    expect(dummy.damageTaken).toBeGreaterThan(0)
+  }
 })
 
 it("a Homing gourd whose target is knocked out gives up instead of picking someone else", () => {

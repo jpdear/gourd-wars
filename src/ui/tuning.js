@@ -218,6 +218,7 @@ const TUNABLES = [
       [T_ + 'boomerang.curve.width', 0, 8, 0.25, 'swing out'],
       [T_ + 'boomerang.gravityScale', 0, 1, 0.05, 'gravity'],
       [T_ + 'boomerang.curve.spin', 0, 60, 1, 'spin'],
+      [T_ + 'boomerang.curve.catchReach', 0, 2, 0.05, 'catch reach'],
     ]],
     ['Buzzsaw', [
       [T_ + 'buzzsaw.damage', 0, 100, 1, 'damage (each)'],
