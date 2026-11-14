@@ -333,23 +333,48 @@ function drawCrown(ctx, head, theme, X, Y, s) {
   })
 }
 
-// Contact shadows: a flat ellipse in the map's shadow color on the floor under everyone standing (alive
-// and not ragdolled): on the highest platform top (or moving platform, where it is now) under their
-// lowest foot, if that's within 0.12 m below it. Drawn before the players.
+// Contact shadows: a flat ellipse in the map's shadow color on the floor under each living player, drawn
+// before the players. The floor: the highest platform, moving platform (where it is now) or lying-flat
+// hay bale top that's under any part of the body (not just one foot, so a foot over the edge doesn't
+// lose it) and no higher than its lowest point. The shadow spans the body (head, torso, legs: long for
+// someone lying down), shrinks and fades as they rise (gone SHADOW.fade m up), and is cut off at the
+// floor's ends so it never hangs in the air.
+const SHADOW = { minHalf: 0.3, depth: 0.045, fade: 1.6, shrink: 0.5, slack: 0.05 }   // m (shrink: how much smaller it gets at the top)
+const SHADOW_PARTS = ['torso', 'head', 'thighL', 'thighR', 'shinL', 'shinR']   // (not the arms: a punch shouldn't stretch it)
 export function drawContactShadows(ctx, snap, map, theme, X, Y, s) {
   const floors = map.platforms.map(({ x, y, w, h }) => ({ x0: x - w / 2, x1: x + w / 2, top: y + h / 2 }))
   map.movers.forEach((m, i) => { const { x, y } = (snap.movers && snap.movers[i]) || m; floors.push({ x0: x - m.w / 2, x1: x + m.w / 2, top: y + m.h / 2 }) })
-  ctx.fillStyle = theme.shadow
-  for (const p of snap.players) {
-    if (p.dead || p.stunned) continue
-    const feet = ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2))
-    const [fx, fy] = feet[0][1] < feet[1][1] ? feet[0] : feet[1]
-    let top = -Infinity
-    for (const f of floors) if (fx >= f.x0 && fx <= f.x1 && f.top <= fy + 0.05 && fy - f.top <= 0.12 && f.top > top) top = f.top
-    if (top === -Infinity) continue
-    const [, , hipX] = partEnds(part(p, 'torso'), PART_HALF_LEN.torso)
-    ctx.beginPath()
-    ctx.ellipse(X(hipX), Y(top), 0.3 * s, 0.045 * s, 0, 0, Math.PI * 2)
-    ctx.fill()
+  for (const b of snap.bales) {   // (only while lying flat or on its side: a tipped one has no flat top)
+    const q = ((b.angle % Math.PI) + Math.PI) % Math.PI, side = Math.abs(q - Math.PI / 2) < 0.1
+    if (!side && Math.min(q, Math.PI - q) > 0.1) continue
+    const w = side ? BALE.h : BALE.w, h = side ? BALE.w : BALE.h
+    floors.push({ x0: b.x - w / 2, x1: b.x + w / 2, top: b.y + h / 2 })
   }
+  ctx.save()
+  ctx.fillStyle = theme.shadow
+  const alpha = ctx.globalAlpha
+  for (const p of snap.players) {
+    if (p.dead) continue
+    let x0 = Infinity, x1 = -Infinity, low = Infinity
+    for (const name of SHADOW_PARTS) {
+      const [ax, ay, bx, by] = partEnds(part(p, name), PART_HALF_LEN[name])
+      x0 = Math.min(x0, ax, bx); x1 = Math.max(x1, ax, bx); low = Math.min(low, ay, by)
+    }
+    let floor = null
+    for (const f of floors) if (f.x1 >= x0 && f.x0 <= x1 && f.top <= low + SHADOW.slack && (!floor || f.top > floor.top)) floor = f
+    if (!floor) continue
+    const k = 1 - Math.max(0, low - floor.top) / SHADOW.fade   // (1 on the floor, 0 at fade m up)
+    if (k <= 0) continue
+    const cx = (x0 + x1) / 2, half =Math.max(SHADOW.minHalf, (x1 - x0) / 2) * (1 - SHADOW.shrink * (1 - k))
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(X(floor.x0), Y(floor.top) - SHADOW.depth * s, (floor.x1 - floor.x0) * s, 2 * SHADOW.depth * s)
+    ctx.clip()
+    ctx.globalAlpha = alpha * k
+    ctx.beginPath()
+    ctx.ellipse(X(cx), Y(floor.top), half * s, SHADOW.depth * s * (0.6 + 0.4 * k), 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+  ctx.restore()
 }
