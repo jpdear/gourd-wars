@@ -188,7 +188,7 @@ export function drawPlayer(ctx, p, crowned, theme, X, Y, s) {
   if (fire) drawBurningPlayer(ctx, Object.fromEntries(['torso', 'thighL', 'thighR', 'armL', 'armR'].map(name => [name, partEnds(part(p, name), PART_HALF_LEN[name])])), X, Y, s, clock.now(), fire)
   const drain = p.glued ? null : gooLeft('p' + p.slot)   // (just come unglued: its goo draining away)
   if (p.frozen || p.glued || drain) {
-    const g = { head: [hx, hy], facing: p.facing, limbs: limbs.map(([ends, width]) => [...ends, width]), feet: ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2)) }
+    const ta = part(p, 'torso')[2], g = { head: [hx, hy], up: [-Math.sin(ta), Math.cos(ta)], facing: p.facing, limbs: limbs.map(([ends, width]) => [...ends, width]), feet: ['shinL', 'shinR'].map(name => partEnds(part(p, name), PART_HALF_LEN[name]).slice(2)) }
     if (p.frozen) LOOKS.playerFrozen.over(ctx, g, X, Y, s, clock.now())
     if (p.glued) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now(), STATUS.goos[p.goo || 'pie'])
     else if (drain) LOOKS.playerGlued(ctx, g, X, Y, s, clock.now(), STATUS.goos[drain.goo], drain.k)

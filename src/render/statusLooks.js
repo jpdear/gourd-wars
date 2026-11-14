@@ -13,8 +13,9 @@
 //   playerFrozen: { tint(color), over(ctx, g, X, Y, s, t) }   a frozen player: the color their body turns,
 //                                     and what's drawn over them after (g: their shape, below)
 //   playerGlued(ctx, g, X, Y, s, t, goo, k)   goo on a glued player's feet (goo, k: the same)
-// g: a player's shape, in meters: { head: [x, y], facing (1 right, -1 left), limbs: [[x1, y1, x2, y2,
-// width], ...], feet: [[x, y], [x, y]] (the ends of the shins) }.
+// g: a player's shape, in meters: { head: [x, y], up: [x, y] (which way the body points, toward the head;
+// optional: straight up), facing (1 right, -1 left), limbs: [[x1, y1, x2, y2, width], ...], feet: [[x, y],
+// [x, y]] (the ends of the shins) }.
 //
 // Picked in the effects lab: thin zigzag cracks on a damaged bale (like its first look), frozen bales and
 // players turned pale icy blue with frost spots, glue as a puddle with drips whose drops break off and
@@ -130,10 +131,10 @@ export const LOOKS = {
 
   playerFrozen: {
     tint: color => mixHex(color, STATUS.frozen, 0.82),   // pale icy blue all over
-    over: (ctx, g, X, Y, s) => {   // white frost spots on the head and body
-      const [hx, hy] = g.head
+    over: (ctx, g, X, Y, s) => {   // white frost spots on the head and body (placed along the body, so they tip over with it)
+      const [hx, hy] = g.head, [ux, uy] = g.up || [0, 1], rx = uy * g.facing, ry = -ux * g.facing   // (up the body; across it, the way they face)
       ctx.fillStyle = STATUS.frost
-      for (const [dx, dy, r] of [[-0.06, 0.05, 0.025], [0.05, -0.04, 0.018], [0.0, -0.3, 0.02], [0.03, -0.55, 0.024], [-0.02, -0.75, 0.016]]) disc(ctx, X(hx + dx * g.facing), Y(hy + dy), r * s)
+      for (const [dx, dy, r] of [[-0.06, 0.05, 0.025], [0.05, -0.04, 0.018], [0.0, -0.3, 0.02], [0.03, -0.55, 0.024], [-0.02, -0.75, 0.016]]) disc(ctx, X(hx + dx * rx + dy * ux), Y(hy + dx * ry + dy * uy), r * s)
     },
   },
 
